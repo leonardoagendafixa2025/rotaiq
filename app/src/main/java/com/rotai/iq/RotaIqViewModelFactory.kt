@@ -7,6 +7,7 @@ import com.rotai.iq.core.data.repository.RotaIqRepository
 import com.rotai.iq.feature.automation.AutomationViewModel
 import com.rotai.iq.feature.dashboard.DashboardViewModel
 import com.rotai.iq.feature.finance.FinancialHubViewModel
+import com.rotai.iq.feature.geographic.GeoInsightsViewModel
 import com.rotai.iq.feature.goals.GoalsViewModel
 import com.rotai.iq.feature.rides.HistoryViewModel
 import com.rotai.iq.feature.rides.RideSimulatorViewModel
@@ -40,6 +41,9 @@ class RotaIqViewModelFactory(
             }
             modelClass.isAssignableFrom(AutomationViewModel::class.java) -> {
                 AutomationViewModel(application) as T
+            }
+            modelClass.isAssignableFrom(GeoInsightsViewModel::class.java) -> {
+                GeoInsightsViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

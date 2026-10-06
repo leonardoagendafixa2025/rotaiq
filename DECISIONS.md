@@ -97,3 +97,27 @@ Este documento registra as principais decisões técnicas e de design tomadas no
 - **Contexto**: Olhar fixamente para o celular enquanto dirige em velocidade pode causar acidentes graves.
 - **Decisão**: Implementar `VoiceAlertManager` e `TtsMessageFormatter` utilizando o `TextToSpeech` nativo do Android configurado para português brasileiro em velocidade 1.15x, vocalizando uma frase resumida em menos de 3 segundos ("Corrida Excelente! Sobra vinte e sete reais, oitenta e um por hora").
 - **Consequências**: Segurança máxima ao volante e decisão instantânea sem necessidade de tirar os olhos da pista.
+
+---
+
+### ADR-013: Modelagem Preditiva de Deadhead e Abatimento de Volta Vazia (Fase 4)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Corridas longas com valor bruto elevado frequentemente levam motoristas a locais ermos ou periferias sem passageiros de retorno, gerando prejuízo oculto pelo deslocamento vazio.
+- **Decisão**: Criar o `DeadheadPredictorEngine`, calculando a probabilidade de retorno da zona de desembarque e abatendo o custo do retorno vazio (`expectedEmptyKm * costPerKm`) diretamente do lucro líquido da corrida (`adjustedNetProfit`).
+- **Consequências**: Previne que o motorista caia em armadilhas de corridas longas que pagam bem na ida mas dão prejuízo na volta.
+
+---
+
+### ADR-014: Heatmap de Demanda Temporal Baseado em Janelas Horárias (Fase 4)
+- **Status**: Aprovado e Implementado
+- **Contexto**: O comportamento de demanda de uma mesma região varia drasticamente entre o horário comercial, pico vespertino e madrugada.
+- **Decisão**: Estruturar o `GeoHeatmapEngine` com 5 janelas temporais diárias (`TimeSlot`), reclassificando os níveis de demanda de cada zona metropolitana em tempo real.
+- **Consequências**: Orienta o motorista para posicionar o veículo estrategicamente nas regiões mais quentes do horário atual.
+
+---
+
+### ADR-015: Motor Comparativo Agregado de Eficiência Operacional por Plataforma (Fase 4)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Motoristas frequentemente alternam entre Uber, 99 e inDrive sem clareza matemática de qual aplicativo gera mais lucro líquido por hora trabalhada.
+- **Decisão**: Implementar o `PlatformComparisonEngine`, gerando relatórios consolidados de lucro/hora, faturamento, ticket médio e recomendações acionáveis.
+- **Consequências**: Permite que o motorista foque no aplicativo mais rentável em cada perfil operacional.

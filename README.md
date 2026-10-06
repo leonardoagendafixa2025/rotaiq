@@ -36,7 +36,15 @@ O **ROTA IQ** é um copiloto financeiro e operacional nativo para motoristas de 
 - **VoiceAlertManager & TtsMessageFormatter**: Síntese vocal em português brasileiro (TTS) vocalizando o diagnóstico em 3 segundos ("Corrida Excelente! Sobra cerca de 27 reais, 81 reais por hora"), permitindo decidir sem tirar os olhos do trânsito.
 - **AutomationHubScreen & ViewModel**: Painel de gerenciamento do copiloto com monitoramento de status das permissões, atalhos diretos para as Configurações do Android e laboratório de simulação de ofertas em tempo real.
 - **100% de Conformidade LGPD**: Leitura restrita estritamente aos nós visíveis de oferta de corrida, sem captura de dados pessoais, mensagens ou senhas.
-- **43 Testes Unitários Automatizados**: 13 suítes de testes com 100% de aprovação.
+
+---
+
+## 🗺️ Destaques da Fase 4 (Inteligência Geográfica & Análise Preditiva)
+- **DeadheadPredictorEngine**: Motor preditivo que calcula o risco de volta vazia (`expectedEmptyReturnKm`), custo do combustível de retorno sem passageiro (`emptyReturnCost`) e abate do lucro líquido real da oferta (`adjustedNetProfit`), alertando quando uma corrida de valor aparente alto se torna deficitária.
+- **GeoHeatmapEngine**: Modelagem de zonas metropolitanas com faixas de demanda temporal (`DemandLevel`: *Very High*, *High*, *Balanced*, *Low*, *Dead Zone*, *High Risk*), janelas horárias (Pico Matutino, Entrepico, Vespertino, Noite, Madrugada) e probabilidades de retorno de passageiro.
+- **PlatformComparisonEngine**: Relatório consolidado comparativo de performance entre plataformas (Uber vs 99 vs inDrive), calculando rentabilidade por hora real apurada, margem líquida percentual, ticket médio e recomendações táticas de qual app priorizar.
+- **GeoInsightsScreen & ViewModel**: Painel avançado com abas intuitivas para Heatmap de Demanda Metropolitano, Simulador Interativo de Deadhead e Comparativo de Eficiência Uber vs 99.
+- **52 Testes Unitários Automatizados**: 16 suítes de testes cobrindo todos os módulos com 100% de sucesso.
 
 ---
 
@@ -46,6 +54,7 @@ O **ROTA IQ** é um copiloto financeiro e operacional nativo para motoristas de 
 - **Interface**: Jetpack Compose com Material 3 & Navigation Compose
 - **Persistência Local**: Room 2.6.1 + KSP
 - **Automação & Sistema**: Android AccessibilityService, WindowManager Overlay, TextToSpeech
+- **Inteligência Preditiva**: Motores determinísticos de deadhead, zonas e comparativo de plataformas
 - **Assincronismo**: Kotlin Coroutines & Flow
 - **Build System**: Gradle 8.7 com Version Catalog (`libs.versions.toml`)
 - **JVM**: Microsoft OpenJDK 17 LTS
@@ -57,7 +66,7 @@ O **ROTA IQ** é um copiloto financeiro e operacional nativo para motoristas de 
 
 O projeto foi configurado para ser executado diretamente pelo terminal (CLI do Antigravity), sem necessidade do Android Studio:
 
-### 1. Compilar e Executar Testes Unitários (43 Testes)
+### 1. Compilar e Executar Testes Unitários (52 Testes)
 ```powershell
 .\gradlew.bat testDebugUnitTest
 ```
@@ -79,10 +88,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ## 📁 Estrutura do Repositório
 
 Consulte a documentação completa:
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitetura de software, camadas, fluxo de acessibilidade, overlay e TTS.
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitetura de software, camadas, motores preditivos e geográficos.
 - [DATABASE.md](DATABASE.md) - Modelagem do banco local (Room v2) e remoto (PostgreSQL).
 - [ANDROID.md](ANDROID.md) - Configurações do SDK, permissões especiais e ecossistema Android.
-- [SECURITY.md](SECURITY.md) - Políticas de segurança, privacidade e diretrizes da LGPD para Acessibilidade.
+- [SECURITY.md](SECURITY.md) - Políticas de segurança, privacidade e diretrizes da LGPD.
 - [ROADMAP.md](ROADMAP.md) - Planejamento e status detalhado de todas as fases.
-- [DECISIONS.md](DECISIONS.md) - Registro de decisões arquiteturais (ADRs).
-- [TESTING.md](TESTING.md) - Estratégia de testes unitários e cobertura dos 43 cenários.
+- [DECISIONS.md](DECISIONS.md) - Registro de decisões arquiteturais (ADRs 001 a 015).
+- [TESTING.md](TESTING.md) - Estratégia de testes unitários e cobertura dos 52 cenários.

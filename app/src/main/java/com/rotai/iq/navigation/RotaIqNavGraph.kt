@@ -29,6 +29,8 @@ import com.rotai.iq.feature.dashboard.DashboardScreen
 import com.rotai.iq.feature.dashboard.DashboardViewModel
 import com.rotai.iq.feature.finance.FinancialHubScreen
 import com.rotai.iq.feature.finance.FinancialHubViewModel
+import com.rotai.iq.feature.geographic.GeoInsightsScreen
+import com.rotai.iq.feature.geographic.GeoInsightsViewModel
 import com.rotai.iq.feature.goals.GoalsScreen
 import com.rotai.iq.feature.goals.GoalsViewModel
 import com.rotai.iq.feature.rides.HistoryViewModel
@@ -50,10 +52,10 @@ fun RotaIqApp(
     val screens = listOf(
         Screen.Dashboard,
         Screen.Automation,
+        Screen.GeoInsights,
         Screen.Finance,
         Screen.Simulator,
-        Screen.Vehicle,
-        Screen.History
+        Screen.Vehicle
     )
 
     Scaffold(
@@ -122,6 +124,10 @@ fun RotaIqApp(
             composable(Screen.Automation.route) {
                 val vm: AutomationViewModel = viewModel(factory = viewModelFactory)
                 AutomationHubScreen(viewModel = vm)
+            }
+            composable(Screen.GeoInsights.route) {
+                val vm: GeoInsightsViewModel = viewModel(factory = viewModelFactory)
+                GeoInsightsScreen(viewModel = vm)
             }
             composable(Screen.Finance.route) {
                 val vm: FinancialHubViewModel = viewModel(factory = viewModelFactory)

@@ -2,7 +2,7 @@
 
 ## 1. Visão Geral da Suíte de Testes
 
-A integridade matemática dos cálculos financeiros e das decisões operacionais é o coração do **ROTA IQ**. A suíte de testes unitários conta com **43 cenários de teste automatizados** (13 suítes de teste) cobrindo todos os motores de decisão, parsers, acessibilidade, sintetizador de voz e sincronização.
+A integridade matemática dos cálculos financeiros e das decisões operacionais é o coração do **ROTA IQ**. A suíte de testes unitários conta com **52 cenários de teste automatizados** (16 suítes de teste) cobrindo todos os motores de decisão, parsers, acessibilidade, sintetizador de voz, inteligência geográfica, simulação de deadhead e comparativo de plataformas.
 
 ---
 
@@ -65,18 +65,31 @@ A integridade matemática dos cálculos financeiros e das decisões operacionais
 - Valida processamento de confirmação do servidor (Ack) e tratamento de falhas.
 
 ### 2.11 `TtsMessageFormatterTest` (3 Cenários - Fase 3)
-- **`formatSpeechMessage_excellentRide_returnsEncouragingSpeech`**: Valida formulação concisa de corrida excelente, verbalizando lucro líquido limpo arredondado e taxa horária.
-- **`formatSpeechMessage_avoidRideNegativeProfit_warnsAboutLoss`**: Valida verbalização enfática de alerta e cálculo falado do prejuízo estimado.
-- **`formatSpeechMessage_acceptableRide_includesAlertWarning`**: Valida inclusão do aviso sonoro de alerta sobre paradas ou margem intermediária.
+- Valida formulação concisa de corrida excelente, verbalizando lucro líquido limpo arredondado e taxa horária.
+- Valida verbalização enfática de alerta e cálculo falado do prejuízo estimado.
+- Valida inclusão do aviso sonoro de alerta sobre paradas ou margem intermediária.
 
 ### 2.12 `AccessibilityNodeExtractorTest` (3 Cenários - Fase 3)
-- **`buildCombinedText_emptyList_returnsEmptyString`**: Valida segurança e resiliência com lista vazia.
-- **`buildCombinedText_multipleLines_joinsCorrectlyWithNewlines`**: Valida reconstrução limpa e sequencial do texto do cartão de oferta a partir de múltiplos nós de tela.
-- **`extractAllTexts_nullNode_returnsEmptyList`**: Valida tratamento gracioso de nós de acessibilidade nulos.
+- Valida segurança e resiliência com lista vazia.
+- Valida reconstrução limpa e sequencial do texto do cartão de oferta a partir de múltiplos nós de tela.
+- Valida tratamento gracioso de nós de acessibilidade nulos.
 
 ### 2.13 `OfferRealTimeParsingPipelineTest` (2 Cenários - Fase 3)
-- **`livePipeline_uberCard_extractsEvaluatesAndGeneratesSpokenAlert`**: Teste de integração de ponta a ponta: nós brutos da tela do Uber -> detecção -> parsing -> avaliação matemática -> geração de frase de voz TTS.
-- **`livePipeline_ninetyNineTrapCard_identifiesDeficitAndGeneratesAvoidSpeech`**: Teste de integração de ponta a ponta para armadilha de cartão da 99 com 2 paradas, diagnosticando classificação `EVITAR` e gerando alerta sonoro correspondente.
+- Teste de integração de ponta a ponta: nós brutos da tela do Uber -> detecção -> parsing -> avaliação matemática -> geração de frase de voz TTS.
+- Teste de integração de ponta a ponta para armadilha de cartão da 99 com 2 paradas, diagnosticando classificação `EVITAR` e gerando alerta sonoro correspondente.
+
+### 2.14 `DeadheadPredictorEngineTest` (3 Cenários - Fase 4)
+- **`analyzeDeadheadRisk_highReturnZone_doesNotTriggerDeadheadTrap`**: Valida que destinos centrais com alta probabilidade de retorno (95%) não sofrem penalidade de volta vazia.
+- **`analyzeDeadheadRisk_remoteSuburbanZone_triggersDeadheadTrapWithAlert`**: Valida o cálculo de km vazios esperados (20 km), custo de retorno deduzido do lucro e disparo de alerta de armadilha de volta vazia.
+- **`analyzeDeadheadRisk_avoidZone_alwaysFlagsTrap`**: Valida que destinos em áreas classificadas como `isAvoidZone` são sumariamente diagnosticados como armadilha.
+
+### 2.15 `PlatformComparisonEngineTest` (2 Cenários - Fase 4)
+- **`comparePlatforms_emptyEvaluations_returnsSafeEmptyReport`**: Valida retorno seguro e amigável quando ainda não existem corridas avaliadas.
+- **`comparePlatforms_uberAndNinetyNine_computesAccurateAveragesAndIdentifiesBest`**: Valida agregação matemática de faturamento, margens líquidas, lucro/hora médio e geração de recomendação estratégica de qual aplicativo priorizar.
+
+### 2.16 `GeoHeatmapEngineTest` (2 Cenários - Fase 4)
+- **`getCurrentTimeSlot_mapsHourCorrectly`**: Valida mapeamento determinístico de horários para as 5 janelas temporais do dia (pico manhã, entrepico, pico tarde, noite e madrugada).
+- **`evaluateZoneDemandForTimeSlot_detectsSurgeZonesInPeak`**: Valida reclassificação de demanda de zonas conforme a faixa horária.
 
 ---
 

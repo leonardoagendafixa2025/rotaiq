@@ -8,13 +8,13 @@ O **ROTA IQ** segue os princípios de **Clean Architecture**, **Modularidade Ori
 ┌─────────────────────────────────────────────────────────────┐
 │                       UI / PRESENTATION                     │
 │  Jetpack Compose • Material 3 • Navigation • Cockpit Theme  │
-│  [Dashboard] [CopilotHub] [FinanceHub] [Simulator] [Vehicle]│
+│  [Dashboard] [CopilotHub] [GeoInsights] [FinanceHub] ...    │
 └──────────────────────────────┬──────────────────────────────┘
                                │ StateFlow / Actions
 ┌──────────────────────────────▼──────────────────────────────┐
 │                         VIEWMODELS                          │
-│  DashboardViewModel • AutomationViewModel • FinancialViewModel
-│  SimulatorViewModel • VehicleViewModel • GoalsViewModel     │
+│  DashboardViewModel • AutomationViewModel • GeoInsightsVM   │
+│  FinancialHubViewModel • SimulatorViewModel • VehicleVM     │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -29,12 +29,15 @@ O **ROTA IQ** segue os princípios de **Clean Architecture**, **Modularidade Ori
 ┌──────────────────────────────▼──────────────────────────────┐
 │                        DOMAIN LAYER                         │
 │  Motores Determinísticos Puros (Sem dependências de Framework)│
-│  - RideEvaluationEngine                                     │
-│  - AdvancedFinancialEngine & FinancialEngine                │
+│  - DeadheadPredictorEngine (Risco preditivo de volta vazia) │
+│  - GeoHeatmapEngine (Modelagem de zonas e janelas horárias) │
+│  - PlatformComparisonEngine (Comparativo Uber vs 99)        │
+│  - RideEvaluationEngine (Motor multi-fatorial de decisão)   │
+│  - AdvancedFinancialEngine & FinancialEngine (DRE completo) │
 │  - FuelEngine (Consumo real bomba método 2 tanques cheios)  │
 │  - MaintenanceSchedulerEngine (Alertas preventivos odômetro)│
-│  - MultiPeriodGoalEngine & GoalEngine                       │
-│  - VehicleCostEngine                                        │
+│  - MultiPeriodGoalEngine & GoalEngine (Metas e ritmo)       │
+│  - VehicleCostEngine (Custo granular do carro por km e hora)│
 │  - PlatformDetector & OfferParsers (Uber, 99, inDrive)      │
 │  - Domain Models & Enums                                    │
 └──────────────────────────────┬──────────────────────────────┘
@@ -62,10 +65,10 @@ app/
  │    │    ├── java/com/rotai/iq/
  │    │    │    ├── core/
  │    │    │    │    ├── domain/
- │    │    │    │    │    ├── model/         # Modelos de domínio (Vehicle, RideOffer, etc.)
- │    │    │    │    │    ├── engine/        # Motores matemáticos de decisão e finanças
+ │    │    │    │    │    ├── model/         # GeographicModels, Vehicle, RideOffer, etc.
+ │    │    │    │    │    ├── engine/        # DeadheadPredictor, GeoHeatmap, PlatformComparison
  │    │    │    │    │    └── parser/        # Parsers desacoplados (Uber, 99, Detector)
- │    │    │    │    ├── automation/        # Camada de Sistema & Automação ao Volante (Fase 3)
+ │    │    │    │    ├── automation/        # Camada de Sistema & Automação ao Volante
  │    │    │    │    │    ├── accessibility/ # RotaIqAccessibilityService, NodeExtractor
  │    │    │    │    │    ├── overlay/       # OverlayManager, FloatingHudView, OverlayService
  │    │    │    │    │    └── tts/           # VoiceAlertManager, TtsMessageFormatter
@@ -81,16 +84,17 @@ app/
  │    │    │    │         └── components/       # HUD, Badges, Cards, MetricWidgets
  │    │    │    ├── feature/
  │    │    │    │    ├── dashboard/             # Painel principal
- │    │    │    │    ├── automation/            # Gestão do Copiloto & Automação (Fase 3)
+ │    │    │    │    ├── automation/            # Gestão do Copiloto & Automação
+ │    │    │    │    ├── geographic/            # Inteligência Geográfica, Zonas & Deadhead (Fase 4)
  │    │    │    │    ├── rides/                 # Simulador e Histórico
- │    │    │    │    ├── finance/               # Hub Financeiro Avançado (Fase 2)
+ │    │    │    │    ├── finance/               # Hub Financeiro Avançado
  │    │    │    │    ├── vehicle/               # Custos do veículo
  │    │    │    │    └── goals/                 # Metas e produtividade
  │    │    │    ├── navigation/                 # Rotas e NavGraph Compose
  │    │    │    ├── MainActivity.kt
  │    │    │    ├── RotaIqApplication.kt
  │    │    │    └── RotaIqViewModelFactory.kt
- │    └── test/                                # 43 Testes unitários automatizados
+ │    └── test/                                # 52 Testes unitários automatizados
 backend/
  └── migrations/
       ├── 001_initial_schema.sql               # Esquema base PostgreSQL
@@ -99,13 +103,22 @@ backend/
 
 ---
 
-## 3. Fluxo de Execução do Copiloto ao Volante (Fase 3)
+## 3. Os Novos Motores de Inteligência Preditiva (Fase 4)
 
-1. **Captura do Evento**: O app Uber ou 99 emite um novo cartão de corrida na tela.
-2. **Interceptação Acessível**: O `RotaIqAccessibilityService` recebe o evento `TYPE_WINDOW_CONTENT_CHANGED`.
-3. **Extração & Debounce**: O `AccessibilityNodeExtractor` recupera os nós visíveis; caso o hash do texto tenha sido avaliado há menos de 2 segundos, descarta para evitar retrabalho.
-4. **Detecção da Plataforma**: O `PlatformDetector` roteia o texto para o parser correspondente (`UberParser` ou `NinetyNineParser`) e gera o `RideOffer`.
-5. **Avaliação Determinística**: O `RideEvaluationEngine` combina o perfil do carro (`Vehicle`), metas (`DriverGoal`) e preferências (`DriverPreference`) do motorista, gerando o `RideEvaluation` em menos de 2 milissegundos.
-6. **Projeção Visual no HUD Flutuante**: O `OverlayManager` projeta o `FloatingHudView` com cor semântica do score e dados resumidos ("Sobra: R$ 27,00 | R$ 81/h").
-7. **Alerta de Voz TTS**: O `VoiceAlertManager` vocaliza a frase concisa em português brasileiro.
-8. **Persistência Histórica**: A avaliação é persistida de forma reativa no Room Database local.
+### 3.1 `DeadheadPredictorEngine`
+Avalia a probabilidade de retorno de passageiro no local de desembarque:
+- Determina o risco de volta vazia: `1.0 - returnTripProbability`.
+- Calcula os quilômetros vazios esperados até uma região com passageiros: `deadheadKmToCenter * risco`.
+- Multiplica pela taxa real de custo/km do veículo (`vehicle.totalCostPerKm`) para encontrar o custo de combustível/manutenção do retorno.
+- Abate esse custo do lucro líquido da corrida, gerando o **Lucro Líquido Real Ajustado**.
+- Emite alerta de **Armadilha de Deadhead** se o retorno vazio consumir mais de 55% do lucro ou transformar a corrida em prejuízo.
+
+### 3.2 `GeoHeatmapEngine`
+Classifica a atratividade das zonas metropolitanas considerando 5 faixas horárias do dia (Pico Matutino, Entrepico, Pico Vespertino, Noite e Madrugada), calibrando a probabilidade de retorno e identificando áreas com tarifa dinâmica frequente ou restrições de segurança.
+
+### 3.3 `PlatformComparisonEngine`
+Agrega o histórico de avaliações e corridas, consolidando para cada aplicativo (Uber, 99, inDrive):
+- Lucro Líquido Real Médio por Hora (R$/h).
+- Taxa média por KM rodado (R$/km).
+- Margem Líquida Percentual (%).
+- Recomendação estratégica dinâmica indicando qual plataforma priorizar no turno atual.
