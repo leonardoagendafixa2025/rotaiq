@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val app = application as RotaIqApplication
-        val viewModelFactory = RotaIqViewModelFactory(app.repository)
+        val viewModelFactory = RotaIqViewModelFactory(app.repository, app)
 
         setContent {
             RotaIQTheme {

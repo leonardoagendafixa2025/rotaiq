@@ -8,13 +8,22 @@ O **ROTA IQ** segue os princípios de **Clean Architecture**, **Modularidade Ori
 ┌─────────────────────────────────────────────────────────────┐
 │                       UI / PRESENTATION                     │
 │  Jetpack Compose • Material 3 • Navigation • Cockpit Theme  │
-│  [Dashboard] [RideSimulator] [FinanceHub] [Vehicle] [Goals] │
+│  [Dashboard] [CopilotHub] [FinanceHub] [Simulator] [Vehicle]│
 └──────────────────────────────┬──────────────────────────────┘
                                │ StateFlow / Actions
 ┌──────────────────────────────▼──────────────────────────────┐
 │                         VIEWMODELS                          │
-│  DashboardViewModel • SimulatorViewModel • FinancialViewModel
-│  VehicleViewModel • GoalsViewModel                          │
+│  DashboardViewModel • AutomationViewModel • FinancialViewModel
+│  SimulatorViewModel • VehicleViewModel • GoalsViewModel     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│                    AUTOMATION & SYSTEM LAYER                │
+│  - RotaIqAccessibilityService (Leitura de ofertas na tela)  │
+│  - AccessibilityNodeExtractor (Parsing hierárquico de nós)  │
+│  - OverlayManager & FloatingHudView (WindowManager Overlay) │
+│  - OverlayService (Foreground Service Android 14)           │
+│  - VoiceAlertManager & TtsMessageFormatter (Áudio TTS pt-BR)│
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -26,7 +35,7 @@ O **ROTA IQ** segue os princípios de **Clean Architecture**, **Modularidade Ori
 │  - MaintenanceSchedulerEngine (Alertas preventivos odômetro)│
 │  - MultiPeriodGoalEngine & GoalEngine                       │
 │  - VehicleCostEngine                                        │
-│  - OfferParser / Normalizer (Uber, 99, inDrive)             │
+│  - PlatformDetector & OfferParsers (Uber, 99, inDrive)      │
 │  - Domain Models & Enums                                    │
 └──────────────────────────────┬──────────────────────────────┘
                                │
@@ -48,17 +57,23 @@ app/
  ├── src/
  │    ├── main/
  │    │    ├── AndroidManifest.xml
+ │    │    ├── res/
+ │    │    │    └── xml/accessibility_service_config.xml
  │    │    ├── java/com/rotai/iq/
  │    │    │    ├── core/
  │    │    │    │    ├── domain/
- │    │    │    │    │    ├── model/         # Modelos de domínio puros
- │    │    │    │    │    ├── engine/        # Motores matemáticos e de decisão
- │    │    │    │    │    └── parser/        # Parsers desacoplados (Uber, 99)
+ │    │    │    │    │    ├── model/         # Modelos de domínio (Vehicle, RideOffer, etc.)
+ │    │    │    │    │    ├── engine/        # Motores matemáticos de decisão e finanças
+ │    │    │    │    │    └── parser/        # Parsers desacoplados (Uber, 99, Detector)
+ │    │    │    │    ├── automation/        # Camada de Sistema & Automação ao Volante (Fase 3)
+ │    │    │    │    │    ├── accessibility/ # RotaIqAccessibilityService, NodeExtractor
+ │    │    │    │    │    ├── overlay/       # OverlayManager, FloatingHudView, OverlayService
+ │    │    │    │    │    └── tts/           # VoiceAlertManager, TtsMessageFormatter
  │    │    │    │    ├── data/
  │    │    │    │    │    ├── local/
  │    │    │    │    │    │    ├── db/      # RotaIqDatabase (v2), TypeConverters
  │    │    │    │    │    │    ├── entity/  # Entidades Room (v2)
- │    │    │    │    │    │    └── dao/     # Interfaces DAO (Fuel, Maint, Expense)
+ │    │    │    │    │    │    └── dao/     # Interfaces DAO (Fuel, Maint, Expense, Ride)
  │    │    │    │    │    └── repository/  # Repositório e Mappers
  │    │    │    │    ├── network/           # SyncManager, SyncModels (Push/Pull)
  │    │    │    │    └── ui/
@@ -66,6 +81,7 @@ app/
  │    │    │    │         └── components/       # HUD, Badges, Cards, MetricWidgets
  │    │    │    ├── feature/
  │    │    │    │    ├── dashboard/             # Painel principal
+ │    │    │    │    ├── automation/            # Gestão do Copiloto & Automação (Fase 3)
  │    │    │    │    ├── rides/                 # Simulador e Histórico
  │    │    │    │    ├── finance/               # Hub Financeiro Avançado (Fase 2)
  │    │    │    │    ├── vehicle/               # Custos do veículo
@@ -74,7 +90,7 @@ app/
  │    │    │    ├── MainActivity.kt
  │    │    │    ├── RotaIqApplication.kt
  │    │    │    └── RotaIqViewModelFactory.kt
- │    └── test/                                # 37 Testes unitários automatizados
+ │    └── test/                                # 43 Testes unitários automatizados
 backend/
  └── migrations/
       ├── 001_initial_schema.sql               # Esquema base PostgreSQL
@@ -83,52 +99,13 @@ backend/
 
 ---
 
-## 3. Os Motores de Negócio (Camada de Domínio)
+## 3. Fluxo de Execução do Copiloto ao Volante (Fase 3)
 
-### 3.1 `RideEvaluationEngine`
-Motor determinístico multi-fatorial. Combina 6 dimensões de análise:
-1. **Rentabilidade por Hora vs Meta Horária** (Peso 35%)
-2. **Rentabilidade por Quilômetro vs Meta por KM** (Peso 25%)
-3. **Deslocamento até o Passageiro (Deadhead)** (Peso 20%)
-4. **Custo do Veículo e Margem Líquida Real** (Peso 15%)
-5. **Paradas Intermediárias** (Penalidade cumulativa)
-6. **Contexto Geográfico e Zonas** (Zonas de risco e sem retorno)
-
-### 3.2 `FuelEngine`
-Calcula o consumo real e custo por km na bomba através do método de 2 tanques cheios consecutivos:
-- Diferença de odômetro dividido pelo volume do segundo abastecimento.
-- Identificação de abastecimentos parciais.
-- Média ponderada de múltiplos abastecimentos para calibrar os custos reais do veículo.
-
-### 3.3 `MaintenanceSchedulerEngine`
-Compara o odômetro atual do veículo com o odômetro programado para os serviços preventivos:
-- `OK`: Quilometragem restante confortável (> 1.000 km).
-- `UPCOMING`: Vencimento iminente (<= 1.000 km).
-- `OVERDUE`: Manutenção vencida (odômetro excedido).
-
-### 3.4 `AdvancedFinancialEngine`
-Gera demonstrativo completo de resultado operacional (DRE) para períodos diário, semanal, mensal e anual:
-- Faturamento Bruto total.
-- Custos Variáveis (Combustível real, Manutenção preventiva).
-- Custos Fixos proporcionais (Seguro, IPVA, Depreciação).
-- Lucro Líquido Real e Margem Operacional (%).
-- Taxas médias por KM e por Hora.
-
-### 3.5 `MultiPeriodGoalEngine`
-Acompanhamento simultâneo de metas diárias, semanais e mensais:
-- Percentuais de conclusão e valores faltantes.
-- Projeção de ritmo horário no turno ativo.
-- Mensagens de coaching dinâmico ao motorista.
-
----
-
-## 4. Princípio Offline-First e Sincronização
-
-O motorista frequentemente opera em locais de sinal instável:
-- Todos os motores executam de forma síncrona e determinística no dispositivo em menos de 5ms.
-- Todo o armazenamento é local no Room Database v2.
-- A sincronização com o banco remoto PostgreSQL segue o padrão **Outbox/Push-Ack**:
-  - Alterações locais recebem `syncedWithServer = false`.
-  - O `SyncManager` compila o payload `SyncPushPayload`.
-  - O servidor processa e retorna `acknowledgedIds`.
-  - O repositório atualiza os registros locais para `syncedWithServer = true`.
+1. **Captura do Evento**: O app Uber ou 99 emite um novo cartão de corrida na tela.
+2. **Interceptação Acessível**: O `RotaIqAccessibilityService` recebe o evento `TYPE_WINDOW_CONTENT_CHANGED`.
+3. **Extração & Debounce**: O `AccessibilityNodeExtractor` recupera os nós visíveis; caso o hash do texto tenha sido avaliado há menos de 2 segundos, descarta para evitar retrabalho.
+4. **Detecção da Plataforma**: O `PlatformDetector` roteia o texto para o parser correspondente (`UberParser` ou `NinetyNineParser`) e gera o `RideOffer`.
+5. **Avaliação Determinística**: O `RideEvaluationEngine` combina o perfil do carro (`Vehicle`), metas (`DriverGoal`) e preferências (`DriverPreference`) do motorista, gerando o `RideEvaluation` em menos de 2 milissegundos.
+6. **Projeção Visual no HUD Flutuante**: O `OverlayManager` projeta o `FloatingHudView` com cor semântica do score e dados resumidos ("Sobra: R$ 27,00 | R$ 81/h").
+7. **Alerta de Voz TTS**: O `VoiceAlertManager` vocaliza a frase concisa em português brasileiro.
+8. **Persistência Histórica**: A avaliação é persistida de forma reativa no Room Database local.

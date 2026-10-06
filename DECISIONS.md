@@ -73,3 +73,27 @@ Este documento registra as principais decisões técnicas e de design tomadas no
 - **Contexto**: Manter os dados sincronizados com a nuvem sem comprometer a operação em áreas de sombra ou sem rede.
 - **Decisão**: Armazenar flag `syncedWithServer = false` em cada registro local e sincronizar em lotes via `SyncManager` enviando `SyncPushPayload` e recebendo confirmação de IDs do servidor PostgreSQL.
 - **Consequências**: Tolerância total a falhas de rede, sem risco de perda de lançamentos financeiros e sem bloqueio da interface do usuário.
+
+---
+
+### ADR-010: Extração de Ofertas via Android AccessibilityService (Fase 3)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Para que o motorista não precise digitar valores enquanto dirige, o app precisa ler ofertas instantaneamente na tela.
+- **Decisão**: Implementar `RotaIqAccessibilityService` com `AccessibilityNodeExtractor`, escutando eventos de janela de apps monitorados (`com.ubercab.driver`, `com.taxis99`), com debounce de 2 segundos e deduplicação de cartões por hash.
+- **Consequências**: Operação 100% mãos livres (hands-free), sem requisições de rede, em estrita conformidade com as políticas do Google Play e da LGPD.
+
+---
+
+### ADR-011: HUD Flutuante Translúcido em WindowManager com FLAG_NOT_FOCUSABLE (Fase 3)
+- **Status**: Aprovado e Implementado
+- **Contexto**: O motorista precisa ver o veredito instantâneo sem ser impedido de aceitar ou recusar a corrida no app original.
+- **Decisão**: Utilizar `WindowManager` com `TYPE_APPLICATION_OVERLAY` e `FLAG_NOT_FOCUSABLE`. O card `FloatingHudView` é compacto, arrastável por toque e possui timer de auto-dismiss de 15 segundos.
+- **Consequências**: Não rouba o foco do app de corrida, renderiza em menos de 100ms e permite que o motorista toque nos botões do Uber/99 normalmente.
+
+---
+
+### ADR-012: Síntese Vocal de Decisão (TTS pt-BR) para Copiloto "Olhos na Pista" (Fase 3)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Olhar fixamente para o celular enquanto dirige em velocidade pode causar acidentes graves.
+- **Decisão**: Implementar `VoiceAlertManager` e `TtsMessageFormatter` utilizando o `TextToSpeech` nativo do Android configurado para português brasileiro em velocidade 1.15x, vocalizando uma frase resumida em menos de 3 segundos ("Corrida Excelente! Sobra vinte e sete reais, oitenta e um por hora").
+- **Consequências**: Segurança máxima ao volante e decisão instantânea sem necessidade de tirar os olhos da pista.

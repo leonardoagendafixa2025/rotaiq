@@ -12,7 +12,20 @@ O projeto **ROTA IQ** foi configurado para ser 100% autônomo e compilável via 
 
 ---
 
-## 2. Variáveis de Ambiente Necessárias
+## 2. Permissões de Sistema e Serviços Especiais (Fase 3)
+
+O aplicativo declara e utiliza as seguintes permissões gerenciadas no `AndroidManifest.xml`:
+
+- `android.permission.INTERNET`: Sincronização remota com backend PostgreSQL.
+- `android.permission.ACCESS_NETWORK_STATE`: Detecção de conectividade para operação offline-first.
+- `android.permission.SYSTEM_ALERT_WINDOW`: Exibição do card flutuante translúcido (`FloatingHudView`) sobre a tela de ofertas do Uber e 99.
+- `android.permission.FOREGROUND_SERVICE` e `FOREGROUND_SERVICE_SPECIAL_USE`: Manutenção do serviço em segundo plano no Android 14.
+- `android.permission.POST_NOTIFICATIONS`: Exibição da notificação contínua do copiloto ativo.
+- `android.permission.BIND_ACCESSIBILITY_SERVICE`: Vinculação segura do `RotaIqAccessibilityService` pelo sistema operacional Android com arquivo de configuração `@xml/accessibility_service_config`.
+
+---
+
+## 3. Variáveis de Ambiente Necessárias
 
 Para execução em qualquer terminal:
 
@@ -29,9 +42,9 @@ sdk.dir=C\:\\Users\\User\\AppData\\Local\\Android\\Sdk
 
 ---
 
-## 3. Comandos de Compilação e Validação
+## 4. Comandos de Compilação e Validação
 
-### Executar Testes Unitários:
+### Executar Testes Unitários (43 Testes):
 ```powershell
 .\gradlew.bat testDebugUnitTest
 ```
@@ -40,21 +53,11 @@ sdk.dir=C\:\\Users\\User\\AppData\\Local\\Android\\Sdk
 ```powershell
 .\gradlew.bat assembleDebug
 ```
-*Saída gerada:* `app/build/outputs/apk/debug/app-debug.apk`
-
-### Verificar Lint e Qualidade de Código:
-```powershell
-.\gradlew.bat lintDebug
-```
-
-### Limpar e Recompilar:
-```powershell
-.\gradlew.bat clean assembleDebug
-```
+*Saída gerada:* `app/build/outputs/apk/debug/app-debug.apk` (16.6 MB)
 
 ---
 
-## 4. Gerenciamento de Dependências: Version Catalog
+## 5. Gerenciamento de Dependências: Version Catalog
 
 Todas as bibliotecas e plugins estão centralizados em `gradle/libs.versions.toml`:
 - Compose BOM: `2024.05.00`

@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">ROTA IQ</string>
     <string name="app_tagline">Copiloto Inteligente do Motorista</string>
+    <string name="accessibility_service_description">O ROTA IQ analisa em tempo real os cartões de oferta de corridas dos aplicativos Uber e 99 para calcular o lucro líquido real, custo por km e alertar se a corrida compensa. O serviço não acessa senhas, chats pessoais ou dados de pagamento, respeitando a privacidade do motorista conforme a LGPD.</string>
 </resources>

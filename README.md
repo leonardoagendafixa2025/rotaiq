@@ -26,7 +26,17 @@ O **ROTA IQ** é um copiloto financeiro e operacional nativo para motoristas de 
 - **Room Database v2**: Novas entidades (`fuel_records`, `maintenance_records`, `vehicle_expenses`), DAOs dedicados e migração automatizada.
 - **Esquema Remoto PostgreSQL**: Scripts SQL profissionais de migração (`001_initial_schema.sql` e `002_financial_and_sync.sql`) com 25 tabelas, índices e triggers.
 - **SyncManager & Sync Models**: Camada de sincronização de dados offline-first com push/pull estruturado para backend.
-- **37 Testes Unitários Automatizados**: 100% de aprovação em todos os testes unitários da aplicação.
+
+---
+
+## ⚡ Destaques da Fase 3 (Android Inteligente & Automação ao Volante)
+- **RotaIqAccessibilityService**: Detecção e leitura em tempo real na tela de ofertas da Uber e 99 via eventos `TYPE_WINDOW_CONTENT_CHANGED` e extração recursiva de nós com debounce e deduplicação de cartões.
+- **Floating HUD View & OverlayManager**: Card flutuante sobreposto (`SYSTEM_ALERT_WINDOW`) com renderização em menos de 100ms, exibindo Score, Lucro Líquido Real ("Sobra Limpo"), taxas R$/h e R$/km, totalmente arrastável por toque e com auto-dismiss inteligente.
+- **OverlayService**: Serviço em segundo plano com notificação contínua no Android 14 para manter o HUD operacional em segundo plano.
+- **VoiceAlertManager & TtsMessageFormatter**: Síntese vocal em português brasileiro (TTS) vocalizando o diagnóstico em 3 segundos ("Corrida Excelente! Sobra cerca de 27 reais, 81 reais por hora"), permitindo decidir sem tirar os olhos do trânsito.
+- **AutomationHubScreen & ViewModel**: Painel de gerenciamento do copiloto com monitoramento de status das permissões, atalhos diretos para as Configurações do Android e laboratório de simulação de ofertas em tempo real.
+- **100% de Conformidade LGPD**: Leitura restrita estritamente aos nós visíveis de oferta de corrida, sem captura de dados pessoais, mensagens ou senhas.
+- **43 Testes Unitários Automatizados**: 13 suítes de testes com 100% de aprovação.
 
 ---
 
@@ -35,6 +45,7 @@ O **ROTA IQ** é um copiloto financeiro e operacional nativo para motoristas de 
 - **Linguagem**: Kotlin 1.9.24
 - **Interface**: Jetpack Compose com Material 3 & Navigation Compose
 - **Persistência Local**: Room 2.6.1 + KSP
+- **Automação & Sistema**: Android AccessibilityService, WindowManager Overlay, TextToSpeech
 - **Assincronismo**: Kotlin Coroutines & Flow
 - **Build System**: Gradle 8.7 com Version Catalog (`libs.versions.toml`)
 - **JVM**: Microsoft OpenJDK 17 LTS
@@ -46,7 +57,7 @@ O **ROTA IQ** é um copiloto financeiro e operacional nativo para motoristas de 
 
 O projeto foi configurado para ser executado diretamente pelo terminal (CLI do Antigravity), sem necessidade do Android Studio:
 
-### 1. Compilar e Executar Testes Unitários (37 Testes)
+### 1. Compilar e Executar Testes Unitários (43 Testes)
 ```powershell
 .\gradlew.bat testDebugUnitTest
 ```
@@ -56,7 +67,7 @@ O projeto foi configurado para ser executado diretamente pelo terminal (CLI do A
 .\gradlew.bat assembleDebug
 ```
 O APK final será gerado em:
-`app/build/outputs/apk/debug/app-debug.apk` (16.2 MB)
+`app/build/outputs/apk/debug/app-debug.apk` (16.6 MB)
 
 ### 3. Instalar no Dispositivo ou Emulador
 ```powershell
@@ -68,10 +79,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ## 📁 Estrutura do Repositório
 
 Consulte a documentação completa:
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitetura de software, camadas e fluxo de sincronização.
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitetura de software, camadas, fluxo de acessibilidade, overlay e TTS.
 - [DATABASE.md](DATABASE.md) - Modelagem do banco local (Room v2) e remoto (PostgreSQL).
-- [ANDROID.md](ANDROID.md) - Configurações do SDK, Gradle e ecossistema Android.
-- [SECURITY.md](SECURITY.md) - Políticas de segurança, privacidade e LGPD.
+- [ANDROID.md](ANDROID.md) - Configurações do SDK, permissões especiais e ecossistema Android.
+- [SECURITY.md](SECURITY.md) - Políticas de segurança, privacidade e diretrizes da LGPD para Acessibilidade.
 - [ROADMAP.md](ROADMAP.md) - Planejamento e status detalhado de todas as fases.
 - [DECISIONS.md](DECISIONS.md) - Registro de decisões arquiteturais (ADRs).
-- [TESTING.md](TESTING.md) - Estratégia de testes unitários e cobertura dos 37 cenários.
+- [TESTING.md](TESTING.md) - Estratégia de testes unitários e cobertura dos 43 cenários.

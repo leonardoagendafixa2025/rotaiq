@@ -1,0 +1,212 @@
+package com.rotai.iq.core.automation.overlay
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import com.rotai.iq.core.domain.model.EvaluationClassification
+import com.rotai.iq.core.domain.model.RideEvaluation
+import java.util.Locale
+
+@SuppressLint("ViewConstructor")
+class FloatingHudView(
+    context: Context,
+    private val windowManager: WindowManager,
+    private val layoutParams: WindowManager.LayoutParams,
+    private val onCloseClicked: () -> Unit
+) : FrameLayout(context) {
+
+    private var initialX = 0
+    private var initialY = 0
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
+
+    private val container: LinearLayout
+    private val scoreText: TextView
+    private val classBadge: TextView
+    private val profitText: TextView
+    private val metricsText: TextView
+    private val reasonsText: TextView
+
+    init {
+        // Container principal do Card HUD
+        container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(12), dp(16), dp(14))
+            val bg = GradientDrawable().apply {
+                setColor(Color.parseColor("#141923"))
+                cornerRadius = dp(16).toFloat()
+                setStroke(dp(2), Color.parseColor("#00E676"))
+            }
+            background = bg
+            elevation = dp(12).toFloat()
+        }
+
+        // Header: Score + Classificação + Botão Fechar
+        val header = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            weightSum = 1f
+        }
+
+        scoreText = TextView(context).apply {
+            textSize = 22f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.parseColor("#00E676"))
+            text = "88"
+        }
+
+        classBadge = TextView(context).apply {
+            textSize = 13f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            setPadding(dp(8), dp(2), dp(8), dp(2))
+            val badgeBg = GradientDrawable().apply {
+                setColor(Color.parseColor("#00E676"))
+                cornerRadius = dp(6).toFloat()
+            }
+            background = badgeBg
+            text = "EXCELENTE"
+        }
+
+        val spacer = View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
+        }
+
+        val closeBtn = TextView(context).apply {
+            text = "✕"
+            textSize = 18f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.parseColor("#90A4AE"))
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+            setOnClickListener { onCloseClicked() }
+        }
+
+        header.addView(scoreText)
+        val scoreMargin = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { leftMargin = dp(8) }
+        header.addView(classBadge, scoreMargin)
+        header.addView(spacer)
+        header.addView(closeBtn)
+        container.addView(header)
+
+        // Linha de Lucro Líquido Real ("Sobra Limpo")
+        profitText = TextView(context).apply {
+            textSize = 20f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            text = "Sobra: R$ 22,40"
+            setPadding(0, dp(6), 0, dp(2))
+        }
+        container.addView(profitText)
+
+        // Métricas Operacionais (R$/h e R$/km)
+        metricsText = TextView(context).apply {
+            textSize = 13f
+            setTextColor(Color.parseColor("#00D2FF"))
+            text = "R$ 48,00/h  •  R$ 2,85/km"
+        }
+        container.addView(metricsText)
+
+        // Justificativas e Alertas
+        reasonsText = TextView(context).apply {
+            textSize = 11f
+            setTextColor(Color.parseColor("#B0BEC5"))
+            text = "Embarque rápido (1.0km) • Margem líquida 68%"
+            setPadding(0, dp(4), 0, 0)
+        }
+        container.addView(reasonsText)
+
+        addView(container)
+
+        // Suporte a arrastar pela tela (Drag & Drop)
+        setupDragListener()
+    }
+
+    private fun setupDragListener() {
+        setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = layoutParams.x
+                    initialY = layoutParams.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
+                    layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
+                    try {
+                        windowManager.updateViewLayout(this, layoutParams)
+                    } catch (e: Exception) {
+                        // Janela pode ter sido desmontada
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    fun updateWithEvaluation(evaluation: RideEvaluation) {
+        val colorHex = when (evaluation.classification) {
+            EvaluationClassification.EXCELLENT -> "#00E676"
+            EvaluationClassification.GOOD -> "#00D2FF"
+            EvaluationClassification.ACCEPTABLE -> "#FFB300"
+            EvaluationClassification.BAD -> "#FF7043"
+            EvaluationClassification.AVOID -> "#FF5252"
+        }
+        val mainColor = Color.parseColor(colorHex)
+
+        // Atualiza borda do container
+        (container.background as? GradientDrawable)?.setStroke(dp(2), mainColor)
+
+        // Score e Badge
+        scoreText.text = evaluation.score.toString()
+        scoreText.setTextColor(mainColor)
+
+        classBadge.text = evaluation.classification.name
+        (classBadge.background as? GradientDrawable)?.setColor(mainColor)
+
+        // Lucro Líquido
+        profitText.text = if (evaluation.netProfit >= 0) {
+            "Sobra: R$ %.2f".format(Locale("pt", "BR"), evaluation.netProfit)
+        } else {
+            "Prejuízo: -R$ %.2f".format(Locale("pt", "BR"), -evaluation.netProfit)
+        }
+        profitText.setTextColor(if (evaluation.netProfit >= 0) Color.WHITE else Color.parseColor("#FF5252"))
+
+        // Métricas
+        metricsText.text = "R$ %.2f/h  •  R$ %.2f/km (bruto: R$ %.2f)".format(
+            Locale("pt", "BR"),
+            evaluation.netRatePerHour,
+            evaluation.netRatePerKm,
+            evaluation.grossFare
+        )
+
+        // Alertas / Motivos
+        val firstAlert = evaluation.alerts.firstOrNull()
+        val firstReason = evaluation.reasons.firstOrNull() ?: "Análise em tempo real concluída"
+        reasonsText.text = if (!firstAlert.isNullOrBlank()) {
+            "⚠️ $firstAlert"
+        } else {
+            "✓ $firstReason"
+        }
+        reasonsText.setTextColor(if (!firstAlert.isNullOrBlank()) Color.parseColor("#FFB300") else Color.parseColor("#B0BEC5"))
+    }
+
+    private fun dp(value: Int): Int {
+        return (value * context.resources.displayMetrics.density).toInt()
+    }
+}

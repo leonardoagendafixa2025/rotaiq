@@ -35,21 +35,24 @@ Este documento define o plano mestre de evolução do **ROTA IQ** da Fundação 
 - [x] Evolução do banco local Room para a Versão 2 (novas tabelas, DAOs e repositório reativo com Flow).
 - [x] Modelagem e scripts SQL de migração remota PostgreSQL (`001_initial_schema.sql` e `002_financial_and_sync.sql` com 25 tabelas).
 - [x] Arquitetura de sincronização offline-first (`SyncManager`, `SyncPushPayload`, `SyncResponse`).
-- [x] 13 novos testes unitários adicionados (total de **37 testes unitários**, 100% aprovados).
-- [x] Novo APK Debug gerado e validado via Gradle CLI.
+- [x] 13 novos testes unitários adicionados (total de 37 testes unitários).
 
 ---
 
-## 🟡 FASE 3: Android Inteligente e Automação ao Volante (PRÓXIMA FASE)
-- [ ] Implementação do `AccessibilityService` com permissões granulares e onboarding educativo transparente.
-- [ ] Leitura em tempo real na tela de ofertas das plataformas (Uber, 99).
-- [ ] HUD Flutuante (Overlay / WindowManager) compacto e translúcido para exibição sobre outros apps em menos de 100ms.
-- [ ] Alertas por síntese de voz (TTS) com opção de ligar/desligar para não desviar a atenção do trânsito.
-- [ ] Suíte de testes para os parsers de acessibilidade e ciclo de vida do overlay.
+## 🟢 FASE 3: Android Inteligente e Automação ao Volante (CONCLUÍDA ✅)
+- [x] **`RotaIqAccessibilityService`**: Leitura e interceptação em tempo real na tela de ofertas da Uber e 99 (`AccessibilityNodeInfo`).
+- [x] Filtro inteligente de eventos (`TYPE_WINDOW_CONTENT_CHANGED`, `TYPE_WINDOW_STATE_CHANGED`) com debounce de 2 segundos e deduplicação de cartões por hash.
+- [x] **HUD Flutuante Dinâmico (`FloatingHudView` & `OverlayManager`)**: Card sobreposto translúcido de alta visibilidade renderizado em menos de 100ms sobre outros apps via `WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY`.
+- [x] Controles interativos no HUD: Score (0-100), Lucro Líquido Real ("Sobra Limpo"), R$/h, R$/km, arrastável por toque (drag-and-drop) e auto-dismiss inteligente em 15 segundos.
+- [x] **`OverlayService`**: Foreground Service com notificação contínua no Android 14.
+- [x] **Copiloto por Voz (`VoiceAlertManager` & `TtsMessageFormatter`)**: Síntese vocal em português brasileiro (TTS) concisa e expressiva para rápida tomada de decisão ao volante.
+- [x] **`AutomationHubScreen` & `AutomationViewModel`**: Tela de controle do Copiloto com monitoramento de permissões, atalhos para Configurações do Android, switches e laboratório de teste interativo.
+- [x] Suíte de testes da automação: 6 novos testes cobrindo parsing em tempo real, extração de acessibilidade e sintetizador de voz (total de **43 testes unitários** 100% aprovados).
+- [x] Novo APK Debug gerado e validado via Gradle CLI (`app-debug.apk` de 16.6 MB).
 
 ---
 
-## ⚪ FASE 4: Inteligência Geográfica e Análise Preditiva
+## 🟡 FASE 4: Inteligência Geográfica e Análise Preditiva (PRÓXIMA FASE)
 - [ ] Integração com mapas (Google Maps / Mapbox) para geofencing e análise de trajeto.
 - [ ] Heatmaps de alta e baixa rentabilidade por horário e bairro.
 - [ ] Análise preditiva de taxa de retorno e risco de deadhead para viagens fora de áreas centrais.

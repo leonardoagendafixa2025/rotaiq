@@ -22,10 +22,13 @@ import com.rotai.iq.RotaIqViewModelFactory
 import com.rotai.iq.core.ui.theme.BrandPrimary
 import com.rotai.iq.core.ui.theme.CockpitBackground
 import com.rotai.iq.core.ui.theme.CockpitSurface
-import com.rotai.iq.core.ui.theme.TextPrimary
 import com.rotai.iq.core.ui.theme.TextSecondary
+import com.rotai.iq.feature.automation.AutomationHubScreen
+import com.rotai.iq.feature.automation.AutomationViewModel
 import com.rotai.iq.feature.dashboard.DashboardScreen
 import com.rotai.iq.feature.dashboard.DashboardViewModel
+import com.rotai.iq.feature.finance.FinancialHubScreen
+import com.rotai.iq.feature.finance.FinancialHubViewModel
 import com.rotai.iq.feature.goals.GoalsScreen
 import com.rotai.iq.feature.goals.GoalsViewModel
 import com.rotai.iq.feature.rides.HistoryViewModel
@@ -46,10 +49,10 @@ fun RotaIqApp(
 
     val screens = listOf(
         Screen.Dashboard,
-        Screen.Simulator,
+        Screen.Automation,
         Screen.Finance,
+        Screen.Simulator,
         Screen.Vehicle,
-        Screen.Goals,
         Screen.History
     )
 
@@ -84,7 +87,7 @@ fun RotaIqApp(
                         label = {
                             Text(
                                 text = screen.title,
-                                fontSize = 11.sp
+                                fontSize = 10.sp
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -116,13 +119,17 @@ fun RotaIqApp(
                     }
                 )
             }
+            composable(Screen.Automation.route) {
+                val vm: AutomationViewModel = viewModel(factory = viewModelFactory)
+                AutomationHubScreen(viewModel = vm)
+            }
+            composable(Screen.Finance.route) {
+                val vm: FinancialHubViewModel = viewModel(factory = viewModelFactory)
+                FinancialHubScreen(viewModel = vm)
+            }
             composable(Screen.Simulator.route) {
                 val vm: RideSimulatorViewModel = viewModel(factory = viewModelFactory)
                 RideSimulatorScreen(viewModel = vm)
-            }
-            composable(Screen.Finance.route) {
-                val vm: com.rotai.iq.feature.finance.FinancialHubViewModel = viewModel(factory = viewModelFactory)
-                com.rotai.iq.feature.finance.FinancialHubScreen(viewModel = vm)
             }
             composable(Screen.Vehicle.route) {
                 val vm: VehicleViewModel = viewModel(factory = viewModelFactory)

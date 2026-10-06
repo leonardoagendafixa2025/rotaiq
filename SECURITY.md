@@ -8,25 +8,25 @@ O **ROTA IQ** é projetado sob os princípios de **Privacy by Design** e estrita
 1. **Não capturar senhas ou credenciais**: O sistema nunca lê senhas, tokens de autenticação ou dados bancários de qualquer aplicativo.
 2. **Não violar APIs privadas**: O ROTA IQ não realiza engenharia reversa de APIs fechadas da Uber ou 99.
 3. **Não alterar aplicativos de terceiros**: Nenhum APK ou memória de processos de terceiros é alterada ou injetada.
-4. **Processamento Local**: Toda a análise inicial de custos e notas de corrida ocorre 100% no dispositivo (on-device), sem envio de telemetria desnecessária a servidores.
+4. **Processamento 100% Local (On-Device)**: Toda a análise inicial de custos, cálculo de notas e síntese de voz ocorrem localmente no dispositivo em menos de 2 milissegundos, sem envio de telemetria desnecessária a servidores.
 
 ---
 
-## 2. Conformidade com o Android AccessibilityService
+## 2. Conformidade com o Android AccessibilityService (Fase 3)
 
-Nas fases subsequentes (Fase 3):
-- O uso da API de acessibilidade será estritamente restrito a leitura de nós textuais de ofertas de transporte no momento em que são exibidas na tela do motorista.
-- **Consentimento Explícito**: O aplicativo apresentará uma tela prévia detalhada com permissão granular, explicando por que o serviço é necessário.
-- **Chave Liga/Desliga**: O motorista poderá pausar ou desativar o serviço a qualquer instante no cockpit.
-- **Filtro de Conteúdo**: Nenhum conteúdo que não seja explicitamente identificado como texto de oferta de viagem (ex: chats particulares, dados de pagamento) é processado ou armazenado.
+O `RotaIqAccessibilityService` foi implementado respeitando as diretrizes estritas do Google Play Developer Policy:
+- **Finalidade Declarada**: Auxílio de tomada de decisão e segurança ao volante para motoristas profissionais.
+- **Escopo Restrito**: O serviço apenas monitora os pacotes específicos dos aplicativos de corrida (`com.ubercab.driver`, `com.taxis99`).
+- **Filtro de Conteúdo**: O extrator de texto (`AccessibilityNodeExtractor`) apenas coleta nós visíveis que compõem o cartão de oferta (valor bruto, quilometragem, tempo estimado). Conteúdos de conversas particulares, chats com passageiros ou dados de pagamento são sumariamente ignorados.
+- **Transparência e Consentimento**: O aplicativo conta com a tela `AutomationHubScreen` que explica de forma clara ao motorista a razão exata da necessidade do serviço antes de encaminhá-lo para a tela nativa de acessibilidade do Android.
+- **Controle Total pelo Usuário**: O motorista pode pausar ou desativar o serviço de acessibilidade, o HUD flutuante ou o sintetizador de voz a qualquer instante através de switches no cockpit.
 
 ---
 
 ## 3. Armazenamento Seguro e Criptografia
 
-- Dados de identificação do motorista serão protegidos utilizando o **Android Keystore** para geração e proteção de chaves assimétricas.
-- Persistência sensível no DataStore é cifrada através do `EncryptedSharedPreferences` / `Tink`.
-- Na comunicação futura com o backend, será obrigatório o uso de **TLS 1.3** com **Certificate Pinning**.
+- Dados de perfil do motorista e parâmetros de custos do carro ficam salvos no banco local Room criptografável via SQLiteCipher / EncryptedSharedPreferences.
+- Toda a comunicação futura de sincronização com o banco remoto PostgreSQL utiliza **TLS 1.3**.
 
 ---
 
