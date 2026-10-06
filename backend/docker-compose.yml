@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: rota_iq_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: rota_iq_db
+      POSTGRES_USER: rota_iq_admin
+      POSTGRES_PASSWORD: rota_iq_secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+
+  backend:
+    build: .
+    container_name: rota_iq_api
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://rota_iq_admin:rota_iq_secure_password@postgres:5432/rota_iq_db
+      SECRET_KEY: rota_iq_production_jwt_signing_key_replace_in_prod
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

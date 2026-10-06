@@ -1,10 +1,10 @@
 # Modelagem de Banco de Dados: Local (Room v2) e Remoto (PostgreSQL)
 
-## 1. Banco Local (Android Room v2)
+## 1. Banco Local (Android Room v2) e Repositório Comercial
 
-O banco local utiliza SQLite através do Android Room (`RotaIqDatabase`). Na Fase 2, o esquema foi expandido da versão 1 para a **versão 2** com suporte a controle granular de abastecimentos, manutenções e despesas adicionais.
+O banco local utiliza SQLite através do Android Room (`RotaIqDatabase`) e SharedPreferences encriptadas para gestão de credenciais e ciclo de vida de assinaturas.
 
-### 1.1 Tabelas Implementadas no Banco Local
+### 1.1 Tabelas Implementadas no Banco Local Room
 
 #### `vehicles`
 - `id` (VARCHAR PK)
@@ -17,7 +17,7 @@ O banco local utiliza SQLite através do Android Room (`RotaIqDatabase`). Na Fas
 - `estimatedMonthlyKm` (DOUBLE)
 - `isActive` (BOOLEAN)
 
-#### `fuel_records` (Fase 2)
+#### `fuel_records`
 - `id` (VARCHAR PK)
 - `vehicleId` (VARCHAR FK)
 - `date` (VARCHAR - YYYY-MM-DD)
@@ -33,7 +33,7 @@ O banco local utiliza SQLite através do Android Room (`RotaIqDatabase`). Na Fas
 - `syncedWithServer` (BOOLEAN)
 - `createdAt` (BIGINT)
 
-#### `maintenance_records` (Fase 2)
+#### `maintenance_records`
 - `id` (VARCHAR PK)
 - `vehicleId` (VARCHAR FK)
 - `date` (VARCHAR - YYYY-MM-DD)
@@ -47,7 +47,7 @@ O banco local utiliza SQLite através do Android Room (`RotaIqDatabase`). Na Fas
 - `syncedWithServer` (BOOLEAN)
 - `createdAt` (BIGINT)
 
-#### `vehicle_expenses` (Fase 2)
+#### `vehicle_expenses`
 - `id` (VARCHAR PK)
 - `vehicleId` (VARCHAR FK)
 - `date` (VARCHAR - YYYY-MM-DD)
@@ -91,11 +91,16 @@ O banco local utiliza SQLite através do Android Room (`RotaIqDatabase`). Na Fas
 - `totalKmDriven`, `totalHoursOnline`
 - `avgGrossRatePerKm`, `avgGrossRatePerHour`, `avgNetProfitPerHour`
 
+### 1.2 Repositório Comercial e LGPD Local (`CommercialRepository`)
+- **Estado de Assinatura**: `sub_tier` (FREE, PRO_MONTHLY, PRO_ANNUAL), `sub_status` (ACTIVE, EXPIRED), `sub_expires`, `sub_gateway`, `sub_token`.
+- **Consentimentos LGPD**: `lgpd_terms`, `lgpd_privacy`, `lgpd_telemetry`, `lgpd_benchmark`, timestamp e versão.
+- **Contador Diário de Uso**: `eval_count_YYYY-MM-DD` com auto-expiração diária para imposição do limite gratuito (15 avaliações/dia).
+
 ---
 
-## 2. Banco Remoto PostgreSQL (Fase 2 - Migrações DDL)
+## 2. Banco Remoto PostgreSQL (Migrações DDL Versionadas)
 
-Criados scripts SQL completos e versionados no diretório `backend/migrations/`:
+Os scripts SQL estão versionados no diretório `backend/migrations/`:
 
 ### 2.1 Migração `001_initial_schema.sql`
 - **`users`**: Autenticação, dados cadastrais, telefone, status de conta.
@@ -111,16 +116,21 @@ Criados scripts SQL completos e versionados no diretório `backend/migrations/`:
 - **`fuel_records`**: Histórico detalhado de abastecimentos na bomba com cálculo de consumo.
 - **`maintenance_records`**: Controle de manutenções preventivas com odômetro de próxima revisão.
 - **`vehicle_expenses`**: Despesas operacionais avulsas categorizadas.
-- **`ride_offers`**: Ofertas capturadas na íntegra com texto bruto OCR/Accessibility.
+- **`ride_offers`**: Ofertas capturadas na íntegra com texto bruto.
 - **`ride_evaluations`**: Notas, classificações e diagnósticos calculados pelo motor de decisão.
 - **`ride_history`**: Registro de corridas aceitas/rejeitadas e dados consolidados.
 - **`daily_sessions`**: Turnos de trabalho com horas online e quilômetros rodados.
 - **`daily_financials` & `monthly_financials`**: Fechamento financeiro DRE consolidado.
-- **`plans` & `subscriptions`**: Monetização, tiers (Free, Pro Mensal, Pro Anual) e expiração.
-- **`payments`**: Transações financeiras via PIX e cartão com status e gateways.
 - **`audit_logs`**: Trilha imutável de auditoria com IP, user-agent e payloads JSONB.
-- **`feature_flags`**: Liberação gradual de recursos por usuário ou região.
 - **`notifications`**: Fila de alertas push e mensagens de sistema.
 - **`recommendations`**: Sugestões preditivas geradas pelo motor de inteligência.
 - **`model_predictions`**: Logs de predição do modelo de precificação e demanda.
 - **`support_tickets`**: Atendimento e chamados de suporte dos motoristas.
+
+### 2.3 Migração `003_commercial_subscriptions_and_admin.sql` (Fase 5)
+- **`subscription_plans`**: Cadastro dos planos oficiais (Free, Pro Mensal a R$ 29,90, Pro Anual a R$ 239,90) com features em JSONB.
+- **`pix_transactions`**: Transações e pedidos PIX vinculados a drivers com payload EMV BR Code, orderId, chave PIX e status.
+- **`play_billing_receipts`**: Recibos do Google Play In-App Billing com tokens de compra e estado de validação (`acknowledged`).
+- **`lgpd_deletion_requests`**: Registro formal de Direito ao Esquecimento (Art. 18, VI da Lei 13.709/2018) com tombstone criptográfico de auditoria.
+- **`admin_metrics_snapshots`**: Histórico consolidado de KPIs executivos: motoristas cadastrados, assinantes Pro, MRR e taxa de churn.
+- **`telemetry_events`**: Ingestão de telemetria assíncrona sanitizada com hash anônimo do motorista.

@@ -18,12 +18,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,6 +62,9 @@ fun DashboardScreen(
     viewModel: DashboardViewModel,
     onNavigateToSimulator: () -> Unit,
     onNavigateToVehicle: () -> Unit,
+    onNavigateToSubscription: () -> Unit = {},
+    onNavigateToPrivacy: () -> Unit = {},
+    onNavigateToAdmin: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -217,6 +223,86 @@ fun DashboardScreen(
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
             )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Banner ROTA IQ Pro
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color(0xFFFFD700), RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2C)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "ROTA IQ PRO",
+                            color = Color(0xFFFFD700),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Text(
+                            text = "HUD, Voz, Deadhead e Avaliações ilimitadas",
+                            color = Color(0xFFB0BEC5),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+                Button(
+                    onClick = onNavigateToSubscription,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("VER PLANOS", color = Color(0xFF0A0E17), fontSize = 11.sp, fontWeight = FontWeight.Black)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Atalhos de Privacidade LGPD e Admin
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            androidx.compose.material3.OutlinedButton(
+                onClick = onNavigateToPrivacy,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp)
+            ) {
+                Icon(Icons.Default.Security, contentDescription = null, tint = Color(0xFF90A4AE), modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Privacidade LGPD", color = Color(0xFF90A4AE), fontSize = 11.sp)
+            }
+
+            androidx.compose.material3.OutlinedButton(
+                onClick = onNavigateToAdmin,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp)
+            ) {
+                Icon(Icons.Default.Analytics, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Painel Admin", color = Color(0xFF00E5FF), fontSize = 11.sp)
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))

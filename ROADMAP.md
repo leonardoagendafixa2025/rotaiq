@@ -29,13 +29,13 @@ Este documento define o plano mestre de evolução do **ROTA IQ** da Fundação 
 - [x] Registro granular de abastecimentos (`FuelRecord`) com cálculo de consumo real na bomba via método 2 tanques (`FuelEngine`).
 - [x] Registro e alertas preventivos de manutenção por odômetro (`MaintenanceSchedulerEngine` com status `OK`, `UPCOMING`, `OVERDUE`).
 - [x] Controle detalhado de despesas veiculares avulsas (`VehicleExpense`).
-- [x] Demonstrativo financeiro consolidado multi-período (`AdvancedFinancialEngine`) para Diário, Semanal, Mensal e Anual.
-- [x] Monitoramento simultâneo de metas multi-período com coaching dinâmico de ritmo horário (`MultiPeriodGoalEngine`).
-- [x] `FinancialHubScreen` e `FinancialHubViewModel` com navegação por abas dinâmicas e modais de lançamento rápido.
-- [x] Evolução do banco local Room para a Versão 2 (novas tabelas, DAOs e repositório reativo com Flow).
-- [x] Modelagem e scripts SQL de migração remota PostgreSQL (`001_initial_schema.sql` e `002_financial_and_sync.sql` com 25 tabelas).
-- [x] Arquitetura de sincronização offline-first (`SyncManager`, `SyncPushPayload`, `SyncResponse`).
-- [x] 13 novos testes unitários adicionados (total de 37 testes unitários).
+- [x] Demonstrativo financeiro consolidado multi-período (`AdvancedFinancialEngine`: Diário, Semanal, Mensal, Anual com DRE completo).
+- [x] Sistema de Metas Multi-Período (`MultiPeriodGoalEngine`) com projeção de ritmo e velocidade necessária.
+- [x] Repositório e banco Room atualizados para v2 com 3 novas entidades e DAOs.
+- [x] **`FinancialHubScreen`**: Interface completa com 4 abas (Resumo DRE, Abastecimentos, Manutenções, Despesas).
+- [x] **Migrações PostgreSQL Remoto**: 25 tabelas relacionais em `backend/migrations/` (001_initial e 002_financial).
+- [x] **Sincronização Offline-First**: `SyncManager` e modelos de push/ack para sincronização com retries.
+- [x] 13 novos testes unitários (total de 37 testes unitários).
 
 ---
 
@@ -57,13 +57,24 @@ Este documento define o plano mestre de evolução do **ROTA IQ** da Fundação 
 - [x] **`GeoHeatmapEngine`**: Mapeamento de zonas metropolitanas com faixas de demanda temporal (`DemandLevel`), 5 janelas horárias e probabilidades de retorno de passageiro.
 - [x] **`PlatformComparisonEngine`**: Painel comparativo de eficiência operacional entre **Uber** e **99**, calculando lucro/hora real, ticket médio, margens e recomendações estratégicas dinâmicas.
 - [x] **`GeoInsightsScreen` & `GeoInsightsViewModel`**: Interface completa com abas para Heatmap de Zonas, Simulador Preditivo de Deadhead e Comparativo Uber vs 99.
-- [x] 9 novos testes unitários automatizados (total de **52 testes unitários**, 16 suítes, 100% de aprovação).
-- [x] Novo APK Debug gerado e validado (`app-debug.apk` de 16.6 MB).
+- [x] 9 novos testes unitários automatizados (total de 52 testes unitários).
 
 ---
 
-## 🟡 FASE 5: Produto Comercial e Escala (PRÓXIMA FASE)
-- [ ] Backend escalável em Kotlin/Spring Boot ou Go com PostgreSQL.
-- [ ] Gateway de pagamentos e gestão de assinaturas (Google Play Billing, PIX).
-- [ ] Painel administrativo para métricas de negócio e feature flags.
-- [ ] Auditoria de segurança, telemetria segura e publicação na Google Play Store.
+## 🟢 FASE 5: Produto Comercial, Assinaturas e Escala (CONCLUÍDA ✅)
+- [x] **Backend Escalável e API Assíncrona (`backend/app/main.py`)**: Endpoints de autenticação, planos, pedidos PIX, webhooks, verificação de recibos Play Billing, feature flags, ingestão de telemetria e admin.
+- [x] **Migração 003 PostgreSQL (`003_commercial_subscriptions_and_admin.sql`)**: Tabelas de planos, transações PIX, recibos Play Store, solicitações LGPD, telemetria segura e snapshots administrativos.
+- [x] **Deploy de Produção Containerizado**: `backend/Dockerfile` e `backend/docker-compose.yml` prontos para escala com PostgreSQL.
+- [x] **Modelo de Monetização & Planos Pro**: Planos `FREE` (15 avaliações/dia), `PRO_MONTHLY` (R$ 29,90) e `PRO_ANNUAL` (R$ 239,90 com 33% de desconto).
+- [x] **`FeatureGateManager`**: Motor de controle de limites diários e bloqueio granular de recursos Pro.
+- [x] **`BillingManager` & `PixPaymentManager`**: Gestão de compras Google Play e gerador nativo de EMV BR Code (PIX Copia e Cola com cálculo real de CRC-16/CCITT).
+- [x] **`SubscriptionPaywallScreen` & `SubscriptionPaywallViewModel`**: Paywall Cockpit Dark com seletor de planos, tabela comparativa, modal PIX interativo e compra Play Store.
+- [x] **Conformidade Estrita com a LGPD (Lei 13.709/2018)**:
+  * `LgpdManager`: Exportação completa de dados em JSON (Art. 18, V) e Direito ao Esquecimento / Expurgo total (Art. 18, VI).
+  * `PrivacySettingsScreen`: Painel de preferências, download de dados e exclusão de conta.
+- [x] **Painel Administrativo & Telemetria Segura**:
+  * `AdminMetricsScreen` & `AdminMetricsViewModel`: Painel em tempo real de MRR, assinantes, avaliações diárias e toggles de feature flags.
+  * `TelemetryManager` & `PiiSanitizer`: Fila com expurgo de eventos após 30 dias e sanitização automática de CPFs, e-mails, telefones e placas.
+- [x] **Hardening R8 / ProGuard (`proguard-rules.pro`)**: Regras completas de ofuscação e otimização para build de release.
+- [x] **21 novos testes unitários automatizados** (total de **73 testes unitários**, 22 suítes, 100% de aprovação).
+- [x] Novo APK Debug gerado e validado (`app-debug.apk` de 16.6 MB).

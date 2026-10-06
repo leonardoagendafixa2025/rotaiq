@@ -44,54 +44,62 @@ O **ROTA IQ** é um copiloto financeiro e operacional nativo para motoristas de 
 - **GeoHeatmapEngine**: Modelagem de zonas metropolitanas com faixas de demanda temporal (`DemandLevel`: *Very High*, *High*, *Balanced*, *Low*, *Dead Zone*, *High Risk*), janelas horárias (Pico Matutino, Entrepico, Vespertino, Noite, Madrugada) e probabilidades de retorno de passageiro.
 - **PlatformComparisonEngine**: Relatório consolidado comparativo de performance entre plataformas (Uber vs 99 vs inDrive), calculando rentabilidade por hora real apurada, margem líquida percentual, ticket médio e recomendações táticas de qual app priorizar.
 - **GeoInsightsScreen & ViewModel**: Painel avançado com abas intuitivas para Heatmap de Demanda Metropolitano, Simulador Interativo de Deadhead e Comparativo de Eficiência Uber vs 99.
-- **52 Testes Unitários Automatizados**: 16 suítes de testes cobrindo todos os módulos com 100% de sucesso.
+
+---
+
+## 💰 Destaques da Fase 5 (Produto Comercial, Assinaturas e Escala)
+- **Backend Escalável e API RESTful (`backend/app/main.py`)**: API assíncrona em FastAPI/Uvicorn com endpoints completos para planos, assinaturas, checkout PIX, webhooks, recibos Play Store, feature flags, telemetria segura e métricas de administração.
+- **Banco PostgreSQL Completo (`backend/migrations/`)**: 3 migrações SQL com esquemas para usuários, motoristas, frotas, histórico de corridas, assinaturas, pagamentos PIX, logs de auditoria e solicitações de LGPD.
+- **Deploy Containerizado**: `backend/Dockerfile` e `backend/docker-compose.yml` prontos para deploy de produção com PostgreSQL 15.
+- **Sistema de Monetização e Feature Gating**:
+  * `FeatureGateManager`: Controle de limites para o plano Gratuito (15 avaliações/dia) e desbloqueio integral para planos Pro.
+  * Planos Pro: Mensal (R$ 29,90) e Anual (R$ 239,90 com 33% OFF).
+  * `SubscriptionPaywallScreen`: Paywall moderno Cockpit Dark com seletor de planos, tabela comparativa de benefícios e checkout rápido.
+- **Checkout Instantâneo PIX Nativo (`PixPaymentManager`)**: Gerador oficial de payload EMV BR Code conforme especificações do Banco Central do Brasil com cálculo determinístico de CRC-16/CCITT e Copia e Cola instantâneo.
+- **Google Play In-App Billing (`BillingManager`)**: Gerenciamento de recibos, SKUs de assinatura e renovação automática.
+- **Conformidade Estrita com a LGPD (Lei 13.709/2018)**:
+  * `LgpdManager` & `PrivacySettingsScreen`: Portabilidade em JSON (Art. 18, V) e Direito ao Esquecimento com expurgo atômico de dados (Art. 18, VI).
+  * `PiiSanitizer`: Mascaramento automático de CPF, e-mail, telefone, placas e coordenadas para todos os logs e telemetria.
+  * `AndroidSecureStorage`: Armazenamento de credenciais e tokens protegido via criptografia simétrica AES-256 GCM.
+- **Painel Administrativo & Telemetria (`AdminMetricsScreen`)**: Monitoramento ao vivo de MRR, contagem de assinantes, volume de avaliações diárias, toggles de Feature Flags e fila de telemetria sem dados pessoais.
+- **Hardening de Produção R8 (`proguard-rules.pro`)**: Regras completas de ofuscação de código e remoção de logs de debug para a Google Play Store.
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Linguagem**: Kotlin 1.9.24
+- **Linguagem**: Kotlin 1.9.24 & Python 3.11 (Backend)
 - **Interface**: Jetpack Compose com Material 3 & Navigation Compose
-- **Persistência Local**: Room 2.6.1 + KSP
+- **Persistência Local**: Room 2.6.1 + KSP, Encrypted SharedPreferences
+- **Backend & Banco Remoto**: FastAPI, Uvicorn, PostgreSQL 15, Docker & Docker Compose
 - **Automação & Sistema**: Android AccessibilityService, WindowManager Overlay, TextToSpeech
-- **Inteligência Preditiva**: Motores determinísticos de deadhead, zonas e comparativo de plataformas
+- **Faturamento**: Google Play In-App Billing, PIX Banco Central BR Code EMV
+- **Segurança**: AES-256 GCM, Android Keystore, R8 Proguard Hardening, LGPD Compliance
 - **Assincronismo**: Kotlin Coroutines & Flow
 - **Build System**: Gradle 8.7 com Version Catalog (`libs.versions.toml`)
 - **JVM**: Microsoft OpenJDK 17 LTS
-- **Testes**: JUnit 4, Google Truth, Kotlinx Coroutines Test, Mockk
 
 ---
 
-## 🚀 Como Executar o Projeto
+## 🧪 Suíte de Testes Automatizados
 
-O projeto foi configurado para ser executado diretamente pelo terminal (CLI do Antigravity), sem necessidade do Android Studio:
+O projeto conta com **73 testes unitários automatizados** em **22 suítes de teste**, com **100% de taxa de aprovação**:
 
-### 1. Compilar e Executar Testes Unitários (52 Testes)
 ```powershell
-.\gradlew.bat testDebugUnitTest
-```
-
-### 2. Gerar o APK Debug
-```powershell
-.\gradlew.bat assembleDebug
-```
-O APK final será gerado em:
-`app/build/outputs/apk/debug/app-debug.apk` (16.6 MB)
-
-### 3. Instalar no Dispositivo ou Emulador
-```powershell
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+$env:JAVA_HOME = 'C:\Users\User\AppData\Local\Programs\Microsoft\jdk-17.0.10.7-hotspot'
+$env:ANDROID_HOME = 'C:\Users\User\AppData\Local\Android\Sdk'
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+& 'C:\Users\User\AppData\Local\Programs\gradle-8.7\bin\gradle.bat' testDebugUnitTest
 ```
 
 ---
 
-## 📁 Estrutura do Repositório
+## 📦 Como Gerar o APK
 
-Consulte a documentação completa:
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitetura de software, camadas, motores preditivos e geográficos.
-- [DATABASE.md](DATABASE.md) - Modelagem do banco local (Room v2) e remoto (PostgreSQL).
-- [ANDROID.md](ANDROID.md) - Configurações do SDK, permissões especiais e ecossistema Android.
-- [SECURITY.md](SECURITY.md) - Políticas de segurança, privacidade e diretrizes da LGPD.
-- [ROADMAP.md](ROADMAP.md) - Planejamento e status detalhado de todas as fases.
-- [DECISIONS.md](DECISIONS.md) - Registro de decisões arquiteturais (ADRs 001 a 015).
-- [TESTING.md](TESTING.md) - Estratégia de testes unitários e cobertura dos 52 cenários.
+```powershell
+$env:JAVA_HOME = 'C:\Users\User\AppData\Local\Programs\Microsoft\jdk-17.0.10.7-hotspot'
+$env:ANDROID_HOME = 'C:\Users\User\AppData\Local\Android\Sdk'
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+& 'C:\Users\User\AppData\Local\Programs\gradle-8.7\bin\gradle.bat' assembleDebug
+```
+*Localização do binário:* `app/build/outputs/apk/debug/app-debug.apk` (16.6 MB).

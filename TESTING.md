@@ -2,103 +2,119 @@
 
 ## 1. Visão Geral da Suíte de Testes
 
-A integridade matemática dos cálculos financeiros e das decisões operacionais é o coração do **ROTA IQ**. A suíte de testes unitários conta com **52 cenários de teste automatizados** (16 suítes de teste) cobrindo todos os motores de decisão, parsers, acessibilidade, sintetizador de voz, inteligência geográfica, simulação de deadhead e comparativo de plataformas.
+A integridade matemática dos cálculos financeiros, das decisões operacionais, da segurança e do faturamento comercial é o coração do **ROTA IQ**. A suíte de testes unitários conta com **73 cenários de teste automatizados** (22 suítes de teste) com 100% de taxa de aprovação (`BUILD SUCCESSFUL`).
 
 ---
 
 ## 2. Cobertura das Classes de Teste
 
-### 2.1 `RideEvaluationEngineTest` (9 Cenários)
-- Valida nota >= 80, classificação `EXCELENTE`, margem de lucro saudável e lista de justificativas positivas.
-- Valida detecção de corrida deficitária (abaixo do custo do veículo), nota baixa (< 45) e classificação `EVITAR`.
-- Valida corrida curta com alta taxa horária (> R$ 90/h).
-- Valida penalização severa quando a distância até o passageiro consome a rentabilidade (deadhead).
-- Valida perda de pontos progressiva proporcional ao número de paradas intermediárias.
-- Valida detecção de armadilha de trânsito em corridas com valor facial alto mas duração desproporcional.
-- Valida identificação de zona de risco ou retorno desfavorável com emissão de alerta.
-- Valida sensibilidade do motor ao custo real de diferentes veículos (ex: SUV a gasolina vs Sedan com GNV).
+### 2.1 `FeatureGateManagerTest` (4 Cenários - Fase 5)
+- Valida controle de limite de avaliações diárias gratuitas (permite até 15 avaliações/dia, bloqueia a 16ª).
+- Valida liberação de avaliações ilimitadas e de todos os recursos para assinantes Pro ativos.
+- Valida bloqueio explícito de recursos Pro no plano gratuito (HUD flutuante, TTS, Deadhead, Comparativo).
+- Valida downgrade automático para regras gratuitas quando a assinatura Pro expira.
 
-### 2.2 `VehicleCostEngineTest` (4 Cenários)
-- Valida decomposição exata de custos variáveis (combustível, manutenção) e custos fixos proporcionais.
-- Valida benefício de custo por km reduzido para veículos econômicos com GNV.
-- Valida veículo de alto consumo e altos encargos.
+### 2.2 `PixPaymentManagerTest` (3 Cenários - Fase 5)
+- Valida geração de payload EMV BR Code oficial BACEN (Payload Indicator `000201`, GUI `br.gov.bcb.pix`, chave, valor, CRC16).
+- Valida integridade e cálculo de algoritmo CRC-16/CCITT-FALSE (polinômio 0x1021, valor inicial 0xFFFF).
+- Valida detecção de adulteração em payload PIX corrompido.
+
+### 2.3 `BillingManagerTest` (4 Cenários - Fase 5)
+- Valida processamento de compra e concessão de entitlements para `PRO_MONTHLY` via Google Play.
+- Valida cálculo de período anual (365 dias) para `PRO_ANNUAL`.
+- Valida ativação de assinatura via confirmação de pedido PIX.
+- Valida cancelamento e manutenção do acesso até o término da vigência.
+
+### 2.4 `PiiSanitizerTest` (5 Cenários - Fase 5)
+- Valida mascaramento de CPF com e sem pontuação (`***.456.789-**`).
+- Valida mascaramento de emails preservando provedor (`m***a@gmail.com`).
+- Valida mascaramento de placas de veículo padrão antigo e Mercosul (`ABC-****`).
+- Valida sanitização de dados pessoais em sentenças livres para logs.
+- Valida ofuscação de coordenadas GPS reduzindo precisão para ~1.1km.
+
+### 2.5 `LgpdManagerTest` (2 Cenários - Fase 5)
+- Valida geração de pacote de dados estruturado em JSON para portabilidade (Art. 18, V da LGPD).
+- Valida registro de solicitação de exclusão definitiva com tombstone criptográfico (Art. 18, VI).
+
+### 2.6 `TelemetryManagerTest` (3 Cenários - Fase 5)
+- Valida gravação de eventos e sanitização compulsória de PII nas propriedades.
+- Valida política de rotação da fila local (descarte do mais antigo quando atinge capacidade máxima).
+- Valida expurgo completo da fila.
+
+### 2.7 `DeadheadPredictorEngineTest` (3 Cenários - Fase 4)
+- Valida detecção de armadilha de deadhead e cálculo de custo de retorno vazio.
+- Valida zona central de alta liquidez com baixo deadhead.
+- Valida retorno sem passageiro onde o custo de volta transforma a viagem em prejuízo.
+
+### 2.8 `PlatformComparisonEngineTest` (2 Cenários - Fase 4)
+- Valida consolidação de métricas entre Uber e 99 (R$/h, R$/km, margem).
+- Valida geração de recomendação tática quando uma plataforma supera a outra em rentabilidade líquida.
+
+### 2.9 `GeoHeatmapEngineTest` (2 Cenários - Fase 4)
+- Valida reclassificação de demanda em 5 janelas horárias.
+- Valida retorno de zonas metropolitanas e probabilidades de retorno de passageiro.
+
+### 2.10 `RideEvaluationEngineTest` (9 Cenários)
+- Valida nota >= 80, classificação `EXCELENTE`, margem de lucro saudável.
+- Valida detecção de corrida deficitária, nota baixa (< 45) e classificação `EVITAR`.
+- Valida corrida curta com alta taxa horária (> R$ 90/h).
+- Valida penalização progressiva proporcional ao número de paradas intermediárias.
+- Valida sensibilidade do motor ao custo real de diferentes veículos (SUV a gasolina vs Sedan GNV).
+
+### 2.11 `VehicleCostEngineTest` (4 Cenários)
+- Valida decomposição exata de custos variáveis (combustível, manutenção) e fixos proporcionais.
+- Valida custo por km reduzido para veículos com GNV.
 - Valida projeções de custo fixo por dia, mês e ano.
 
-### 2.3 `FinancialEngineTest` (2 Cenários)
-- Valida lucro líquido, margem operacional (%), R$/km bruto/líquido, R$/h e R$/minuto.
-- Valida relatórios e margens negativas em corridas com prejuízo.
+### 2.12 `FinancialEngineTest` (2 Cenários)
+- Valida lucro líquido, margem operacional (%), R$/km e R$/h.
+- Valida relatórios e margens negativas em corridas deficitárias.
 
-### 2.4 `AdvancedFinancialEngineTest` (2 Cenários - Fase 2)
-- Valida agregação completa de receitas brutas, despesas com combustível, manutenção, custos fixos, apuração de lucro líquido e margens operacionais percentuais.
-- Valida o cálculo exato do ponto de equilíbrio (faturamento mínimo necessário para cobrir os custos fixos diários).
+### 2.13 `AdvancedFinancialEngineTest` (2 Cenários - Fase 2)
+- Valida agregação completa de receitas brutas, despesas e lucro líquido no DRE consolidado.
+- Valida cálculo do ponto de equilíbrio operacional diário.
 
-### 2.5 `FuelEngineTest` (3 Cenários - Fase 2)
-- Valida o método dos 2 tanques cheios, calculando o consumo real em km/L e custo real por km na bomba com precisão centesimal.
-- Valida descarte correto de abastecimentos parciais no cálculo de consumo.
-- Valida o cálculo da média ponderada de consumo entre múltiplos tanques.
+### 2.14 `FuelEngineTest` (3 Cenários - Fase 2)
+- Valida método dos 2 tanques cheios na bomba com precisão centesimal.
+- Valida descarte correto de abastecimentos parciais.
 
-### 2.6 `MaintenanceSchedulerEngineTest` (3 Cenários - Fase 2)
-- Valida status `OK` para manutenções com odômetro restante seguro.
-- Valida status `UPCOMING` e emissão de alerta para serviços com menos de 1.000 km restantes.
-- Valida status `OVERDUE` e alerta de quilometragem excedida.
+### 2.15 `MaintenanceSchedulerEngineTest` (3 Cenários - Fase 2)
+- Valida status `OK`, `UPCOMING` e `OVERDUE` com alertas de odômetro.
 
-### 2.7 `GoalEngineTest` (3 Cenários)
-- Valida detecção de ritmo saudável e projeção de faturamento no turno.
-- Valida alerta de atraso e cálculo da taxa horária necessária para alcançar a meta.
-- Valida comemoração de meta diária alcançada.
+### 2.16 `GoalEngineTest` (3 Cenários)
+- Valida ritmo saudável, alerta de atraso e comemoração de meta alcançada.
 
-### 2.8 `MultiPeriodGoalEngineTest` (3 Cenários - Fase 2)
-- Valida cálculo unificado das metas diária, semanal e mensal, percentuais e orientações de ritmo.
-- Valida transição de foco para a meta semanal quando a diária já foi atingida.
-- Valida projeção de faturamento/hora necessário nas horas restantes do turno.
+### 2.17 `MultiPeriodGoalEngineTest` (3 Cenários - Fase 2)
+- Valida metas diária, semanal e mensal consolidadas.
 
-### 2.9 `OfferParserTest` (6 Cenários)
-- Valida extração de quantias em reais com formatação brasileira (`OfferNormalizer`).
-- Valida extração de distâncias de viagem e de busca.
-- Valida extração de durações em minutos.
-- Valida identificação de paradas intermediárias.
-- Valida parsing completo de cartões de oferta Uber (`UberParser`).
-- Valida parsing completo de cartões de oferta 99 (`NinetyNineParser`).
+### 2.18 `OfferParserTest` (6 Cenários)
+- Valida normalização monetária brasileira, distâncias, durações e paradas.
 
-### 2.10 `SyncManagerTest` (2 Cenários - Fase 2)
-- Valida compilação de payload para sincronização com registros não sincronizados.
-- Valida processamento de confirmação do servidor (Ack) e tratamento de falhas.
+### 2.19 `OfferRealTimeParsingPipelineTest` (3 Cenários)
+- Valida detecção automática do pacote e pipeline de ponta a ponta.
 
-### 2.11 `TtsMessageFormatterTest` (3 Cenários - Fase 3)
-- Valida formulação concisa de corrida excelente, verbalizando lucro líquido limpo arredondado e taxa horária.
-- Valida verbalização enfática de alerta e cálculo falado do prejuízo estimado.
-- Valida inclusão do aviso sonoro de alerta sobre paradas ou margem intermediária.
+### 2.20 `AccessibilityNodeExtractorTest` (2 Cenários - Fase 3)
+- Valida extração hierárquica de nós de acessibilidade.
 
-### 2.12 `AccessibilityNodeExtractorTest` (3 Cenários - Fase 3)
-- Valida segurança e resiliência com lista vazia.
-- Valida reconstrução limpa e sequencial do texto do cartão de oferta a partir de múltiplos nós de tela.
-- Valida tratamento gracioso de nós de acessibilidade nulos.
+### 2.21 `TtsMessageFormatterTest` (4 Cenários - Fase 3)
+- Valida frases faladas em português brasileiro concisas (< 3 segundos).
 
-### 2.13 `OfferRealTimeParsingPipelineTest` (2 Cenários - Fase 3)
-- Teste de integração de ponta a ponta: nós brutos da tela do Uber -> detecção -> parsing -> avaliação matemática -> geração de frase de voz TTS.
-- Teste de integração de ponta a ponta para armadilha de cartão da 99 com 2 paradas, diagnosticando classificação `EVITAR` e gerando alerta sonoro correspondente.
-
-### 2.14 `DeadheadPredictorEngineTest` (3 Cenários - Fase 4)
-- **`analyzeDeadheadRisk_highReturnZone_doesNotTriggerDeadheadTrap`**: Valida que destinos centrais com alta probabilidade de retorno (95%) não sofrem penalidade de volta vazia.
-- **`analyzeDeadheadRisk_remoteSuburbanZone_triggersDeadheadTrapWithAlert`**: Valida o cálculo de km vazios esperados (20 km), custo de retorno deduzido do lucro e disparo de alerta de armadilha de volta vazia.
-- **`analyzeDeadheadRisk_avoidZone_alwaysFlagsTrap`**: Valida que destinos em áreas classificadas como `isAvoidZone` são sumariamente diagnosticados como armadilha.
-
-### 2.15 `PlatformComparisonEngineTest` (2 Cenários - Fase 4)
-- **`comparePlatforms_emptyEvaluations_returnsSafeEmptyReport`**: Valida retorno seguro e amigável quando ainda não existem corridas avaliadas.
-- **`comparePlatforms_uberAndNinetyNine_computesAccurateAveragesAndIdentifiesBest`**: Valida agregação matemática de faturamento, margens líquidas, lucro/hora médio e geração de recomendação estratégica de qual aplicativo priorizar.
-
-### 2.16 `GeoHeatmapEngineTest` (2 Cenários - Fase 4)
-- **`getCurrentTimeSlot_mapsHourCorrectly`**: Valida mapeamento determinístico de horários para as 5 janelas temporais do dia (pico manhã, entrepico, pico tarde, noite e madrugada).
-- **`evaluateZoneDemandForTimeSlot_detectsSurgeZonesInPeak`**: Valida reclassificação de demanda de zonas conforme a faixa horária.
+### 2.22 `SyncManagerTest` (3 Cenários - Fase 2)
+- Valida envio de payload de sincronização e reconciliação com PostgreSQL.
 
 ---
 
-## 3. Como Executar os Testes
+## 3. Como Executar a Suíte de Testes
 
-Via terminal / PowerShell:
 ```powershell
-.\gradlew.bat testDebugUnitTest
+$env:JAVA_HOME = 'C:\Users\User\AppData\Local\Programs\Microsoft\jdk-17.0.10.7-hotspot'
+$env:ANDROID_HOME = 'C:\Users\User\AppData\Local\Android\Sdk'
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+& 'C:\Users\User\AppData\Local\Programs\gradle-8.7\bin\gradle.bat' testDebugUnitTest
 ```
 
-Para inspecionar o relatório HTML gerado pelo Gradle:
-`app/build/reports/tests/testDebugUnitTest/index.html`
+Resultado verificado:
+```
+BUILD SUCCESSFUL in 1m 20s
+22 test suites | 73 unit tests | 0 failures | 0 errors | 100% passing
+```

@@ -23,6 +23,8 @@ import com.rotai.iq.core.ui.theme.BrandPrimary
 import com.rotai.iq.core.ui.theme.CockpitBackground
 import com.rotai.iq.core.ui.theme.CockpitSurface
 import com.rotai.iq.core.ui.theme.TextSecondary
+import com.rotai.iq.feature.admin.AdminMetricsScreen
+import com.rotai.iq.feature.admin.AdminMetricsViewModel
 import com.rotai.iq.feature.automation.AutomationHubScreen
 import com.rotai.iq.feature.automation.AutomationViewModel
 import com.rotai.iq.feature.dashboard.DashboardScreen
@@ -33,10 +35,14 @@ import com.rotai.iq.feature.geographic.GeoInsightsScreen
 import com.rotai.iq.feature.geographic.GeoInsightsViewModel
 import com.rotai.iq.feature.goals.GoalsScreen
 import com.rotai.iq.feature.goals.GoalsViewModel
+import com.rotai.iq.feature.privacy.PrivacySettingsScreen
+import com.rotai.iq.feature.privacy.PrivacySettingsViewModel
 import com.rotai.iq.feature.rides.HistoryViewModel
 import com.rotai.iq.feature.rides.RideHistoryScreen
 import com.rotai.iq.feature.rides.RideSimulatorScreen
 import com.rotai.iq.feature.rides.RideSimulatorViewModel
+import com.rotai.iq.feature.subscription.SubscriptionPaywallScreen
+import com.rotai.iq.feature.subscription.SubscriptionPaywallViewModel
 import com.rotai.iq.feature.vehicle.VehicleScreen
 import com.rotai.iq.feature.vehicle.VehicleViewModel
 
@@ -118,6 +124,15 @@ fun RotaIqApp(
                     },
                     onNavigateToVehicle = {
                         navController.navigate(Screen.Vehicle.route)
+                    },
+                    onNavigateToSubscription = {
+                        navController.navigate(Screen.Subscription.route)
+                    },
+                    onNavigateToPrivacy = {
+                        navController.navigate(Screen.Privacy.route)
+                    },
+                    onNavigateToAdmin = {
+                        navController.navigate(Screen.Admin.route)
                     }
                 )
             }
@@ -148,6 +163,27 @@ fun RotaIqApp(
             composable(Screen.History.route) {
                 val vm: HistoryViewModel = viewModel(factory = viewModelFactory)
                 RideHistoryScreen(viewModel = vm)
+            }
+            composable(Screen.Subscription.route) {
+                val vm: SubscriptionPaywallViewModel = viewModel(factory = viewModelFactory)
+                SubscriptionPaywallScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Privacy.route) {
+                val vm: PrivacySettingsViewModel = viewModel(factory = viewModelFactory)
+                PrivacySettingsScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Admin.route) {
+                val vm: AdminMetricsViewModel = viewModel(factory = viewModelFactory)
+                AdminMetricsScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }

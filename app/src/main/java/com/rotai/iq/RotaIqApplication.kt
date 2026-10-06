@@ -3,22 +3,65 @@ package com.rotai.iq
 import android.app.Application
 import com.rotai.iq.core.automation.tts.VoiceAlertManager
 import com.rotai.iq.core.data.local.db.RotaIqDatabase
+import com.rotai.iq.core.data.repository.CommercialRepository
+import com.rotai.iq.core.data.repository.CommercialRepositoryImpl
 import com.rotai.iq.core.data.repository.RotaIqRepository
 import com.rotai.iq.core.data.repository.RotaIqRepositoryImpl
+import com.rotai.iq.core.domain.engine.BillingManager
+import com.rotai.iq.core.domain.engine.FeatureGateManager
+import com.rotai.iq.core.domain.engine.PixPaymentManager
+import com.rotai.iq.core.featureflags.FeatureFlagManager
+import com.rotai.iq.core.security.AndroidSecureStorage
+import com.rotai.iq.core.security.LgpdManager
+import com.rotai.iq.core.security.SecureStorage
+import com.rotai.iq.core.telemetry.TelemetryManager
 
 class RotaIqApplication : Application() {
 
     lateinit var repository: RotaIqRepository
         private set
 
+    lateinit var commercialRepository: CommercialRepository
+        private set
+
     lateinit var voiceAlertManager: VoiceAlertManager
+        private set
+
+    lateinit var billingManager: BillingManager
+        private set
+
+    lateinit var pixPaymentManager: PixPaymentManager
+        private set
+
+    lateinit var featureGateManager: FeatureGateManager
+        private set
+
+    lateinit var lgpdManager: LgpdManager
+        private set
+
+    lateinit var telemetryManager: TelemetryManager
+        private set
+
+    lateinit var featureFlagManager: FeatureFlagManager
+        private set
+
+    lateinit var secureStorage: SecureStorage
         private set
 
     override fun onCreate() {
         super.onCreate()
         val database = RotaIqDatabase.getDatabase(this)
         repository = RotaIqRepositoryImpl(database)
+        commercialRepository = CommercialRepositoryImpl(this)
         voiceAlertManager = VoiceAlertManager(this)
+
+        billingManager = BillingManager()
+        pixPaymentManager = PixPaymentManager()
+        featureGateManager = FeatureGateManager()
+        lgpdManager = LgpdManager()
+        telemetryManager = TelemetryManager()
+        featureFlagManager = FeatureFlagManager()
+        secureStorage = AndroidSecureStorage(this)
     }
 
     override fun onTerminate() {

@@ -121,3 +121,38 @@ Este documento registra as principais decisões técnicas e de design tomadas no
 - **Contexto**: Motoristas frequentemente alternam entre Uber, 99 e inDrive sem clareza matemática de qual aplicativo gera mais lucro líquido por hora trabalhada.
 - **Decisão**: Implementar o `PlatformComparisonEngine`, gerando relatórios consolidados de lucro/hora, faturamento, ticket médio e recomendações acionáveis.
 - **Consequências**: Permite que o motorista foque no aplicativo mais rentável em cada perfil operacional.
+
+---
+
+### ADR-016: Sistema de Assinaturas e Planos Pro com Feature Gating (Fase 5)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Para viabilizar comercialmente a plataforma sem depender de anúncios invasivos ao motorista, é necessário um modelo de monetização claro e de alto valor percebido.
+- **Decisão**: Implementar modelo freemium estruturado com `FeatureGateManager`. O plano Free permite 15 avaliações diárias com cálculos de custos essenciais. Os planos Pro (`PRO_MONTHLY` a R$ 29,90 e `PRO_ANNUAL` a R$ 239,90 com 33% de desconto) desbloqueiam avaliações ilimitadas, HUD flutuante, síntese de voz TTS, predição de deadhead e comparativo de plataformas.
+- **Consequências**: Alta conversão de motoristas frequentes, receita recorrente previsível (MRR) e valor tangível entregue ao motorista que se paga nas primeiras corridas otimizadas.
+
+---
+
+### ADR-017: Checkout Instantâneo via PIX Nativo EMV BR Code com CRC-16 (Fase 5)
+- **Status**: Aprovado e Implementado
+- **Contexto**: No Brasil, o PIX é o meio de pagamento preferido por mais de 80% dos motoristas de aplicativo devido à liquidação imediata e ausência de tarifas de cartão.
+- **Decisão**: Implementar gerador de payload EMV BR Code nativo em `PixPaymentManager`, calculando CRC-16/CCITT-FALSE conforme manual do Banco Central do Brasil, gerando código "Copia e Cola" instantâneo diretamente no app sem redirecionamentos externos lentos.
+- **Consequências**: Fricção mínima de compra, ativação em tempo real e maior taxa de conversão no checkout.
+
+---
+
+### ADR-018: Conformidade Estrita com a LGPD (Lei 13.709/2018) (Fase 5)
+- **Status**: Aprovado e Implementado
+- **Contexto**: O aplicativo lida com dados sensíveis de localização, faturamento e despesas dos motoristas. A conformidade com a LGPD é mandatória.
+- **Decisão**: Criar o `LgpdManager` e a tela `PrivacySettingsScreen` implementando:
+  1. **Art. 18, V (Portabilidade de Dados)**: Geração de pacote JSON estruturado com todos os registros do motorista.
+  2. **Art. 18, VI (Direito ao Esquecimento)**: Expurgo completo de dados locais e criação de tombstone criptográfico de auditoria.
+  3. **Privacy by Design**: Consentimentos explícitos e voluntários para telemetria e benchmarking.
+- **Consequências**: Total proteção jurídica da plataforma e respeito à privacidade do motorista.
+
+---
+
+### ADR-019: Hardening de Produção R8, Obfuscation e Higienização de PII em Telemetria (Fase 5)
+- **Status**: Aprovado e Implementado
+- **Contexto**: A publicação em produção na Google Play Store exige regras estritas de segurança, proteção contra engenharia reversa e sigilo de dados em telemetria.
+- **Decisão**: Configurar `proguard-rules.pro` com regras completas de shrinking e ofuscação de classes internas, remoção de logs de debug, e criar o `PiiSanitizer` para mascaramento automático de CPF (`***.456.789-**`), emails, telefones e placas antes do envio para qualquer fila de telemetria ou log.
+- **Consequências**: Binário protegido contra engenharia reversa e conformidade com as políticas do Google Play Developer.
