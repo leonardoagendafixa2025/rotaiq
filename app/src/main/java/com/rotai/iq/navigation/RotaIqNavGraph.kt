@@ -47,6 +47,7 @@ fun RotaIqApp(
     val screens = listOf(
         Screen.Dashboard,
         Screen.Simulator,
+        Screen.Finance,
         Screen.Vehicle,
         Screen.Goals,
         Screen.History
@@ -118,6 +119,10 @@ fun RotaIqApp(
             composable(Screen.Simulator.route) {
                 val vm: RideSimulatorViewModel = viewModel(factory = viewModelFactory)
                 RideSimulatorScreen(viewModel = vm)
+            }
+            composable(Screen.Finance.route) {
+                val vm: com.rotai.iq.feature.finance.FinancialHubViewModel = viewModel(factory = viewModelFactory)
+                com.rotai.iq.feature.finance.FinancialHubScreen(viewModel = vm)
             }
             composable(Screen.Vehicle.route) {
                 val vm: VehicleViewModel = viewModel(factory = viewModelFactory)

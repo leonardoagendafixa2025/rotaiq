@@ -5,16 +5,22 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.rotai.iq.core.data.local.dao.ExpenseDao
 import com.rotai.iq.core.data.local.dao.FinancialDao
+import com.rotai.iq.core.data.local.dao.FuelDao
 import com.rotai.iq.core.data.local.dao.GoalDao
+import com.rotai.iq.core.data.local.dao.MaintenanceDao
 import com.rotai.iq.core.data.local.dao.PreferenceDao
 import com.rotai.iq.core.data.local.dao.RideDao
 import com.rotai.iq.core.data.local.dao.VehicleDao
 import com.rotai.iq.core.data.local.entity.DailyFinancialEntity
 import com.rotai.iq.core.data.local.entity.DriverGoalEntity
 import com.rotai.iq.core.data.local.entity.DriverPreferenceEntity
+import com.rotai.iq.core.data.local.entity.FuelRecordEntity
+import com.rotai.iq.core.data.local.entity.MaintenanceRecordEntity
 import com.rotai.iq.core.data.local.entity.RideEvaluationEntity
 import com.rotai.iq.core.data.local.entity.VehicleEntity
+import com.rotai.iq.core.data.local.entity.VehicleExpenseEntity
 
 @Database(
     entities = [
@@ -22,9 +28,12 @@ import com.rotai.iq.core.data.local.entity.VehicleEntity
         DriverGoalEntity::class,
         DriverPreferenceEntity::class,
         RideEvaluationEntity::class,
-        DailyFinancialEntity::class
+        DailyFinancialEntity::class,
+        FuelRecordEntity::class,
+        MaintenanceRecordEntity::class,
+        VehicleExpenseEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -34,6 +43,9 @@ abstract class RotaIqDatabase : RoomDatabase() {
     abstract fun preferenceDao(): PreferenceDao
     abstract fun rideDao(): RideDao
     abstract fun financialDao(): FinancialDao
+    abstract fun fuelDao(): FuelDao
+    abstract fun maintenanceDao(): MaintenanceDao
+    abstract fun expenseDao(): ExpenseDao
 
     companion object {
         @Volatile

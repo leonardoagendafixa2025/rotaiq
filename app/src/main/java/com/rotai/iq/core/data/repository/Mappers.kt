@@ -193,3 +193,92 @@ fun DailyFinancialSummary.toEntity(): DailyFinancialEntity = DailyFinancialEntit
     avgGrossRatePerHour = avgGrossRatePerHour,
     avgNetProfitPerHour = avgNetProfitPerHour
 )
+
+fun com.rotai.iq.core.data.local.entity.FuelRecordEntity.toDomain(): com.rotai.iq.core.domain.model.FuelRecord = com.rotai.iq.core.domain.model.FuelRecord(
+    id = id,
+    vehicleId = vehicleId,
+    date = date,
+    odometerKm = odometerKm,
+    liters = liters,
+    pricePerLiter = pricePerLiter,
+    totalPaid = totalPaid,
+    fuelType = runCatching { com.rotai.iq.core.domain.model.FuelType.valueOf(fuelType) }.getOrDefault(com.rotai.iq.core.domain.model.FuelType.GASOLINE),
+    isFullTank = isFullTank,
+    calculatedKmPerLiter = calculatedKmPerLiter,
+    calculatedCostPerKm = calculatedCostPerKm,
+    notes = notes,
+    syncedWithServer = syncedWithServer,
+    createdAt = createdAt
+)
+
+fun com.rotai.iq.core.domain.model.FuelRecord.toEntity(): com.rotai.iq.core.data.local.entity.FuelRecordEntity = com.rotai.iq.core.data.local.entity.FuelRecordEntity(
+    id = id,
+    vehicleId = vehicleId,
+    date = date,
+    odometerKm = odometerKm,
+    liters = liters,
+    pricePerLiter = pricePerLiter,
+    totalPaid = totalPaid,
+    fuelType = fuelType.name,
+    isFullTank = isFullTank,
+    calculatedKmPerLiter = calculatedKmPerLiter,
+    calculatedCostPerKm = calculatedCostPerKm,
+    notes = notes,
+    syncedWithServer = syncedWithServer,
+    createdAt = createdAt
+)
+
+fun com.rotai.iq.core.data.local.entity.MaintenanceRecordEntity.toDomain(): com.rotai.iq.core.domain.model.MaintenanceRecord = com.rotai.iq.core.domain.model.MaintenanceRecord(
+    id = id,
+    vehicleId = vehicleId,
+    date = date,
+    odometerKm = odometerKm,
+    type = runCatching { com.rotai.iq.core.domain.model.MaintenanceType.valueOf(type) }.getOrDefault(com.rotai.iq.core.domain.model.MaintenanceType.OIL_CHANGE),
+    description = description,
+    cost = cost,
+    nextServiceKm = nextServiceKm,
+    isCompleted = isCompleted,
+    notes = notes,
+    syncedWithServer = syncedWithServer,
+    createdAt = createdAt
+)
+
+fun com.rotai.iq.core.domain.model.MaintenanceRecord.toEntity(): com.rotai.iq.core.data.local.entity.MaintenanceRecordEntity = com.rotai.iq.core.data.local.entity.MaintenanceRecordEntity(
+    id = id,
+    vehicleId = vehicleId,
+    date = date,
+    odometerKm = odometerKm,
+    type = type.name,
+    description = description,
+    cost = cost,
+    nextServiceKm = nextServiceKm,
+    isCompleted = isCompleted,
+    notes = notes,
+    syncedWithServer = syncedWithServer,
+    createdAt = createdAt
+)
+
+fun com.rotai.iq.core.data.local.entity.VehicleExpenseEntity.toDomain(): com.rotai.iq.core.domain.model.VehicleExpense = com.rotai.iq.core.domain.model.VehicleExpense(
+    id = id,
+    vehicleId = vehicleId,
+    date = date,
+    category = runCatching { com.rotai.iq.core.domain.model.ExpenseCategory.valueOf(category) }.getOrDefault(com.rotai.iq.core.domain.model.ExpenseCategory.OTHER),
+    description = description,
+    amount = amount,
+    notes = notes,
+    syncedWithServer = syncedWithServer,
+    createdAt = createdAt
+)
+
+fun com.rotai.iq.core.domain.model.VehicleExpense.toEntity(): com.rotai.iq.core.data.local.entity.VehicleExpenseEntity = com.rotai.iq.core.data.local.entity.VehicleExpenseEntity(
+    id = id,
+    vehicleId = vehicleId,
+    date = date,
+    category = category.name,
+    description = description,
+    amount = amount,
+    notes = notes,
+    syncedWithServer = syncedWithServer,
+    createdAt = createdAt
+)
+

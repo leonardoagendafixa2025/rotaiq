@@ -25,6 +25,19 @@ interface RotaIqRepository {
 
     fun getDailyFinancial(date: String): Flow<DailyFinancialSummary?>
     suspend fun saveDailyFinancial(summary: DailyFinancialSummary)
+
+    fun getAllFuelRecords(): Flow<List<com.rotai.iq.core.domain.model.FuelRecord>>
+    suspend fun getLastTwoFullTankRecords(): List<com.rotai.iq.core.domain.model.FuelRecord>
+    suspend fun saveFuelRecord(record: com.rotai.iq.core.domain.model.FuelRecord)
+    suspend fun deleteFuelRecord(id: String)
+
+    fun getAllMaintenanceRecords(): Flow<List<com.rotai.iq.core.domain.model.MaintenanceRecord>>
+    suspend fun saveMaintenanceRecord(record: com.rotai.iq.core.domain.model.MaintenanceRecord)
+    suspend fun deleteMaintenanceRecord(id: String)
+
+    fun getAllExpenses(): Flow<List<com.rotai.iq.core.domain.model.VehicleExpense>>
+    suspend fun saveExpense(expense: com.rotai.iq.core.domain.model.VehicleExpense)
+    suspend fun deleteExpense(id: String)
 }
 
 class RotaIqRepositoryImpl(
@@ -36,6 +49,9 @@ class RotaIqRepositoryImpl(
     private val preferenceDao = database.preferenceDao()
     private val rideDao = database.rideDao()
     private val financialDao = database.financialDao()
+    private val fuelDao = database.fuelDao()
+    private val maintenanceDao = database.maintenanceDao()
+    private val expenseDao = database.expenseDao()
 
     override fun getActiveVehicle(): Flow<Vehicle> {
         return vehicleDao.getActiveVehicle().map { entity ->
@@ -89,5 +105,45 @@ class RotaIqRepositoryImpl(
 
     override suspend fun saveDailyFinancial(summary: DailyFinancialSummary) {
         financialDao.insertOrUpdate(summary.toEntity())
+    }
+
+    override fun getAllFuelRecords(): Flow<List<com.rotai.iq.core.domain.model.FuelRecord>> {
+        return fuelDao.getAllFuelRecords().map { list -> list.map { it.toDomain() } }
+    }
+
+    override suspend fun getLastTwoFullTankRecords(): List<com.rotai.iq.core.domain.model.FuelRecord> {
+        return fuelDao.getLastTwoFullTankRecords().map { it.toDomain() }
+    }
+
+    override suspend fun saveFuelRecord(record: com.rotai.iq.core.domain.model.FuelRecord) {
+        fuelDao.insertFuelRecord(record.toEntity())
+    }
+
+    override suspend fun deleteFuelRecord(id: String) {
+        fuelDao.deleteFuelRecord(id)
+    }
+
+    override fun getAllMaintenanceRecords(): Flow<List<com.rotai.iq.core.domain.model.MaintenanceRecord>> {
+        return maintenanceDao.getAllMaintenanceRecords().map { list -> list.map { it.toDomain() } }
+    }
+
+    override suspend fun saveMaintenanceRecord(record: com.rotai.iq.core.domain.model.MaintenanceRecord) {
+        maintenanceDao.insertMaintenanceRecord(record.toEntity())
+    }
+
+    override suspend fun deleteMaintenanceRecord(id: String) {
+        maintenanceDao.deleteMaintenanceRecord(id)
+    }
+
+    override fun getAllExpenses(): Flow<List<com.rotai.iq.core.domain.model.VehicleExpense>> {
+        return expenseDao.getAllExpenses().map { list -> list.map { it.toDomain() } }
+    }
+
+    override suspend fun saveExpense(expense: com.rotai.iq.core.domain.model.VehicleExpense) {
+        expenseDao.insertExpense(expense.toEntity())
+    }
+
+    override suspend fun deleteExpense(id: String) {
+        expenseDao.deleteExpense(id)
     }
 }

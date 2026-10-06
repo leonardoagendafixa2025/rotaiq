@@ -49,3 +49,27 @@ Este documento registra as principais decisões técnicas e de design tomadas no
 - **Contexto**: O projeto deve ser compilável, testável e gerenciável 100% via terminal pelo ambiente Antigravity.
 - **Decisão**: Configurar Gradle 8.7, Version Catalog e Android SDK Command-line Tools via linha de comando.
 - **Consequências**: Automação contínua, agilidade e total independência de interfaces gráficas pesadas.
+
+---
+
+### ADR-007: Método de Dois Tanques Cheios para Cálculo de Consumo Real (Fase 2)
+- **Status**: Aprovado e Implementado
+- **Contexto**: O computador de bordo dos veículos frequentemente apresenta erro de 10% a 15%, e cálculos baseados em abastecimentos parciais são imprecisos.
+- **Decisão**: O `FuelEngine` exige a marcação de tanque cheio (`isFullTank = true`) em abastecimentos consecutivos para calcular o consumo exato da bomba: `(odômetro_2 - odômetro_1) / litros_2`.
+- **Consequências**: Precisão científica no custo real de combustível por km (`realCostPerKm`), permitindo calibrar o `VehicleCostEngine` com dados reais do motorista.
+
+---
+
+### ADR-008: Alertas Preventivos de Manutenção Baseados em Odômetro (Fase 2)
+- **Status**: Aprovado e Implementado
+- **Contexto**: O desgaste prematuro do veículo é uma das maiores causas de prejuízo oculto para motoristas de aplicativo.
+- **Decisão**: Implementar `MaintenanceSchedulerEngine` com três faixas de urgência (`OK`, `UPCOMING`, `OVERDUE`) monitorando o odômetro e os intervalos recomendados de serviços (óleo, pneus, freios, suspensão, revisão).
+- **Consequências**: Previne quebras que paralisam a operação do motorista e garante reserva financeira para manutenções programadas.
+
+---
+
+### ADR-009: Arquitetura de Sincronização Outbox / Push-Ack com PostgreSQL (Fase 2)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Manter os dados sincronizados com a nuvem sem comprometer a operação em áreas de sombra ou sem rede.
+- **Decisão**: Armazenar flag `syncedWithServer = false` em cada registro local e sincronizar em lotes via `SyncManager` enviando `SyncPushPayload` e recebendo confirmação de IDs do servidor PostgreSQL.
+- **Consequências**: Tolerância total a falhas de rede, sem risco de perda de lançamentos financeiros e sem bloqueio da interface do usuário.

@@ -92,3 +92,50 @@ data class DailyFinancialEntity(
     val avgGrossRatePerHour: Double,
     val avgNetProfitPerHour: Double
 )
+
+@Entity(tableName = "fuel_records")
+data class FuelRecordEntity(
+    @PrimaryKey val id: String,
+    val vehicleId: String,
+    val date: String,
+    val odometerKm: Double,
+    val liters: Double,
+    val pricePerLiter: Double,
+    val totalPaid: Double,
+    val fuelType: String,
+    val isFullTank: Boolean,
+    val calculatedKmPerLiter: Double?,
+    val calculatedCostPerKm: Double?,
+    val notes: String?,
+    val syncedWithServer: Boolean,
+    val createdAt: Long
+)
+
+@Entity(tableName = "maintenance_records")
+data class MaintenanceRecordEntity(
+    @PrimaryKey val id: String,
+    val vehicleId: String,
+    val date: String,
+    val odometerKm: Double,
+    val type: String,
+    val description: String,
+    val cost: Double,
+    val nextServiceKm: Double?,
+    val isCompleted: Boolean,
+    val notes: String?,
+    val syncedWithServer: Boolean,
+    val createdAt: Long
+)
+
+@Entity(tableName = "vehicle_expenses")
+data class VehicleExpenseEntity(
+    @PrimaryKey val id: String,
+    val vehicleId: String,
+    val date: String,
+    val category: String,
+    val description: String,
+    val amount: Double,
+    val notes: String?,
+    val syncedWithServer: Boolean,
+    val createdAt: Long
+)

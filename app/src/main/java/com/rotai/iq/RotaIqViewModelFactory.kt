@@ -31,6 +31,9 @@ class RotaIqViewModelFactory(
             modelClass.isAssignableFrom(HistoryViewModel::class.java) -> {
                 HistoryViewModel(repository) as T
             }
+            modelClass.isAssignableFrom(com.rotai.iq.feature.finance.FinancialHubViewModel::class.java) -> {
+                com.rotai.iq.feature.finance.FinancialHubViewModel(repository) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }
