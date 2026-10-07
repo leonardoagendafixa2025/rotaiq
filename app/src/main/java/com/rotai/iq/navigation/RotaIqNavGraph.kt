@@ -146,7 +146,10 @@ fun RotaIqApp(
             }
             composable(Screen.GeoInsights.route) {
                 val vm: GeoInsightsViewModel = viewModel(factory = viewModelFactory)
-                GeoInsightsScreen(viewModel = vm)
+                GeoInsightsScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.Finance.route) {
                 val vm: FinancialHubViewModel = viewModel(factory = viewModelFactory)
@@ -154,11 +157,34 @@ fun RotaIqApp(
             }
             composable(Screen.Vehicle.route) {
                 val vm: VehicleViewModel = viewModel(factory = viewModelFactory)
-                VehicleScreen(viewModel = vm)
+                VehicleScreen(
+                    viewModel = vm,
+                    onNavigateToGoals = {
+                        navController.navigate(Screen.Goals.route)
+                    },
+                    onNavigateToPreferences = {
+                        navController.navigate(Screen.AdvancedTools.route)
+                    },
+                    onNavigateToZones = {
+                        navController.navigate(Screen.GeoInsights.route)
+                    },
+                    onNavigateToAutomation = {
+                        navController.navigate(Screen.Automation.route)
+                    },
+                    onNavigateToPrivacy = {
+                        navController.navigate(Screen.Privacy.route)
+                    },
+                    onNavigateToSubscription = {
+                        navController.navigate(Screen.Subscription.route)
+                    }
+                )
             }
             composable(Screen.Automation.route) {
                 val vm: AutomationViewModel = viewModel(factory = viewModelFactory)
-                AutomationHubScreen(viewModel = vm)
+                AutomationHubScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.Simulator.route) {
                 val vm: RideSimulatorViewModel = viewModel(factory = viewModelFactory)
@@ -166,7 +192,10 @@ fun RotaIqApp(
             }
             composable(Screen.Goals.route) {
                 val vm: GoalsViewModel = viewModel(factory = viewModelFactory)
-                GoalsScreen(viewModel = vm)
+                GoalsScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.Subscription.route) {
                 val vm: SubscriptionPaywallViewModel = viewModel(factory = viewModelFactory)

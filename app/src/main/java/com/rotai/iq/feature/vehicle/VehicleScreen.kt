@@ -37,6 +37,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -78,11 +80,23 @@ import java.util.Locale
 @Composable
 fun VehicleScreen(
     viewModel: VehicleViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToGoals: () -> Unit = {},
+    onNavigateToPreferences: () -> Unit = {},
+    onNavigateToZones: () -> Unit = {},
+    onNavigateToAutomation: () -> Unit = {},
+    onNavigateToPrivacy: () -> Unit = {},
+    onNavigateToSubscription: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     var showEditDialog by remember { mutableStateOf(false) }
+    var showNotificationsDialog by remember { mutableStateOf(false) }
+
+    var soundAlertsEnabled by remember { mutableStateOf(true) }
+    var goalAlertsEnabled by remember { mutableStateOf(true) }
+    var deadheadWarningEnabled by remember { mutableStateOf(true) }
+    var maintenanceReminderEnabled by remember { mutableStateOf(true) }
 
     val vehicle = state.vehicle
     val vehicleName = vehicle.name.ifBlank { "Veículo não configurado" }
@@ -101,13 +115,14 @@ fun VehicleScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar com anel laranja vibrante
+            // Avatar com anel laranja vibrante (clicável para gerenciar assinatura)
             Box(
                 modifier = Modifier
                     .size(62.dp)
                     .clip(CircleShape)
                     .background(RotaCardElevated)
-                    .border(2.dp, RotaOrangePrimary, CircleShape),
+                    .border(2.dp, RotaOrangePrimary, CircleShape)
+                    .clickable { onNavigateToSubscription() },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -136,6 +151,7 @@ fun VehicleScreen(
                         .clip(RoundedCornerShape(8.dp))
                         .background(RotaOrangeSubtleBg)
                         .border(1.dp, RotaOrangePrimary.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .clickable { onNavigateToSubscription() }
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Icon(
@@ -146,7 +162,7 @@ fun VehicleScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "CONTA ATIVA",
+                        text = "CONTA PRO ATIVA",
                         color = RotaOrangePrimary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold
@@ -295,13 +311,54 @@ fun VehicleScreen(
                 subtitle = "Consumo, combustível e custos fixos",
                 onClick = { showEditDialog = true }
             )
-            ProfileMenuRow(icon = Icons.Default.Flag, title = "Minhas Metas", subtitle = "Meta diária e piso/km")
-            ProfileMenuRow(icon = Icons.Default.Tune, title = "Preferências de Corrida", subtitle = "Filtro de passageiro e raio")
-            ProfileMenuRow(icon = Icons.Default.Map, title = "Áreas & Zonas Favoritas", subtitle = "Alertas de saída de rota")
-            ProfileMenuRow(icon = Icons.Default.Notifications, title = "Notificações", subtitle = "Alertas de alta demanda")
-            ProfileMenuRow(icon = Icons.Default.RecordVoiceOver, title = "Voz & Copiloto TTS", subtitle = "Leitura audível no fone")
-            ProfileMenuRow(icon = Icons.Default.Hearing, title = "Acessibilidade", subtitle = "Overlay e leitura de tela")
-            ProfileMenuRow(icon = Icons.Default.Security, title = "Privacidade & Armazenamento", subtitle = "Dados armazenados localmente no Room")
+            ProfileMenuRow(
+                icon = Icons.Default.Flag,
+                title = "Minhas Metas",
+                subtitle = "Meta diária de faturamento e piso de R$/km",
+                onClick = onNavigateToGoals
+            )
+            ProfileMenuRow(
+                icon = Icons.Default.Tune,
+                title = "Preferências & Ferramentas",
+                subtitle = "Simulador inDrive, MEI e livro caixa",
+                onClick = onNavigateToPreferences
+            )
+            ProfileMenuRow(
+                icon = Icons.Default.Map,
+                title = "Áreas & Zonas de Demanda",
+                subtitle = "Heatmap de liquidez e deadhead",
+                onClick = onNavigateToZones
+            )
+            ProfileMenuRow(
+                icon = Icons.Default.Notifications,
+                title = "Notificações & Alertas",
+                subtitle = "Alertas sonoros e avisos de meta",
+                onClick = { showNotificationsDialog = true }
+            )
+            ProfileMenuRow(
+                icon = Icons.Default.RecordVoiceOver,
+                title = "Voz & Copiloto TTS",
+                subtitle = "Leitura audível no fone de ouvido",
+                onClick = onNavigateToAutomation
+            )
+            ProfileMenuRow(
+                icon = Icons.Default.Hearing,
+                title = "Acessibilidade & HUD",
+                subtitle = "Permissão de sobreposição e leitura do Uber/99",
+                onClick = onNavigateToAutomation
+            )
+            ProfileMenuRow(
+                icon = Icons.Default.Security,
+                title = "Privacidade & LGPD",
+                subtitle = "Exportação de dados e direitos do titular",
+                onClick = onNavigateToPrivacy
+            )
+            ProfileMenuRow(
+                icon = Icons.Default.Star,
+                title = "Plano & Assinatura Pro",
+                subtitle = "Gerenciar plano e desbloqueio ilimitado",
+                onClick = onNavigateToSubscription
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -372,6 +429,43 @@ fun VehicleScreen(
                         focusedTextColor = RotaTextWhite,
                         unfocusedTextColor = RotaTextWhite
                     )
+                )
+            }
+        }
+    }
+
+    // Modal Interativo de Preferências de Notificações
+    if (showNotificationsDialog) {
+        RotaDialog(
+            title = "Configurar Notificações",
+            onDismissRequest = { showNotificationsDialog = false },
+            confirmButtonText = "Salvar Preferências",
+            onConfirm = { showNotificationsDialog = false }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                NotificationToggleRow(
+                    title = "Alertas Sonoros de Demanda",
+                    subtitle = "Bipe audível ao detectar corrida com score alto",
+                    checked = soundAlertsEnabled,
+                    onCheckedChange = { soundAlertsEnabled = it }
+                )
+                NotificationToggleRow(
+                    title = "Notificação de Meta Atingida",
+                    subtitle = "Aviso comemorativo ao atingir 100% da meta diária",
+                    checked = goalAlertsEnabled,
+                    onCheckedChange = { goalAlertsEnabled = it }
+                )
+                NotificationToggleRow(
+                    title = "Alerta de Saída de Rota & Deadhead",
+                    subtitle = "Aviso preditivo ao se afastar de zonas com demanda",
+                    checked = deadheadWarningEnabled,
+                    onCheckedChange = { deadheadWarningEnabled = it }
+                )
+                NotificationToggleRow(
+                    title = "Lembrete de Manutenção Preventiva",
+                    subtitle = "Avisos baseados no odômetro e histórico de consumo",
+                    checked = maintenanceReminderEnabled,
+                    onCheckedChange = { maintenanceReminderEnabled = it }
                 )
             }
         }
@@ -503,5 +597,48 @@ private fun ProfileMenuRow(
                 modifier = Modifier.size(18.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun NotificationToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 10.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = RotaTextWhite
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = RotaTextSecondary
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = RotaOrangePrimary,
+                uncheckedThumbColor = RotaTextTertiary,
+                uncheckedTrackColor = RotaDarkCanvas
+            )
+        )
     }
 }
