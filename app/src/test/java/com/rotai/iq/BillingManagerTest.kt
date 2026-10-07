@@ -24,7 +24,7 @@ class BillingManagerTest {
         val result = billingManager.processPurchase(
             tier = SubscriptionTier.PRO_MONTHLY,
             gateway = PaymentGateway.GOOGLE_PLAY,
-            mockToken = "play_token_123"
+            externalToken = "play_token_123"
         )
 
         assertTrue(result is PurchaseResult.Success)

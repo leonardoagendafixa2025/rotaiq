@@ -36,7 +36,7 @@ class BillingManager {
     fun processPurchase(
         tier: SubscriptionTier,
         gateway: PaymentGateway = PaymentGateway.GOOGLE_PLAY,
-        mockToken: String? = null
+        externalToken: String? = null
     ): PurchaseResult {
         if (!tier.isPro) {
             return PurchaseResult.Error("Plano inválido para faturamento Pro: ${tier.displayName}")
@@ -44,7 +44,7 @@ class BillingManager {
 
         val durationDays = if (tier == SubscriptionTier.PRO_ANNUAL) 365L else 30L
         val expiresAt = System.currentTimeMillis() + (durationDays * 24 * 60 * 60 * 1000)
-        val token = mockToken ?: "tok_" + UUID.randomUUID().toString().take(12)
+        val token = externalToken ?: "tok_" + UUID.randomUUID().toString().take(12)
 
         val updatedSubscription = SubscriptionInfo(
             tier = tier,

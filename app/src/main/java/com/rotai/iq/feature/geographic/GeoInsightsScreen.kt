@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.TrendingUp
@@ -44,6 +44,7 @@ import com.rotai.iq.core.ui.designsystem.RotaButton
 import com.rotai.iq.core.ui.designsystem.RotaButtonVariant
 import com.rotai.iq.core.ui.designsystem.RotaCard
 import com.rotai.iq.core.ui.designsystem.RotaChip
+import com.rotai.iq.core.ui.designsystem.RotaEmptyState
 import com.rotai.iq.core.ui.designsystem.RotaMetric
 import com.rotai.iq.core.ui.theme.CardShapeDefault
 import com.rotai.iq.core.ui.theme.CardShapeElevated
@@ -65,6 +66,7 @@ import com.rotai.iq.core.ui.theme.RotaTextPrimary
 import com.rotai.iq.core.ui.theme.RotaTextSecondary
 import com.rotai.iq.core.ui.theme.RotaTextTertiary
 import com.rotai.iq.core.ui.theme.RotaTextWhite
+import java.util.Locale
 
 @Composable
 fun GeoInsightsScreen(
@@ -74,6 +76,10 @@ fun GeoInsightsScreen(
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     var selectedTab by remember { mutableStateOf("Zonas") }
+
+    val topDemandZone = state.zones.maxByOrNull { it.currentDemand }
+    val bestPlatform = state.platformReport.bestPlatformByHourlyRate
+    val hasComparisons = state.platformReport.summaries.isNotEmpty()
 
     Column(
         modifier = modifier
@@ -97,7 +103,7 @@ fun GeoInsightsScreen(
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = "Inteligência preditiva para faturar mais rápido",
+                    text = "Inteligência operacional e análise de demanda",
                     fontSize = 12.sp,
                     color = RotaTextSecondary
                 )
@@ -120,7 +126,7 @@ fun GeoInsightsScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "AI COPILOT",
+                    text = "COPILOTO",
                     color = RotaOrangePrimary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -130,7 +136,7 @@ fun GeoInsightsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Card de Recomendação Principal em Destaque (Glow Laranja)
+        // Card de Recomendação Estratégica Real
         RotaCard(
             modifier = Modifier.fillMaxWidth(),
             shape = CardShapeDefault,
@@ -157,7 +163,7 @@ fun GeoInsightsScreen(
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "ESTRATÉGIA RECOMENDADA DE HOJE",
+                        text = "ESTRATÉGIA DO TURNO ATUAL",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = RotaOrangePrimary,
@@ -167,8 +173,14 @@ fun GeoInsightsScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                val strategyText = if (topDemandZone != null) {
+                    "Para o turno ${state.timeSlot.displayName} (${state.timeSlot.timeRange}), a zona de maior concentração de demanda mapeada é ${topDemandZone.zone.name}."
+                } else {
+                    "Acumule histórico de corridas para receber orientações estratégicas personalizadas de horário e região."
+                }
+
                 Text(
-                    text = "\"Hoje, entre 18h e 21h, sua melhor estratégia é permanecer na região Centro. Demanda 35% superior e menor tempo de espera entre chamadas.\"",
+                    text = strategyText,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = RotaTextWhite,
@@ -179,7 +191,7 @@ fun GeoInsightsScreen(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Turno Atual: ",
+                        text = "Turno: ",
                         fontSize = 12.sp,
                         color = RotaTextSecondary
                     )
@@ -195,7 +207,7 @@ fun GeoInsightsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3 Cards de Inteligência da Especificação
+        // Cards de Inteligência
         Text(
             text = "INTELIGÊNCIA ROTA IQ",
             fontSize = 12.sp,
@@ -210,19 +222,19 @@ fun GeoInsightsScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             InsightCard(
-                title = "Melhor Horário",
-                highlight = "18:00 — 21:00",
-                badge = "+18% lucro",
-                badgeColor = RotaExcellent,
+                title = "Turno Ativo",
+                highlight = state.timeSlot.displayName,
+                badge = state.timeSlot.timeRange,
+                badgeColor = RotaOrangePrimary,
                 icon = Icons.Default.Schedule,
                 modifier = Modifier.weight(1f)
             )
 
             InsightCard(
-                title = "Melhor Região",
-                highlight = "Centro",
-                badge = "R$ 4,21/km",
-                badgeColor = RotaOrangePrimary,
+                title = "Maior Demanda",
+                highlight = topDemandZone?.zone?.name ?: "Mapeando",
+                badge = topDemandZone?.currentDemand?.displayName ?: "Aguardando",
+                badgeColor = RotaExcellent,
                 icon = Icons.Default.LocationOn,
                 modifier = Modifier.weight(1f)
             )
@@ -231,11 +243,11 @@ fun GeoInsightsScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         InsightCard(
-            title = "Melhor Plataforma Hoje",
-            highlight = "Uber",
-            badge = "+12% lucro/hora vs 99",
-            badgeColor = RotaExcellent,
-            icon = Icons.Default.CompareArrows,
+            title = "Melhor Plataforma Calculada",
+            highlight = bestPlatform?.displayName ?: "Dados Insuficientes",
+            badge = if (bestPlatform != null) state.platformReport.recommendation else "Avalie corridas para comparar",
+            badgeColor = if (bestPlatform != null) RotaExcellent else RotaTextSecondary,
+            icon = Icons.AutoMirrored.Filled.CompareArrows,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -273,42 +285,44 @@ fun GeoInsightsScreen(
                 }
             }
         } else {
-            // Comparativo de Plataformas
-            RotaCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = CardShapeDefault,
-                backgroundColor = RotaCardBackground,
-                borderColor = RotaBorderSubtle
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "UBER vs 99 POP vs inDRIVE",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = RotaTextWhite
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
+            // Comparativo de Plataformas Real ou Empty State
+            if (!hasComparisons) {
+                RotaEmptyState(
+                    title = "Dados insuficientes para comparar plataformas",
+                    description = "O ROTA IQ precisa que você avalie corridas de ao menos uma plataforma para calcular com precisão o lucro/hora e a taxa de retorno de cada app.",
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            } else {
+                val totalGross = state.platformReport.summaries.sumOf { it.totalGrossRevenue }
 
-                    PlatformCompareRow(
-                        platform = "Uber",
-                        share = "58% do faturamento",
-                        profitPerHour = "R$ 51,20/h",
-                        isBest = true
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    PlatformCompareRow(
-                        platform = "99Pop",
-                        share = "32% do faturamento",
-                        profitPerHour = "R$ 44,80/h",
-                        isBest = false
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    PlatformCompareRow(
-                        platform = "inDrive",
-                        share = "10% do faturamento",
-                        profitPerHour = "R$ 38,10/h",
-                        isBest = false
-                    )
+                RotaCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = CardShapeDefault,
+                    backgroundColor = RotaCardBackground,
+                    borderColor = RotaBorderSubtle
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        Text(
+                            text = "COMPARATIVO REAL DE PLATAFORMAS",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = RotaTextWhite
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        state.platformReport.summaries.forEachIndexed { index, summary ->
+                            if (index > 0) Spacer(modifier = Modifier.height(10.dp))
+                            val sharePct = if (totalGross > 0) ((summary.totalGrossRevenue / totalGross) * 100).toInt() else 0
+                            val isBest = summary.platform == state.platformReport.bestPlatformByHourlyRate
+
+                            PlatformCompareRow(
+                                platform = summary.platform.displayName,
+                                share = "$sharePct% do faturamento • ${summary.totalOffersEvaluated} avaliações",
+                                profitPerHour = "R$ %.2f/h".format(Locale("pt", "BR"), summary.averageNetRatePerHour),
+                                isBest = isBest
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -373,7 +387,8 @@ private fun InsightCard(
                     text = badge,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = badgeColor
+                    color = badgeColor,
+                    maxLines = 1
                 )
             }
         }
@@ -416,7 +431,7 @@ private fun ZoneDemandCard(
                 )
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = "Retorno: %.0f%% • Espera média: %.0f min".format(returnProbability * 100, waitTimeMinutes),
+                    text = "Retorno: %.0f%% • Espera média: %.0f min".format(Locale("pt", "BR"), returnProbability * 100, waitTimeMinutes),
                     fontSize = 11.sp,
                     color = RotaTextSecondary
                 )

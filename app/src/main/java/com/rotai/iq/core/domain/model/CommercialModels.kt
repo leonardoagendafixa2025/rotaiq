@@ -47,7 +47,7 @@ enum class PaymentGateway(val displayName: String) {
     GOOGLE_PLAY("Google Play Billing"),
     PIX("PIX Banco Central"),
     CREDIT_CARD("Cartão de Crédito"),
-    MOCK_SANDBOX("Ambiente de Testes / Sandbox"),
+    SANDBOX("Ambiente de Testes / Sandbox"),
     NONE("Nenhum")
 }
 

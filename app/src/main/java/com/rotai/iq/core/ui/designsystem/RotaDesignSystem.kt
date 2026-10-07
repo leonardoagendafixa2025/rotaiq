@@ -21,9 +21,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -670,3 +674,223 @@ fun RotaChart(
         }
     }
 }
+
+// ======================================================================
+// 10. ROTA EMPTY STATE — Estado Vazio sem inventar dados
+// ======================================================================
+
+@Composable
+fun RotaEmptyState(
+    title: String,
+    description: String? = null,
+    icon: ImageVector = Icons.Default.Info,
+    actionButtonText: String? = null,
+    onActionClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    RotaCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = CardShapeDefault,
+        backgroundColor = RotaCardBackground,
+        borderColor = RotaBorderSubtle
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(CircleShape)
+                    .background(RotaDarkCanvas)
+                    .border(1.dp, RotaOrangePrimary.copy(alpha = 0.35f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = RotaOrangePrimary,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = RotaTextWhite,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            if (!description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = description,
+                    fontSize = 13.sp,
+                    color = RotaTextSecondary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    lineHeight = 18.sp
+                )
+            }
+
+            if (actionButtonText != null && onActionClick != null) {
+                Spacer(modifier = Modifier.height(20.dp))
+                RotaButton(
+                    text = actionButtonText,
+                    onClick = onActionClick,
+                    variant = RotaButtonVariant.PRIMARY_ORANGE,
+                    modifier = Modifier.fillMaxWidth(0.85f)
+                )
+            }
+        }
+    }
+}
+
+// ======================================================================
+// 11. ROTA LOADING — Indicador de Carregamento Premium
+// ======================================================================
+
+@Composable
+fun RotaLoading(
+    message: String = "Carregando...",
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(
+            color = RotaOrangePrimary,
+            modifier = Modifier.size(36.dp),
+            strokeWidth = 3.dp
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        Text(
+            text = message,
+            fontSize = 13.sp,
+            color = RotaTextSecondary,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+// ======================================================================
+// 12. ROTA ERROR — Exibição de Falha / Erro com Ação de Repetir
+// ======================================================================
+
+@Composable
+fun RotaError(
+    message: String,
+    onRetry: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    RotaCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = CardShapeDefault,
+        backgroundColor = RotaCardBackground,
+        borderColor = RotaAvoid.copy(alpha = 0.5f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(RotaAvoid.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = RotaAvoid,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = message,
+                fontSize = 13.sp,
+                color = RotaTextPrimary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            if (onRetry != null) {
+                Spacer(modifier = Modifier.height(14.dp))
+                RotaButton(
+                    text = "Tentar novamente",
+                    onClick = onRetry,
+                    variant = RotaButtonVariant.OUTLINE,
+                    modifier = Modifier.fillMaxWidth(0.6f)
+                )
+            }
+        }
+    }
+}
+
+// ======================================================================
+// 13. ROTA DIALOG — Modal de Confirmação e Ação com Estilo ROTA IQ
+// ======================================================================
+
+@Composable
+fun RotaDialog(
+    title: String,
+    onDismissRequest: () -> Unit,
+    confirmButtonText: String = "Confirmar",
+    onConfirm: () -> Unit,
+    dismissButtonText: String? = "Cancelar",
+    content: @Composable () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismissRequest) {
+        RotaCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = CardShapeElevated,
+            backgroundColor = RotaCardElevated,
+            borderColor = RotaBorderMedium
+        ) {
+            Column(modifier = Modifier.padding(22.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Black,
+                    color = RotaTextWhite,
+                    letterSpacing = (-0.5).sp
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                content()
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    if (dismissButtonText != null) {
+                        RotaButton(
+                            text = dismissButtonText,
+                            onClick = onDismissRequest,
+                            variant = RotaButtonVariant.SECONDARY_DARK,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    RotaButton(
+                        text = confirmButtonText,
+                        onClick = onConfirm,
+                        variant = RotaButtonVariant.PRIMARY_ORANGE
+                    )
+                }
+            }
+        }
+    }
+}
+

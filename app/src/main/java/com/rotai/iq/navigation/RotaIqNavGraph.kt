@@ -22,8 +22,6 @@ import com.rotai.iq.RotaIqViewModelFactory
 import com.rotai.iq.core.ui.designsystem.RotaBottomBar
 import com.rotai.iq.core.ui.designsystem.RotaNavItem
 import com.rotai.iq.core.ui.theme.RotaBlack
-import com.rotai.iq.feature.admin.AdminMetricsScreen
-import com.rotai.iq.feature.admin.AdminMetricsViewModel
 import com.rotai.iq.feature.advanced.AdvancedToolsScreen
 import com.rotai.iq.feature.advanced.AdvancedToolsViewModel
 import com.rotai.iq.feature.automation.AutomationHubScreen
@@ -127,9 +125,6 @@ fun RotaIqApp(
                     onNavigateToPrivacy = {
                         navController.navigate(Screen.Privacy.route)
                     },
-                    onNavigateToAdmin = {
-                        navController.navigate(Screen.Admin.route)
-                    },
                     onNavigateToAdvanced = {
                         navController.navigate(Screen.AdvancedTools.route)
                     }
@@ -137,7 +132,12 @@ fun RotaIqApp(
             }
             composable(Screen.History.route) {
                 val vm: HistoryViewModel = viewModel(factory = viewModelFactory)
-                RideHistoryScreen(viewModel = vm)
+                RideHistoryScreen(
+                    viewModel = vm,
+                    onNavigateToSimulator = {
+                        navController.navigate(Screen.Simulator.route)
+                    }
+                )
             }
             composable(Screen.GeoInsights.route) {
                 val vm: GeoInsightsViewModel = viewModel(factory = viewModelFactory)
@@ -173,13 +173,6 @@ fun RotaIqApp(
             composable(Screen.Privacy.route) {
                 val vm: PrivacySettingsViewModel = viewModel(factory = viewModelFactory)
                 PrivacySettingsScreen(
-                    viewModel = vm,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable(Screen.Admin.route) {
-                val vm: AdminMetricsViewModel = viewModel(factory = viewModelFactory)
-                AdminMetricsScreen(
                     viewModel = vm,
                     onNavigateBack = { navController.popBackStack() }
                 )

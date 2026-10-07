@@ -17,11 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.LocalGasStation
@@ -33,19 +35,28 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rotai.iq.core.ui.designsystem.RotaButton
+import com.rotai.iq.core.ui.designsystem.RotaButtonVariant
 import com.rotai.iq.core.ui.designsystem.RotaCard
+import com.rotai.iq.core.ui.designsystem.RotaDialog
 import com.rotai.iq.core.ui.designsystem.RotaMetric
 import com.rotai.iq.core.ui.theme.CardShapeDefault
 import com.rotai.iq.core.ui.theme.CardShapeElevated
@@ -62,6 +73,7 @@ import com.rotai.iq.core.ui.theme.RotaTextPrimary
 import com.rotai.iq.core.ui.theme.RotaTextSecondary
 import com.rotai.iq.core.ui.theme.RotaTextTertiary
 import com.rotai.iq.core.ui.theme.RotaTextWhite
+import java.util.Locale
 
 @Composable
 fun VehicleScreen(
@@ -70,11 +82,12 @@ fun VehicleScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    var showEditDialog by remember { mutableStateOf(false) }
 
-    val vehicleName = if (state.vehicle.name.isNotBlank() && state.vehicle.name != "Meu Carro") state.vehicle.name else "Toyota Corolla"
-    val vehicleYear = "2022"
-    val consumption = if (state.vehicle.consumptionKmPerLiter > 0) state.vehicle.consumptionKmPerLiter else 11.8
-    val costPerKm = if (state.costProjections.costPerKm > 0) state.costProjections.costPerKm else 0.71
+    val vehicle = state.vehicle
+    val vehicleName = vehicle.name.ifBlank { "Veículo não configurado" }
+    val consumption = vehicle.consumptionKmPerLiter
+    val costPerKm = state.costProjections.costPerKm
 
     Column(
         modifier = modifier
@@ -98,7 +111,7 @@ fun VehicleScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "LD",
+                    text = "IQ",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = RotaOrangePrimary
@@ -109,7 +122,7 @@ fun VehicleScreen(
 
             Column {
                 Text(
-                    text = "Leonardo",
+                    text = "Motorista ROTA IQ",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = RotaTextWhite
@@ -117,7 +130,6 @@ fun VehicleScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Badge de Plano
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -134,7 +146,7 @@ fun VehicleScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "PLANO PRO ATIVO",
+                        text = "CONTA ATIVA",
                         color = RotaOrangePrimary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold
@@ -145,7 +157,7 @@ fun VehicleScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // CARD VISUAL DO VEÍCULO (Especificação Oficial)
+        // CARD VISUAL DO VEÍCULO (Dados Reais do Room)
         RotaCard(
             modifier = Modifier.fillMaxWidth(),
             shape = CardShapeDefault,
@@ -174,7 +186,7 @@ fun VehicleScreen(
                             color = RotaTextWhite
                         )
                         Text(
-                            text = "Ano $vehicleYear • Gasolina Aditivada",
+                            text = "${vehicle.model} • ${vehicle.fuelType.displayName}",
                             fontSize = 12.sp,
                             color = RotaTextSecondary
                         )
@@ -185,34 +197,35 @@ fun VehicleScreen(
                             .size(46.dp)
                             .clip(CircleShape)
                             .background(RotaDarkCanvas)
-                            .border(1.dp, RotaBorderSubtle, CircleShape),
+                            .border(1.dp, RotaBorderSubtle, CircleShape)
+                            .clickable { showEditDialog = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DirectionsCar,
-                            contentDescription = null,
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar Veículo",
                             tint = RotaOrangePrimary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Métricas Principais: Consumo e Custo por KM
+                // Métricas Principais: Consumo e Custo por KM Reais
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     VehicleMiniStat(
                         label = "CONSUMO MÉDIO",
-                        value = "%.1f km/l".format(consumption),
+                        value = "%.1f km/l".format(Locale("pt", "BR"), consumption),
                         highlight = false,
                         modifier = Modifier.weight(1f)
                     )
                     VehicleMiniStat(
-                        label = "CUSTO ESTIMADO",
-                        value = "R$ %.2f/km".format(costPerKm),
+                        label = "CUSTO TOTAL / KM",
+                        value = "R$ %.2f/km".format(Locale("pt", "BR"), costPerKm),
                         highlight = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -224,9 +237,9 @@ fun VehicleScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // 4 Indicadores de Custo do Veículo
+                // 4 Indicadores de Custo do Veículo Calculados em Tempo Real
                 Text(
-                    text = "COMPONENTES DE CUSTO REAL",
+                    text = "COMPONENTES DE CUSTO REAL POR KM",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = RotaTextSecondary,
@@ -239,10 +252,26 @@ fun VehicleScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    CostPill(name = "Combustível", cost = "R$ 0,47", modifier = Modifier.weight(1f))
-                    CostPill(name = "Manutenção", cost = "R$ 0,12", modifier = Modifier.weight(1f))
-                    CostPill(name = "Seguro", cost = "R$ 0,08", modifier = Modifier.weight(1f))
-                    CostPill(name = "Depreciação", cost = "R$ 0,04", modifier = Modifier.weight(1f))
+                    CostPill(
+                        name = "Combustível",
+                        cost = "R$ %.2f".format(Locale("pt", "BR"), vehicle.fuelCostPerKm),
+                        modifier = Modifier.weight(1f)
+                    )
+                    CostPill(
+                        name = "Manutenção",
+                        cost = "R$ %.2f".format(Locale("pt", "BR"), vehicle.maintenanceCostPerKm),
+                        modifier = Modifier.weight(1f)
+                    )
+                    CostPill(
+                        name = "Custos Fixos",
+                        cost = "R$ %.2f".format(Locale("pt", "BR"), vehicle.fixedCostPerKm),
+                        modifier = Modifier.weight(1f)
+                    )
+                    CostPill(
+                        name = "Total / km",
+                        cost = "R$ %.2f".format(Locale("pt", "BR"), vehicle.totalCostPerKm),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -260,16 +289,92 @@ fun VehicleScreen(
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ProfileMenuRow(
+                icon = Icons.Default.DirectionsCar,
+                title = "Editar Dados do Veículo",
+                subtitle = "Consumo, combustível e custos fixos",
+                onClick = { showEditDialog = true }
+            )
             ProfileMenuRow(icon = Icons.Default.Flag, title = "Minhas Metas", subtitle = "Meta diária e piso/km")
             ProfileMenuRow(icon = Icons.Default.Tune, title = "Preferências de Corrida", subtitle = "Filtro de passageiro e raio")
             ProfileMenuRow(icon = Icons.Default.Map, title = "Áreas & Zonas Favoritas", subtitle = "Alertas de saída de rota")
             ProfileMenuRow(icon = Icons.Default.Notifications, title = "Notificações", subtitle = "Alertas de alta demanda")
             ProfileMenuRow(icon = Icons.Default.RecordVoiceOver, title = "Voz & Copiloto TTS", subtitle = "Leitura audível no fone")
             ProfileMenuRow(icon = Icons.Default.Hearing, title = "Acessibilidade", subtitle = "Overlay e leitura de tela")
-            ProfileMenuRow(icon = Icons.Default.Security, title = "Privacidade & LGPD", subtitle = "Armazenamento local seguro")
+            ProfileMenuRow(icon = Icons.Default.Security, title = "Privacidade & Armazenamento", subtitle = "Dados armazenados localmente no Room")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    // Modal de Edição de Veículo
+    if (showEditDialog) {
+        RotaDialog(
+            title = "Configurar Veículo",
+            onDismissRequest = { showEditDialog = false },
+            confirmButtonText = "Salvar",
+            onConfirm = {
+                viewModel.saveVehicle()
+                showEditDialog = false
+            }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = state.nameInput,
+                    onValueChange = { viewModel.onNameChanged(it) },
+                    label = { Text("Nome do Veículo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RotaOrangePrimary,
+                        unfocusedBorderColor = RotaBorderSubtle,
+                        focusedTextColor = RotaTextWhite,
+                        unfocusedTextColor = RotaTextWhite
+                    )
+                )
+
+                OutlinedTextField(
+                    value = state.consumptionInput,
+                    onValueChange = { viewModel.onConsumptionChanged(it) },
+                    label = { Text("Consumo Médio (km/L)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RotaOrangePrimary,
+                        unfocusedBorderColor = RotaBorderSubtle,
+                        focusedTextColor = RotaTextWhite,
+                        unfocusedTextColor = RotaTextWhite
+                    )
+                )
+
+                OutlinedTextField(
+                    value = state.fuelPriceInput,
+                    onValueChange = { viewModel.onFuelPriceChanged(it) },
+                    label = { Text("Preço do Combustível (R$/L)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RotaOrangePrimary,
+                        unfocusedBorderColor = RotaBorderSubtle,
+                        focusedTextColor = RotaTextWhite,
+                        unfocusedTextColor = RotaTextWhite
+                    )
+                )
+
+                OutlinedTextField(
+                    value = state.maintenancePerKmInput,
+                    onValueChange = { viewModel.onMaintenanceChanged(it) },
+                    label = { Text("Custo Manutenção/km (R$)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RotaOrangePrimary,
+                        unfocusedBorderColor = RotaBorderSubtle,
+                        focusedTextColor = RotaTextWhite,
+                        unfocusedTextColor = RotaTextWhite
+                    )
+                )
+            }
+        }
     }
 }
 

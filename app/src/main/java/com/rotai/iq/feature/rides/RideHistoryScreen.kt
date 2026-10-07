@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
@@ -38,10 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rotai.iq.core.domain.model.EvaluationClassification
 import com.rotai.iq.core.domain.model.RideEvaluation
-import com.rotai.iq.core.domain.model.RideOffer
-import com.rotai.iq.core.domain.model.RidePlatform
 import com.rotai.iq.core.ui.designsystem.RotaCard
 import com.rotai.iq.core.ui.designsystem.RotaChip
+import com.rotai.iq.core.ui.designsystem.RotaEmptyState
 import com.rotai.iq.core.ui.designsystem.RotaMetric
 import com.rotai.iq.core.ui.designsystem.RotaScore
 import com.rotai.iq.core.ui.designsystem.getRotaClassificationColor
@@ -65,104 +65,13 @@ import java.util.Locale
 @Composable
 fun RideHistoryScreen(
     viewModel: HistoryViewModel,
+    onNavigateToSimulator: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
     var selectedFilter by remember { mutableStateOf("TODAS") }
-    var selectedPeriod by remember { mutableStateOf("Hoje") }
 
-    // Corridas fiéis à especificação oficial para exibição e demonstração
-    val mockEvaluations = remember {
-        listOf(
-            RideEvaluation(
-                id = "mock-1",
-                offer = RideOffer(
-                    platform = RidePlatform.UBER,
-                    grossFare = 32.80,
-                    distanceKm = 8.2,
-                    durationMinutes = 22.0,
-                    pickupDistanceKm = 1.2,
-                    pickupDurationMinutes = 4.0,
-                    destinationAddress = "Jardins, São Paulo",
-                    rawText = "UberX Centro → Jardins"
-                ),
-                score = 96,
-                classification = EvaluationClassification.EXCELLENT,
-                grossFare = 32.80,
-                estimatedCost = 6.20,
-                netProfit = 26.60,
-                profitMarginPercent = 81.1,
-                grossRatePerKm = 3.49,
-                netRatePerKm = 2.83,
-                grossRatePerHour = 75.69,
-                netRatePerHour = 61.38,
-                grossRatePerMinute = 1.26,
-                totalDistanceKm = 9.4,
-                totalDurationMinutes = 26.0,
-                reasons = listOf("Acima da meta horária", "Zona centro favorável", "Retorno rápido"),
-                alerts = emptyList()
-            ),
-            RideEvaluation(
-                id = "mock-2",
-                offer = RideOffer(
-                    platform = RidePlatform.NINETY_NINE,
-                    grossFare = 21.40,
-                    distanceKm = 10.2,
-                    durationMinutes = 25.0,
-                    pickupDistanceKm = 2.0,
-                    pickupDurationMinutes = 6.0,
-                    destinationAddress = "Morumbi, São Paulo",
-                    rawText = "99Pop Moema → Morumbi"
-                ),
-                score = 64,
-                classification = EvaluationClassification.ACCEPTABLE,
-                grossFare = 21.40,
-                estimatedCost = 8.66,
-                netProfit = 12.74,
-                profitMarginPercent = 59.5,
-                grossRatePerKm = 1.75,
-                netRatePerKm = 1.04,
-                grossRatePerHour = 41.42,
-                netRatePerHour = 24.65,
-                grossRatePerMinute = 0.69,
-                totalDistanceKm = 12.2,
-                totalDurationMinutes = 31.0,
-                reasons = listOf("Rentabilidade média", "Risco de espera no Morumbi"),
-                alerts = listOf("Retorno ocioso previsto")
-            ),
-            RideEvaluation(
-                id = "mock-3",
-                offer = RideOffer(
-                    platform = RidePlatform.UBER,
-                    grossFare = 15.80,
-                    distanceKm = 8.0,
-                    durationMinutes = 21.0,
-                    pickupDistanceKm = 3.5,
-                    pickupDurationMinutes = 8.0,
-                    destinationAddress = "Penha, São Paulo",
-                    rawText = "UberX Tatuapé → Penha"
-                ),
-                score = 38,
-                classification = EvaluationClassification.AVOID,
-                grossFare = 15.80,
-                estimatedCost = 8.16,
-                netProfit = 7.64,
-                profitMarginPercent = 48.3,
-                grossRatePerKm = 1.37,
-                netRatePerKm = 0.66,
-                grossRatePerHour = 32.69,
-                netRatePerHour = 15.80,
-                grossRatePerMinute = 0.54,
-                totalDistanceKm = 11.5,
-                totalDurationMinutes = 29.0,
-                reasons = listOf("Prejuízo de oportunidade"),
-                alerts = listOf("Abaixo do custo/hora mínimo", "Deslocamento até passageiro muito longo")
-            )
-        )
-    }
-
-    val displayList = if (state.evaluations.isNotEmpty()) state.evaluations else mockEvaluations
-    val filteredList = displayList.filter { item ->
+    val filteredList = state.evaluations.filter { item ->
         when (selectedFilter) {
             "BOAS" -> item.classification == EvaluationClassification.EXCELLENT || item.classification == EvaluationClassification.GOOD
             "RUINS" -> item.classification == EvaluationClassification.BAD || item.classification == EvaluationClassification.AVOID
@@ -191,13 +100,13 @@ fun RideHistoryScreen(
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = "Histórico e análise de decisões",
+                    text = "Histórico e análise de decisões reais",
                     fontSize = 12.sp,
                     color = RotaTextSecondary
                 )
             }
 
-            // Seletor de Período Pill
+            // Contador de avaliações salvas
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
@@ -214,7 +123,7 @@ fun RideHistoryScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = selectedPeriod,
+                    text = "${state.totalCount} salvas",
                     color = RotaTextWhite,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
@@ -224,11 +133,10 @@ fun RideHistoryScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Métricas Rápidas do Histórico
-        val totalProfit = if (state.evaluations.isNotEmpty()) state.totalSimulatedProfit else displayList.sumOf { it.netProfit }
-        val countTotal = displayList.size
-        val countGood = displayList.count { it.classification == EvaluationClassification.EXCELLENT || it.classification == EvaluationClassification.GOOD }
-        val countBad = displayList.count { it.classification == EvaluationClassification.BAD || it.classification == EvaluationClassification.AVOID }
+        // Métricas Rápidas do Histórico Real
+        val countTotal = state.totalCount
+        val countGood = state.evaluations.count { it.classification == EvaluationClassification.EXCELLENT || it.classification == EvaluationClassification.GOOD }
+        val countBad = state.evaluations.count { it.classification == EvaluationClassification.BAD || it.classification == EvaluationClassification.AVOID }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -242,15 +150,15 @@ fun RideHistoryScreen(
             )
             RotaMetric(
                 title = "Lucro Líquido",
-                value = "R$ %.2f".format(Locale("pt", "BR"), totalProfit),
-                subtitle = "Total capturado",
-                accentColor = RotaExcellent,
+                value = "R$ %.2f".format(Locale("pt", "BR"), state.totalSimulatedProfit),
+                subtitle = "Total acumulado",
+                accentColor = if (state.totalSimulatedProfit > 0) RotaExcellent else RotaTextSecondary,
                 modifier = Modifier.weight(1.3f)
             )
             RotaMetric(
                 title = "Rejeitadas",
                 value = "$countBad",
-                subtitle = "Economia R$ 38",
+                subtitle = "Evitadas",
                 accentColor = RotaAvoid,
                 modifier = Modifier.weight(1f)
             )
@@ -285,16 +193,34 @@ fun RideHistoryScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Lista de Cards de Corridas
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(filteredList, key = { it.id }) { item ->
-                RideHistoryCard(
-                    evaluation = item,
-                    onDelete = { viewModel.deleteEvaluation(item.id) }
-                )
+        if (state.evaluations.isEmpty()) {
+            // Estado Vazio Estrito — Zero Mocks em Produção
+            RotaEmptyState(
+                title = "Você ainda não possui corridas analisadas",
+                description = "Ative o copiloto ou utilize o simulador de ofertas para avaliar corridas com base no custo real do seu veículo.",
+                icon = Icons.Default.Calculate,
+                actionButtonText = "Simular Corrida",
+                onActionClick = onNavigateToSimulator,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        } else if (filteredList.isEmpty()) {
+            RotaEmptyState(
+                title = "Nenhuma corrida neste filtro",
+                description = "Não há corridas salvas na categoria selecionada ($selectedFilter).",
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        } else {
+            // Lista de Cards de Corridas Reais
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(filteredList, key = { it.id }) { item ->
+                    RideHistoryCard(
+                        evaluation = item,
+                        onDelete = { viewModel.deleteEvaluation(item.id) }
+                    )
+                }
             }
         }
     }
@@ -305,131 +231,140 @@ private fun RideHistoryCard(
     evaluation: RideEvaluation,
     onDelete: () -> Unit
 ) {
-    val statusColor = getRotaClassificationColor(evaluation.classification)
-    val statusGlow = getRotaClassificationGlow(evaluation.classification)
-    val destName = evaluation.offer.destinationAddress?.split(",")?.firstOrNull() ?: "Destino Urbano"
+    val glowColor = getRotaClassificationGlow(evaluation.classification)
+    val accentColor = getRotaClassificationColor(evaluation.classification)
 
     RotaCard(
         modifier = Modifier.fillMaxWidth(),
         shape = CardShapeDefault,
         backgroundColor = RotaCardBackground,
-        borderColor = statusColor.copy(alpha = 0.35f),
+        borderColor = accentColor.copy(alpha = 0.35f),
         borderWidth = 1.dp,
-        glowColor = statusGlow
+        glowColor = glowColor
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header do Card: Plataforma + Destino + Badge Score
+            // Linha Superior: Score + Plataforma + Ação Deletar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Indicador circular colorido
+                    RotaScore(
+                        classification = evaluation.classification,
+                        score = evaluation.score
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(statusColor)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(RotaCardElevated)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = evaluation.offer.platform.displayName.uppercase(),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = RotaTextWhite
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Remover",
+                        tint = RotaTextTertiary,
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Valor Bruto + Lucro Líquido
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
                     Text(
-                        text = evaluation.offer.platform.name,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        text = "R$ %.2f".format(Locale("pt", "BR"), evaluation.grossFare),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black,
                         color = RotaTextWhite
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "• $destName",
+                        text = "%.1f km • %.0f min".format(
+                            Locale("pt", "BR"),
+                            evaluation.totalDistanceKm,
+                            evaluation.totalDurationMinutes
+                        ),
                         fontSize = 12.sp,
                         color = RotaTextSecondary
                     )
                 }
 
-                RotaScore(
-                    classification = evaluation.classification,
-                    score = evaluation.score,
-                    large = false
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Valor Principal Grande e Lucro Líquido
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(
-                    text = "R$ %.2f".format(Locale("pt", "BR"), evaluation.grossFare),
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    color = RotaTextWhite,
-                    letterSpacing = (-0.5).sp
-                )
-
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "LUCRO LÍQUIDO",
+                        text = "LUCRO ESTIMADO",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = RotaTextSecondary
+                        color = RotaTextTertiary,
+                        letterSpacing = 0.5.sp
                     )
                     Text(
                         text = "R$ %.2f".format(Locale("pt", "BR"), evaluation.netProfit),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
-                        color = statusColor
+                        color = if (evaluation.netProfit > 0) RotaExcellent else RotaAvoid
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Linha com 3 Indicadores em Pílula
+            // Sub-métricas
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(RotaDarkCanvas)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                MiniSpec(text = "%.1f km".format(evaluation.totalDistanceKm), modifier = Modifier.weight(1f))
-                MiniSpec(text = "%.0f min".format(evaluation.totalDurationMinutes), modifier = Modifier.weight(1f))
-                MiniSpec(text = "R$ %.2f/km".format(Locale("pt", "BR"), evaluation.grossRatePerKm), highlight = true, modifier = Modifier.weight(1.2f))
-            }
-
-            // Motivos / Insights
-            if (evaluation.reasons.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "✓ " + evaluation.reasons.first(),
-                    fontSize = 11.sp,
+                    text = "R$ %.2f/km".format(Locale("pt", "BR"), evaluation.grossRatePerKm),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = RotaOrangeLight
+                )
+                Text(
+                    text = "R$ %.2f/h".format(Locale("pt", "BR"), evaluation.grossRatePerHour),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = RotaTextWhite
+                )
+                Text(
+                    text = "Custo R$ %.2f".format(Locale("pt", "BR"), evaluation.estimatedCost),
+                    fontSize = 12.sp,
                     color = RotaTextTertiary
                 )
             }
-        }
-    }
-}
 
-@Composable
-private fun MiniSpec(
-    text: String,
-    highlight: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (highlight) RotaCardElevated else RotaDarkCanvas)
-            .border(1.dp, if (highlight) RotaBorderSubtle else Color.Transparent, RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (highlight) RotaOrangeLight else RotaTextSecondary
-        )
+            if (evaluation.reasons.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = evaluation.reasons.first(),
+                    fontSize = 11.sp,
+                    color = RotaTextSecondary,
+                    maxLines = 1
+                )
+            }
+        }
     }
 }

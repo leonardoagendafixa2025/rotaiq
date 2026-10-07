@@ -6,6 +6,7 @@ import com.rotai.iq.core.data.repository.RotaIqRepository
 import com.rotai.iq.core.domain.engine.GoalEngine
 import com.rotai.iq.core.domain.model.DailyFinancialSummary
 import com.rotai.iq.core.domain.model.DriverGoal
+import com.rotai.iq.core.domain.model.RideEvaluation
 import com.rotai.iq.core.domain.model.Vehicle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,7 @@ data class DashboardUiState(
     val financialSummary: DailyFinancialSummary = DailyFinancialSummary(
         date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     ),
+    val latestEvaluation: RideEvaluation? = null,
     val coachingAdvice: GoalEngine.GoalCoachingAdvice = GoalEngine.evaluateGoalProgress(DriverGoal()),
     val isOperatingWell: Boolean = true,
     val isLoading: Boolean = false
@@ -44,8 +46,9 @@ class DashboardViewModel(
             combine(
                 repository.getActiveVehicle(),
                 repository.getDriverGoal(),
-                repository.getDailyFinancial(today)
-            ) { vehicle, goal, financial ->
+                repository.getDailyFinancial(today),
+                repository.getAllEvaluations()
+            ) { vehicle, goal, financial, evaluations ->
                 val summary = financial ?: DailyFinancialSummary(date = today)
                 val advice = GoalEngine.evaluateGoalProgress(goal)
                 val isWell = advice.status != GoalEngine.GoalPaceStatus.BEHIND_PACE
@@ -54,6 +57,7 @@ class DashboardViewModel(
                     vehicle = vehicle,
                     goal = goal,
                     financialSummary = summary,
+                    latestEvaluation = evaluations.firstOrNull(),
                     coachingAdvice = advice,
                     isOperatingWell = isWell,
                     isLoading = false

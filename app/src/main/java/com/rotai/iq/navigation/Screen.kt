@@ -25,6 +25,5 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object History : Screen("history", "Histórico", Icons.Default.History)
     object Subscription : Screen("subscription", "Plano Pro", Icons.Default.Star)
     object Privacy : Screen("privacy", "Privacidade", Icons.Default.Security)
-    object Admin : Screen("admin", "Admin", Icons.Default.Analytics)
     object AdvancedTools : Screen("advanced", "Avançado", Icons.Default.DirectionsCar)
 }

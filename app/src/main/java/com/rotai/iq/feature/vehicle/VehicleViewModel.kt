@@ -63,6 +63,10 @@ class VehicleViewModel(
         }
     }
 
+    fun onNameChanged(value: String) {
+        _uiState.value = _uiState.value.copy(nameInput = value)
+    }
+
     fun onFuelTypeChanged(fuelType: FuelType) {
         _uiState.value = _uiState.value.copy(fuelType = fuelType)
         updateCalculations()
