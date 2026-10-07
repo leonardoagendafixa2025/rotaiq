@@ -78,3 +78,32 @@ Este documento define o plano mestre de evolução do **ROTA IQ** da Fundação 
 - [x] **Hardening R8 / ProGuard (`proguard-rules.pro`)**: Regras completas de ofuscação e otimização para build de release.
 - [x] **21 novos testes unitários automatizados** (total de **73 testes unitários**, 22 suítes, 100% de aprovação).
 - [x] Novo APK Debug gerado e validado (`app-debug.apk` de 16.6 MB).
+
+---
+
+## 🟢 FASE 6: Recursos Avançados do App e Inteligência Operacional (CONCLUÍDA ✅)
+- [x] **Modo Carro & Bluetooth Auto-Trigger**:
+  * `CarModeManager` & `CarModePreferencesDataSource`: Gerenciador reativo do ciclo de vida veicular.
+  * `BluetoothCarReceiver`: Detecção em tempo real de pareamento veicular (`ACTION_ACL_CONNECTED` e `ACTION_ACL_DISCONNECTED`) disparando automaticamente o Copiloto e HUD Flutuante sem intervenção manual.
+  * Permissões declaradas no Manifest (`BLUETOOTH`, `BLUETOOTH_CONNECT`) com fallback compatível.
+  * Síntese vocal de boas-vindas e status de conexão veicular hands-free.
+- [x] **Suporte a Novas Plataformas (inDrive & Entregas Expressas)**:
+  * `InDriveParser`: Extração de valor ofertado pelo passageiro, distâncias de coleta e percurso.
+  * `InDriveCounterOfferEngine`: Motor de contraproposta inteligente calculando a contraproposta ideal em múltiplos de R$ 2,00 (+2, +4, +6) para garantir a meta líquida horária do motorista.
+  * `DeliveryParser`: Suporte a Uber Flash, 99 Entrega e Lalamove com categorização `DELIVERY` e compensação de overhead de coleta e entrega de pacotes (+5 min).
+  * `PlatformDetector`: Detector unificado de 4 plataformas simultâneas (Uber, 99, inDrive, Entregas/Flash).
+- [x] **Livro Caixa Digital & Demonstrativo Fiscal MEI / IRPF (`DriverTaxReportEngine`)**:
+  * Alinhamento estrito à legislação tributária brasileira (LC 123/2006, art. 14 e RIR/2018): presunção de rendimento isento de 16% (transporte de passageiros) e 60% (transporte de cargas/entregas).
+  * Abatimento integral de despesas operacionais comprovadas (combustíveis com odômetro, manutenções preventivas, IPVA e seguro proporcional).
+  * Monitoramento visual do teto MEI de R$ 81.000,00/ano e percentual de faturamento utilizado.
+  * Diagnóstico fiscal automatizado de blindagem contra imposto a pagar no IRPF.
+  * Exportação de Livro Caixa completo em CSV para a contabilidade ou declaração anual DASN-SIMEI.
+- [x] **Calculadora de Rejeição Estratégica & Custo da Espera (`StrategicRejectionEngine`)**:
+  * Quebra do medo psicológico de rejeitar chamadas deficitárias.
+  * Cálculo matemático do Ponto de Equilíbrio de Espera (*Break-even wait minutes*): tempo máximo tolerável para aguardar parado uma corrida boa antes de empatar com a corrida ruim.
+  * Quantificação do custo operacional evitado e preservação do desgaste do veículo em km.
+- [x] **`AdvancedToolsScreen` & `AdvancedToolsViewModel`**:
+  * Interface Cockpit Dark completa com 4 abas interativas (Modo Carro, inDrive & Entregas, Livro Caixa & MEI, Rejeição Estratégica).
+  * Integrada à navegação central (`Screen.AdvancedTools`) e atalho em destaque no `DashboardScreen`.
+- [x] **18 novos testes unitários automatizados** (total de **91 testes unitários**, 28 suítes, 100% de aprovação).
+- [x] APK de Debug compilado e validado.

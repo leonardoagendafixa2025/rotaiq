@@ -1,6 +1,8 @@
 package com.rotai.iq
 
 import android.app.Application
+import com.rotai.iq.core.automation.carmode.CarModeManager
+import com.rotai.iq.core.automation.carmode.CarModePreferences
 import com.rotai.iq.core.automation.tts.VoiceAlertManager
 import com.rotai.iq.core.data.local.db.RotaIqDatabase
 import com.rotai.iq.core.data.repository.CommercialRepository
@@ -48,12 +50,18 @@ class RotaIqApplication : Application() {
     lateinit var secureStorage: SecureStorage
         private set
 
+    lateinit var carModeManager: CarModeManager
+        private set
+
     override fun onCreate() {
         super.onCreate()
         val database = RotaIqDatabase.getDatabase(this)
         repository = RotaIqRepositoryImpl(database)
         commercialRepository = CommercialRepositoryImpl(this)
         voiceAlertManager = VoiceAlertManager(this)
+
+        val carModePrefs = CarModePreferences(this)
+        carModeManager = CarModeManager(carModePrefs, voiceAlertManager)
 
         billingManager = BillingManager()
         pixPaymentManager = PixPaymentManager()

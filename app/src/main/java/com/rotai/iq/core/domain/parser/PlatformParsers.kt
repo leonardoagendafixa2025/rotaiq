@@ -99,7 +99,12 @@ class NinetyNineParser : OfferParser {
 }
 
 class PlatformDetector(
-    private val parsers: List<OfferParser> = listOf(UberParser(), NinetyNineParser())
+    private val parsers: List<OfferParser> = listOf(
+        DeliveryParser(),
+        UberParser(),
+        NinetyNineParser(),
+        InDriveParser()
+    )
 ) {
     fun detectAndParse(rawText: String, packageName: String? = null): RideOffer? {
         for (parser in parsers) {

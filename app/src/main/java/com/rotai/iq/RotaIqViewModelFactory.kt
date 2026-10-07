@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.rotai.iq.core.data.repository.RotaIqRepository
 import com.rotai.iq.feature.admin.AdminMetricsViewModel
+import com.rotai.iq.feature.advanced.AdvancedToolsViewModel
 import com.rotai.iq.feature.automation.AutomationViewModel
 import com.rotai.iq.feature.dashboard.DashboardViewModel
 import com.rotai.iq.feature.finance.FinancialHubViewModel
@@ -80,6 +81,16 @@ class RotaIqViewModelFactory(
                         commercialRepository = app.commercialRepository,
                         telemetryManager = app.telemetryManager,
                         featureFlagManager = app.featureFlagManager
+                    ) as T
+                } else {
+                    throw IllegalStateException("Application must be RotaIqApplication")
+                }
+            }
+            modelClass.isAssignableFrom(AdvancedToolsViewModel::class.java) -> {
+                if (app != null) {
+                    AdvancedToolsViewModel(
+                        repository = repository,
+                        carModeManager = app.carModeManager
                     ) as T
                 } else {
                     throw IllegalStateException("Application must be RotaIqApplication")

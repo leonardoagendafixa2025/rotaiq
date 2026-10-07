@@ -156,3 +156,36 @@ Este documento registra as principais decisões técnicas e de design tomadas no
 - **Contexto**: A publicação em produção na Google Play Store exige regras estritas de segurança, proteção contra engenharia reversa e sigilo de dados em telemetria.
 - **Decisão**: Configurar `proguard-rules.pro` com regras completas de shrinking e ofuscação de classes internas, remoção de logs de debug, e criar o `PiiSanitizer` para mascaramento automático de CPF (`***.456.789-**`), emails, telefones e placas antes do envio para qualquer fila de telemetria ou log.
 - **Consequências**: Binário protegido contra engenharia reversa e conformidade com as políticas do Google Play Developer.
+
+---
+
+### ADR-020: Automação Hands-Free Veicular com BroadcastReceiver de Bluetooth (Fase 6)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Motoristas frequentemente esquecem de iniciar os serviços de sobreposição ao entrar no veículo, comprometendo a captura das primeiras ofertas.
+- **Decisão**: Implementar o `BluetoothCarReceiver` e o `CarModeManager` desacoplado por `CarModePreferencesDataSource`, escutando eventos do sistema `ACTION_ACL_CONNECTED` e `ACTION_ACL_DISCONNECTED`. O emparelhamento com o multimídia do carro dispara o `OverlayService` em segundo plano e notificação falada por TTS sem toque físico na tela.
+- **Consequências**: Experiência hands-free transparente, maior segurança viária e zero fricção para iniciar o turno de trabalho.
+
+---
+
+### ADR-021: Motor de Contraproposta Preditiva para a Dinâmica inDrive (Fase 6)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Ao contrário de Uber e 99 (tarifas pré-fixadas), o inDrive opera por modelo de leilão onde o passageiro define a oferta inicial e o motorista tem poucos segundos para aceitar ou contrapropor (+R$ 2, +R$ 4, +R$ 6...).
+- **Decisão**: Criar o `InDriveParser` e o `InDriveCounterOfferEngine`, que confronta a oferta com os custos por km do veículo e a meta horária líquida, sugerindo instantaneamente o degrau exato de contraproposta com maior probabilidade de aceite que atinge a margem desejada.
+- **Consequências**: Decisão ágil em menos de 3 segundos no leilão, evitando contrapropostas abusivas que perdem a corrida ou aceites subvalorizados que geram prejuízo.
+
+---
+
+### ADR-022: Demonstrativo Fiscal e Livro Caixa MEI/IRPF Conforme Legislação Brasileira (Fase 6)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Mais de 70% dos motoristas de aplicativo no Brasil têm dúvidas sobre como declarar seus rendimentos e temem a malha fina da Receita Federal.
+- **Decisão**: Desenvolver o `DriverTaxReportEngine` aplicando com precisão a Lei Complementar 123/2006 (art. 14) e o Regulamento do IR: presunção legal de isenção de 16% (transporte de passageiros) e 60% (entregas de mercadorias), somada à dedução de despesas operacionais comprovadas (combustíveis com nota, revisões, IPVA e seguro), com monitoramento em tempo real do teto anual do MEI (R$ 81.000,00) e exportação em CSV para DASN-SIMEI/Carnê-Leão.
+- **Consequências**: Tranquilidade jurídica e contábil ao motorista, economizando custos com despachantes e comprovando isenção de IRPF.
+
+---
+
+### ADR-023: Teoria das Filas e Custo de Oportunidade na Rejeição Estratégica (Fase 6)
+- **Status**: Aprovado e Implementado
+- **Contexto**: A "ansiedade de corrida" faz motoristas aceitarem chamadas com remuneração inferior ao custo por km por receio de ficar parado.
+- **Decisão**: Implementar o `StrategicRejectionEngine`, calculando matematicamente o *Break-even wait time* (Ponto de Equilíbrio de Espera): tempo máximo que o motorista pode aguardar estacionado até surgir uma oferta no patamar da sua meta horária antes de empatar com o rendimento da corrida ruim, além de computar o valor de custo operacional evitado.
+- **Consequências**: Conscientização matemática do motorista, aumento da rentabilidade líquida por hora e redução de desgaste desnecessário do veículo.
+

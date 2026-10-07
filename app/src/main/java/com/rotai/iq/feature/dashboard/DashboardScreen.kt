@@ -65,6 +65,7 @@ fun DashboardScreen(
     onNavigateToSubscription: () -> Unit = {},
     onNavigateToPrivacy: () -> Unit = {},
     onNavigateToAdmin: () -> Unit = {},
+    onNavigateToAdvanced: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -303,6 +304,22 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Painel Admin", color = Color(0xFF00E5FF), fontSize = 11.sp)
             }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        androidx.compose.material3.OutlinedButton(
+            onClick = onNavigateToAdvanced,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                containerColor = CockpitSurfaceVariant
+            ),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 6.dp)
+        ) {
+            Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Modo Carro, inDrive, Livro Caixa & Rejeição", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(20.dp))

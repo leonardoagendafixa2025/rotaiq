@@ -25,6 +25,8 @@ import com.rotai.iq.core.ui.theme.CockpitSurface
 import com.rotai.iq.core.ui.theme.TextSecondary
 import com.rotai.iq.feature.admin.AdminMetricsScreen
 import com.rotai.iq.feature.admin.AdminMetricsViewModel
+import com.rotai.iq.feature.advanced.AdvancedToolsScreen
+import com.rotai.iq.feature.advanced.AdvancedToolsViewModel
 import com.rotai.iq.feature.automation.AutomationHubScreen
 import com.rotai.iq.feature.automation.AutomationViewModel
 import com.rotai.iq.feature.dashboard.DashboardScreen
@@ -133,6 +135,9 @@ fun RotaIqApp(
                     },
                     onNavigateToAdmin = {
                         navController.navigate(Screen.Admin.route)
+                    },
+                    onNavigateToAdvanced = {
+                        navController.navigate(Screen.AdvancedTools.route)
                     }
                 )
             }
@@ -181,6 +186,13 @@ fun RotaIqApp(
             composable(Screen.Admin.route) {
                 val vm: AdminMetricsViewModel = viewModel(factory = viewModelFactory)
                 AdminMetricsScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.AdvancedTools.route) {
+                val vm: AdvancedToolsViewModel = viewModel(factory = viewModelFactory)
+                AdvancedToolsScreen(
                     viewModel = vm,
                     onNavigateBack = { navController.popBackStack() }
                 )
