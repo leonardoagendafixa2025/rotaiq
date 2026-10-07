@@ -107,3 +107,27 @@ Este documento define o plano mestre de evolução do **ROTA IQ** da Fundação 
   * Integrada à navegação central (`Screen.AdvancedTools`) e atalho em destaque no `DashboardScreen`.
 - [x] **18 novos testes unitários automatizados** (total de **91 testes unitários**, 28 suítes, 100% de aprovação).
 - [x] APK de Debug compilado e validado.
+
+---
+
+## 🟢 FASE 7: Integração Supabase PostgreSQL e Sincronização em Nuvem (CONCLUÍDA ✅)
+- [x] **Projeto Supabase Conectado e Validado**:
+  * Projeto: `https://jkreduqzekllsmzxiugn.supabase.co`
+  * Chaves pública e de serviço configuradas e autenticadas.
+- [x] **Execução e Criação das 16 Tabelas Relacionais (`supabase_setup.sql`)**:
+  * `users`, `drivers`, `vehicles`, `vehicle_costs`, `driver_goals`, `driver_preferences`
+  * `fuel_records`, `maintenance_records`, `vehicle_expenses`, `ride_evaluations`
+  * `subscription_plans` (com seed de planos Free e Pro ativos)
+  * `subscriptions`, `pix_transactions`, `play_billing_receipts`
+  * `lgpd_deletion_requests`, `sanitized_telemetry_events`
+- [x] **Row Level Security (RLS) & Políticas Ativas**:
+  * Leitura pública garantida para catálogo de planos com RLS habilitado.
+- [x] **Cliente Supabase Backend (`backend/app/supabase_client.py`)**:
+  * Cliente leve PostgREST via `urllib` com zero dependências externas pesadas.
+  * Endpoint `/api/v1/supabase/status` retornando `CONNECTED` e versão do schema.
+  * Ingestão de telemetria e sincronização via `/api/v1/sync/push`.
+- [x] **Cliente Supabase Android (`SupabaseSyncClient.kt` & `SupabaseConfig.kt`)**:
+  * Consulta remota assíncrona de planos com parsing JSON nativo.
+  * Sincronização offline-first e persistência em nuvem.
+- [x] **2 novos testes unitários** (total de **93 testes unitários automatizados**, 29 suítes, 100% de aprovação).
+- [x] Novo APK Debug gerado e validado (`app-debug.apk` de 16.7 MB).

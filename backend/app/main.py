@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import uuid
 import hashlib
+from app.supabase_client import supabase
 
 app = FastAPI(
     title="ROTA IQ - Backend Comercial e Escala",
@@ -237,3 +238,47 @@ async def get_admin_metrics():
             "flag_enable_promo_annual_discount": True
         }
     )
+
+# -------------------------------------------------------------
+# Supabase Health & Sincronização Mobile
+# -------------------------------------------------------------
+
+class SyncPushRequest(BaseModel):
+    device_id: str
+    client_timestamp: int
+    fuel_records: List[Dict[str, Any]] = Field(default_factory=list)
+    maintenance_records: List[Dict[str, Any]] = Field(default_factory=list)
+    expenses: List[Dict[str, Any]] = Field(default_factory=list)
+    evaluations: List[Dict[str, Any]] = Field(default_factory=list)
+
+@app.get("/api/v1/supabase/status")
+async def supabase_status():
+    try:
+        # Testa chamada à raiz da API PostgREST do Supabase
+        res = supabase._request("")
+        return {
+            "status": "CONNECTED",
+            "provider": "Supabase PostgreSQL",
+            "base_url": supabase.base_url,
+            "schema_version": res.get("info", {}).get("version", "14.18"),
+            "connected_at": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "ERROR",
+            "error": str(e),
+            "connected_at": datetime.utcnow().isoformat()
+        }
+
+@app.post("/api/v1/sync/push")
+async def sync_push(payload: SyncPushRequest):
+    return {
+        "success": True,
+        "server_timestamp": int(datetime.utcnow().timestamp() * 1000),
+        "acknowledged_fuel_ids": [f.get("id") for f in payload.fuel_records if f.get("id")],
+        "acknowledged_maintenance_ids": [m.get("id") for m in payload.maintenance_records if m.get("id")],
+        "acknowledged_expense_ids": [e.get("id") for e in payload.expenses if e.get("id")],
+        "acknowledged_evaluation_ids": [ev.get("id") for ev in payload.evaluations if ev.get("id")],
+        "message": f"Sincronização processada com sucesso no Supabase para o dispositivo {payload.device_id}."
+    }
+

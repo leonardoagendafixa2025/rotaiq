@@ -189,3 +189,12 @@ Este documento registra as principais decisões técnicas e de design tomadas no
 - **Decisão**: Implementar o `StrategicRejectionEngine`, calculando matematicamente o *Break-even wait time* (Ponto de Equilíbrio de Espera): tempo máximo que o motorista pode aguardar estacionado até surgir uma oferta no patamar da sua meta horária antes de empatar com o rendimento da corrida ruim, além de computar o valor de custo operacional evitado.
 - **Consequências**: Conscientização matemática do motorista, aumento da rentabilidade líquida por hora e redução de desgaste desnecessário do veículo.
 
+---
+
+### ADR-024: Backend-as-a-Service e Persistência em Nuvem com Supabase PostgreSQL (Fase 7)
+- **Status**: Aprovado e Implementado
+- **Contexto**: Para viabilizar sincronização em nuvem sem custos proibitivos de infraestrutura e com facilidade de manutenção para o ecossistema ROTA IQ, foi selecionado o Supabase (PostgreSQL 15 gerenciado).
+- **Decisão**: Configurar o projeto Supabase em produção com 16 tabelas relacionais (`supabase_setup.sql`), chaves públicas (`sb_publishable_...`) e secretas (`sb_secret_...`), políticas de segurança por linha (Row Level Security - RLS) para isolamento de dados por motorista, e implementar clientes leves desacoplados tanto no backend Python quanto no aplicativo Android (`SupabaseSyncClient`).
+- **Consequências**: Zero custo fixo inicial, alta escalabilidade, conformidade com LGPD com políticas RLS nativas no banco e sincronização fluida offline-first.
+
+

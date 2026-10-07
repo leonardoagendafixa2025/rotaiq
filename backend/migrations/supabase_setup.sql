@@ -1,0 +1,267 @@
+-- ====================================================================
+-- ROTA IQ - SETUP COMPLETO SUPABASE POSTGRESQL (Fases 1 a 6)
+-- Plataforma Inteligente de Decisão, Produtividade e Gestão Financeira
+-- ====================================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- -------------------------------------------------------------
+-- 1. USUÁRIOS E MOTORISTAS
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    phone VARCHAR(30) UNIQUE,
+    full_name VARCHAR(150) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS drivers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    cpf VARCHAR(14) UNIQUE,
+    cnh_number VARCHAR(20),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(2) NOT NULL,
+    status VARCHAR(30) DEFAULT 'ACTIVE' NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- 2. VEÍCULOS E CUSTOS OPERACIONAIS REAIS
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS vehicles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    plate VARCHAR(20) NOT NULL,
+    model VARCHAR(100) NOT NULL,
+    year INT NOT NULL,
+    fuel_type VARCHAR(30) NOT NULL,
+    consumption_km_per_liter NUMERIC(5,2) NOT NULL,
+    fuel_price_per_liter NUMERIC(6,2) NOT NULL,
+    maintenance_cost_per_km NUMERIC(6,3) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS vehicle_costs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+    monthly_insurance_cost NUMERIC(10,2) DEFAULT 0.0,
+    annual_taxes_cost NUMERIC(10,2) DEFAULT 0.0,
+    monthly_depreciation NUMERIC(10,2) DEFAULT 0.0,
+    monthly_other_costs NUMERIC(10,2) DEFAULT 0.0,
+    estimated_monthly_km NUMERIC(8,2) DEFAULT 3000.0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- 3. METAS E PREFERÊNCIAS OPERACIONAIS
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS driver_goals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    daily_gross_target NUMERIC(10,2) NOT NULL,
+    target_hourly_rate NUMERIC(10,2) NOT NULL,
+    target_km_rate NUMERIC(10,2) NOT NULL,
+    shift_target_hours NUMERIC(4,1) NOT NULL,
+    weekly_target NUMERIC(10,2),
+    monthly_target NUMERIC(10,2),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS driver_preferences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    min_score_threshold INT DEFAULT 65 NOT NULL,
+    max_pickup_distance_km NUMERIC(5,2) DEFAULT 4.0 NOT NULL,
+    reject_negative_profit BOOLEAN DEFAULT TRUE NOT NULL,
+    tts_voice_alerts_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+    overlay_hud_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- 4. REGISTROS FINANCEIROS (COMBUSTÍVEL 2 TANQUES, MANUTENÇÃO, DESPESAS)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS fuel_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID REFERENCES drivers(id) ON DELETE CASCADE,
+    vehicle_id UUID REFERENCES vehicles(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    odometer_km NUMERIC(10,2) NOT NULL,
+    liters NUMERIC(8,3) NOT NULL,
+    price_per_liter NUMERIC(6,3) NOT NULL,
+    total_paid NUMERIC(10,2) NOT NULL,
+    fuel_type VARCHAR(30) NOT NULL,
+    is_full_tank BOOLEAN DEFAULT TRUE NOT NULL,
+    calculated_km_per_liter NUMERIC(5,2),
+    calculated_cost_per_km NUMERIC(6,3),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS maintenance_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID REFERENCES drivers(id) ON DELETE CASCADE,
+    vehicle_id UUID REFERENCES vehicles(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    odometer_km NUMERIC(10,2) NOT NULL,
+    service_type VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    cost NUMERIC(10,2) NOT NULL,
+    next_service_km NUMERIC(10,2),
+    is_completed BOOLEAN DEFAULT TRUE NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS vehicle_expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID REFERENCES drivers(id) ON DELETE CASCADE,
+    vehicle_id UUID REFERENCES vehicles(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    amount NUMERIC(10,2) NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- 5. HISTÓRICO DE OFERTAS, AVALIAÇÕES E CORRIDAS
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ride_evaluations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID REFERENCES drivers(id) ON DELETE CASCADE,
+    platform VARCHAR(30) NOT NULL, -- UBER, NINETY_NINE, INDRAVE, OTHER
+    gross_fare NUMERIC(10,2) NOT NULL,
+    distance_km NUMERIC(6,2) NOT NULL,
+    duration_minutes NUMERIC(6,1) NOT NULL,
+    pickup_distance_km NUMERIC(6,2) DEFAULT 0.0 NOT NULL,
+    pickup_duration_minutes NUMERIC(6,1) DEFAULT 0.0 NOT NULL,
+    category VARCHAR(30) DEFAULT 'STANDARD' NOT NULL,
+    stops_count INT DEFAULT 0 NOT NULL,
+    score INT NOT NULL,
+    classification VARCHAR(30) NOT NULL, -- EXCELLENT, GOOD, ACCEPTABLE, BAD, AVOID
+    estimated_cost NUMERIC(10,2) NOT NULL,
+    net_profit NUMERIC(10,2) NOT NULL,
+    profit_margin_percent NUMERIC(6,2) NOT NULL,
+    gross_rate_per_km NUMERIC(6,2) NOT NULL,
+    net_rate_per_km NUMERIC(6,2) NOT NULL,
+    gross_rate_per_hour NUMERIC(8,2) NOT NULL,
+    net_rate_per_hour NUMERIC(8,2) NOT NULL,
+    was_accepted BOOLEAN DEFAULT FALSE,
+    evaluated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- 6. PRODUTO COMERCIAL: PLANOS, TRANSAÇÕES PIX E GOOGLE PLAY BILLING
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS subscription_plans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(50) UNIQUE NOT NULL, -- 'free', 'pro_monthly', 'pro_annual'
+    name VARCHAR(100) NOT NULL,
+    price_cents INT NOT NULL,
+    interval VARCHAR(20) NOT NULL,
+    features JSONB NOT NULL DEFAULT '[]',
+    is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+INSERT INTO subscription_plans (code, name, price_cents, interval, features)
+VALUES 
+    ('free', 'Plano Gratuito', 0, 'none', '["15 avaliações diárias", "Cálculo de custos", "Metas de ritmo"]'),
+    ('pro_monthly', 'ROTA IQ Pro Mensal', 2990, 'month', '["Avaliações ilimitadas", "HUD Flutuante", "Copiloto por Voz TTS", "Preditor Deadhead", "Comparativo Uber vs 99", "Modo Carro Bluetooth", "inDrive Contraproposta"]'),
+    ('pro_annual', 'ROTA IQ Pro Anual', 23990, 'year', '["Avaliações ilimitadas", "HUD Flutuante", "Copiloto por Voz TTS", "Preditor Deadhead", "Comparativo Uber vs 99", "Modo Carro Bluetooth", "inDrive Contraproposta", "Livro Caixa MEI / IRPF", "33% de desconto", "Suporte VIP"]')
+ON CONFLICT (code) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    plan_code VARCHAR(50) NOT NULL,
+    tier VARCHAR(30) NOT NULL, -- FREE, PRO
+    status VARCHAR(30) NOT NULL, -- ACTIVE, EXPIRED, CANCELLED
+    provider VARCHAR(30) NOT NULL, -- PLAY_BILLING, PIX, MANUAL
+    starts_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pix_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID REFERENCES drivers(id) ON DELETE CASCADE,
+    order_id VARCHAR(50) UNIQUE NOT NULL,
+    tx_id VARCHAR(50) NOT NULL,
+    amount_cents INT NOT NULL,
+    plan_code VARCHAR(50) NOT NULL,
+    emv_payload TEXT NOT NULL,
+    status VARCHAR(30) DEFAULT 'PENDING' NOT NULL, -- PENDING, PAID, EXPIRED, CANCELLED
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    paid_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS play_billing_receipts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID REFERENCES drivers(id) ON DELETE CASCADE,
+    order_id VARCHAR(100) NOT NULL,
+    sku_id VARCHAR(100) NOT NULL,
+    purchase_token TEXT NOT NULL,
+    purchase_state VARCHAR(30) NOT NULL,
+    acknowledged BOOLEAN DEFAULT FALSE NOT NULL,
+    purchase_time_ms BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- 7. LGPD, AUDITORIA E TELEMETRIA HIGIENIZADA
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lgpd_deletion_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL,
+    user_email_hash VARCHAR(64) NOT NULL,
+    reason TEXT,
+    status VARCHAR(30) DEFAULT 'COMPLETED' NOT NULL,
+    requested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    purged_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sanitized_telemetry_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_name VARCHAR(100) NOT NULL,
+    app_version VARCHAR(30) NOT NULL,
+    driver_id_hash VARCHAR(64),
+    properties JSONB NOT NULL DEFAULT '{}',
+    received_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- -------------------------------------------------------------
+-- 8. ÍNDICES DE ALTA PERFORMANCE
+-- -------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_fuel_records_driver ON fuel_records(driver_id, date);
+CREATE INDEX IF NOT EXISTS idx_maintenance_records_driver ON maintenance_records(driver_id, date);
+CREATE INDEX IF NOT EXISTS idx_expenses_driver ON vehicle_expenses(driver_id, date);
+CREATE INDEX IF NOT EXISTS idx_ride_evaluations_driver ON ride_evaluations(driver_id, evaluated_at);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_driver ON subscriptions(driver_id, status);
+CREATE INDEX IF NOT EXISTS idx_pix_order ON pix_transactions(order_id);
+
+-- -------------------------------------------------------------
+-- 9. HABILITAÇÃO DO ROW LEVEL SECURITY (RLS)
+-- -------------------------------------------------------------
+ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pix_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fuel_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE maintenance_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ride_evaluations ENABLE ROW LEVEL SECURITY;
+
+-- Política de leitura pública para planos de assinatura
+CREATE POLICY "Planos visíveis para todos" ON subscription_plans
+    FOR SELECT USING (is_active = TRUE);
