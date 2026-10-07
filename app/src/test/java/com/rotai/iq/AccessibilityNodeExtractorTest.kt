@@ -30,4 +30,20 @@ class AccessibilityNodeExtractorTest {
         val result = AccessibilityNodeExtractor.extractAllTexts(null)
         assertThat(result).isEmpty()
     }
+
+    @Test
+    fun buildCombinedText_singleLine_returnsExactString() {
+        val result = AccessibilityNodeExtractor.buildCombinedText(listOf("Uber Comfort R$ 45,00"))
+        assertThat(result).isEqualTo("Uber Comfort R$ 45,00")
+    }
+
+    @Test
+    fun buildCombinedText_generatesDeterministicHashForDebounce() {
+        val lines1 = listOf("UberX", "R$ 30,00", "5 km")
+        val lines2 = listOf("UberX", "R$ 30,00", "5 km")
+        val text1 = AccessibilityNodeExtractor.buildCombinedText(lines1)
+        val text2 = AccessibilityNodeExtractor.buildCombinedText(lines2)
+
+        assertThat(text1.hashCode()).isEqualTo(text2.hashCode())
+    }
 }

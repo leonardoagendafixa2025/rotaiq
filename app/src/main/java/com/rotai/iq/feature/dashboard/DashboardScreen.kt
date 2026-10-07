@@ -91,6 +91,7 @@ fun DashboardScreen(
     onNavigateToSubscription: () -> Unit = {},
     onNavigateToPrivacy: () -> Unit = {},
     onNavigateToAdvanced: () -> Unit = {},
+    onNavigateToAutomation: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -523,7 +524,8 @@ fun DashboardScreen(
                     title = "Copiloto & HUD",
                     subtitle = "Automação ativa",
                     icon = Icons.Default.PlayArrow,
-                    onClick = onNavigateToAdvanced,
+                    onClick = onNavigateToAutomation,
+                    accentColor = RotaOrangePrimary,
                     modifier = Modifier.weight(1f)
                 )
                 QuickToolCard(

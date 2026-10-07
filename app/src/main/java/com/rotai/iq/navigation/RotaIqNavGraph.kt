@@ -127,6 +127,9 @@ fun RotaIqApp(
                     },
                     onNavigateToAdvanced = {
                         navController.navigate(Screen.AdvancedTools.route)
+                    },
+                    onNavigateToAutomation = {
+                        navController.navigate(Screen.Automation.route)
                     }
                 )
             }

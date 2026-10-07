@@ -94,6 +94,7 @@ class RotaIqAccessibilityService : AccessibilityService() {
         return pkg.contains("uber", ignoreCase = true) ||
                 pkg.contains("99", ignoreCase = true) ||
                 pkg.contains("taxis99", ignoreCase = true) ||
+                pkg.contains("indrive", ignoreCase = true) ||
                 pkg == packageName // Permite auto-teste no próprio app ROTA IQ
     }
 

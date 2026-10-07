@@ -107,4 +107,101 @@ class TtsMessageFormatterTest {
         assertThat(speech).contains("12 reais")
         assertThat(speech).contains("2 paradas intermediárias")
     }
+
+    @Test
+    fun formatSpeechMessage_goodRide_returnsEncouragingPaceSpeech() {
+        val offer = RideOffer(
+            platform = RidePlatform.UBER,
+            grossFare = 28.0,
+            distanceKm = 7.0,
+            durationMinutes = 18.0
+        )
+        val eval = RideEvaluation(
+            offer = offer,
+            grossFare = 28.0,
+            score = 82,
+            classification = EvaluationClassification.GOOD,
+            estimatedCost = 6.5,
+            netProfit = 21.5,
+            profitMarginPercent = 76.0,
+            grossRatePerKm = 4.0,
+            netRatePerKm = 3.07,
+            grossRatePerHour = 93.3,
+            netRatePerHour = 71.6,
+            grossRatePerMinute = 1.55,
+            totalDistanceKm = 8.0,
+            totalDurationMinutes = 21.0,
+            reasons = listOf("Boa rentabilidade"),
+            alerts = emptyList()
+        )
+
+        val speech = TtsMessageFormatter.formatSpeechMessage(eval)
+        assertThat(speech).contains("Boa corrida")
+        assertThat(speech).contains("22 reais")
+        assertThat(speech).contains("72 reais por hora")
+    }
+
+    @Test
+    fun formatSpeechMessage_badRide_warnsAboutLowProfit() {
+        val offer = RideOffer(
+            platform = RidePlatform.NINETY_NINE,
+            grossFare = 12.0,
+            distanceKm = 10.0,
+            durationMinutes = 25.0
+        )
+        val eval = RideEvaluation(
+            offer = offer,
+            grossFare = 12.0,
+            score = 38,
+            classification = EvaluationClassification.BAD,
+            estimatedCost = 8.0,
+            netProfit = 4.0,
+            profitMarginPercent = 33.0,
+            grossRatePerKm = 1.20,
+            netRatePerKm = 0.40,
+            grossRatePerHour = 28.8,
+            netRatePerHour = 9.6,
+            grossRatePerMinute = 0.48,
+            totalDistanceKm = 11.0,
+            totalDurationMinutes = 28.0,
+            reasons = listOf("Margem baixa"),
+            alerts = listOf("Abaixo da taxa mínima de R$/km")
+        )
+
+        val speech = TtsMessageFormatter.formatSpeechMessage(eval)
+        assertThat(speech).contains("Corrida desfavorável")
+        assertThat(speech).contains("4 reais")
+    }
+
+    @Test
+    fun formatSpeechMessage_avoidRidePositiveProfit_warnsAboutOperationalCost() {
+        val offer = RideOffer(
+            platform = RidePlatform.UBER,
+            grossFare = 16.0,
+            distanceKm = 18.0,
+            durationMinutes = 40.0
+        )
+        val eval = RideEvaluation(
+            offer = offer,
+            grossFare = 16.0,
+            score = 22,
+            classification = EvaluationClassification.AVOID,
+            estimatedCost = 15.5,
+            netProfit = 0.5,
+            profitMarginPercent = 3.0,
+            grossRatePerKm = 0.88,
+            netRatePerKm = 0.02,
+            grossRatePerHour = 24.0,
+            netRatePerHour = 0.75,
+            grossRatePerMinute = 0.40,
+            totalDistanceKm = 20.0,
+            totalDurationMinutes = 45.0,
+            reasons = listOf("Lucro irrisório"),
+            alerts = listOf("Desgaste veicular incompatível")
+        )
+
+        val speech = TtsMessageFormatter.formatSpeechMessage(eval)
+        assertThat(speech).contains("evite esta corrida")
+        assertThat(speech).contains("Rentabilidade abaixo do custo operacional")
+    }
 }
