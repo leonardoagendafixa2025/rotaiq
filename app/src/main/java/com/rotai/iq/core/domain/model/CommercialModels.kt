@@ -92,7 +92,7 @@ enum class FeatureKey(val title: String, val description: String) {
     FLOATING_HUD("HUD Flutuante Dinâmico", "Card flutuante translúcido diretamente sobre o Uber e 99."),
     TTS_AUDIO_COPILOT("Copiloto por Voz (TTS)", "Anúncio por voz imediato se a corrida vale a pena ou deve ser evitada."),
     DEADHEAD_PREDICTOR("Preditor de Retorno Vazio (Deadhead)", "Previsão de probabilidade de volta vazia e lucro líquido real ajustado."),
-    PLATFORM_COMPARISON("Comparativo Avançado Uber vs 99", "Análise de qual aplicativo rende mais por hora e por km."),
+    PLATFORM_COMPARISON("Comparativo Avançado Uber vs 99", "Descubra qual aplicativo rende mais por hora e por km."),
     TAX_EXPORT_REPORT("Exportação Fiscal e Contábil", "Exportação de relatórios em CSV e JSON para IRPF e livro caixa."),
     PRIORITY_SUPPORT("Suporte Prioritário", "Atendimento prioritário via canal direto para assinantes Pro.")
 }

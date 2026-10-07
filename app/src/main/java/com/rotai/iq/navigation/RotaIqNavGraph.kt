@@ -3,7 +3,7 @@ package com.rotai.iq.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -54,7 +54,8 @@ fun RotaIqApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // 5 Abas Principais alinhadas à filosofia da referência visual oficial
+    // Barra de navegação inspirada 1:1 na referência visual:
+    // Início, Corridas, Botão Central '+' de Ação Rápida (Simulador), Financeiro, Perfil
     val navItems = listOf(
         RotaNavItem(
             route = Screen.Dashboard.route,
@@ -67,9 +68,10 @@ fun RotaIqApp(
             icon = Icons.Default.History
         ),
         RotaNavItem(
-            route = Screen.GeoInsights.route,
-            label = "ANÁLISE",
-            icon = Icons.Default.Analytics
+            route = Screen.Simulator.route,
+            label = "",
+            icon = Icons.Default.Add,
+            isPrimaryAction = true
         ),
         RotaNavItem(
             route = Screen.Finance.route,

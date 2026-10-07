@@ -245,8 +245,8 @@ async function loadFeatureFlags() {
 }
 
 async function toggleFlag(flagKey, isEnabled) {
-    if (currentSession.role === 'ANALYST') {
-        alert('Acesso negado: Perfil ANALYST tem permissão apenas de leitura.');
+    if (currentSession.role === 'OPERADOR') {
+        alert('Acesso negado: Perfil OPERADOR tem permissão apenas de leitura.');
         loadFeatureFlags();
         return;
     }

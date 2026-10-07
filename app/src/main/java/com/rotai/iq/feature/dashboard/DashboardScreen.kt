@@ -304,8 +304,8 @@ fun DashboardScreen(
 
             if (latestRide == null) {
                 RotaEmptyState(
-                    title = "Você ainda não possui corridas analisadas",
-                    description = "Utilize o simulador ou ative o copiloto para começar a receber análises de rentabilidade e score em tempo real.",
+                    title = "Nenhuma corrida avaliada hoje",
+                    description = "Utilize o simulador ou ative o copiloto para receber scores e recomendações em tempo real.",
                     icon = Icons.Default.Calculate,
                     actionButtonText = "Simular e Avaliar Corrida",
                     onActionClick = onNavigateToSimulator

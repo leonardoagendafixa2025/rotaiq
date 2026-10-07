@@ -100,7 +100,7 @@ fun RideHistoryScreen(
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = "Histórico e análise de decisões reais",
+                    text = "Histórico de decisões e corridas aceitas",
                     fontSize = 12.sp,
                     color = RotaTextSecondary
                 )

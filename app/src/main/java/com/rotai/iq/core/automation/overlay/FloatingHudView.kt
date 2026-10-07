@@ -197,7 +197,7 @@ class FloatingHudView(
 
         // Alertas / Motivos
         val firstAlert = evaluation.alerts.firstOrNull()
-        val firstReason = evaluation.reasons.firstOrNull() ?: "Análise ROTA IQ concluída"
+        val firstReason = evaluation.reasons.firstOrNull() ?: "Decisão ROTA IQ pronta"
         reasonsText.text = if (!firstAlert.isNullOrBlank()) {
             "⚠️ $firstAlert"
         } else {

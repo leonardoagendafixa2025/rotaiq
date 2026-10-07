@@ -100,14 +100,14 @@ fun GeoInsightsScreen(
         ) {
             Column {
                 Text(
-                    text = "ANÁLISE ESTRATÉGICA",
+                    text = "INTELIGÊNCIA DE ROTAS",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     color = RotaTextWhite,
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = "Inteligência operacional e análise de demanda",
+                    text = "Zonas de demanda e copiloto operacional",
                     fontSize = 12.sp,
                     color = RotaTextSecondary
                 )
@@ -598,7 +598,7 @@ private fun DeadheadSimulatorSection(
 
         // 2. Parâmetros da Oferta
         Text(
-            text = "PARÂMETROS DA OFERTA EM ANÁLISE",
+            text = "PARÂMETROS DA OFERTA EM TEMPO REAL",
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = RotaTextSecondary,
