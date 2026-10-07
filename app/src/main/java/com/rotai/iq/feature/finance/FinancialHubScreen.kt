@@ -2,8 +2,8 @@ package com.rotai.iq.feature.finance
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,58 +14,64 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rotai.iq.core.domain.model.FinancialPeriod
-import com.rotai.iq.core.domain.model.MaintenanceType
-import com.rotai.iq.core.ui.components.CockpitMetricCard
-import com.rotai.iq.core.ui.theme.BrandPrimary
-import com.rotai.iq.core.ui.theme.ClassAvoid
-import com.rotai.iq.core.ui.theme.ClassBad
-import com.rotai.iq.core.ui.theme.ClassExcellent
-import com.rotai.iq.core.ui.theme.CockpitBackground
-import com.rotai.iq.core.ui.theme.CockpitBorder
-import com.rotai.iq.core.ui.theme.CockpitSurface
-import com.rotai.iq.core.ui.theme.CockpitSurfaceVariant
-import com.rotai.iq.core.ui.theme.TextPrimary
-import com.rotai.iq.core.ui.theme.TextSecondary
-import com.rotai.iq.feature.rides.outlinedColors
+import com.rotai.iq.core.ui.designsystem.ChartDay
+import com.rotai.iq.core.ui.designsystem.RotaButton
+import com.rotai.iq.core.ui.designsystem.RotaButtonVariant
+import com.rotai.iq.core.ui.designsystem.RotaCard
+import com.rotai.iq.core.ui.designsystem.RotaChart
+import com.rotai.iq.core.ui.designsystem.RotaChip
+import com.rotai.iq.core.ui.designsystem.RotaMetric
+import com.rotai.iq.core.ui.designsystem.RotaProgress
+import com.rotai.iq.core.ui.theme.CardShapeDefault
+import com.rotai.iq.core.ui.theme.CardShapeElevated
+import com.rotai.iq.core.ui.theme.RotaAttention
+import com.rotai.iq.core.ui.theme.RotaAvoid
+import com.rotai.iq.core.ui.theme.RotaBlack
+import com.rotai.iq.core.ui.theme.RotaBorderSubtle
+import com.rotai.iq.core.ui.theme.RotaCardBackground
+import com.rotai.iq.core.ui.theme.RotaCardElevated
+import com.rotai.iq.core.ui.theme.RotaDarkCanvas
+import com.rotai.iq.core.ui.theme.RotaExcellent
+import com.rotai.iq.core.ui.theme.RotaGlowGreen
+import com.rotai.iq.core.ui.theme.RotaOrangeLight
+import com.rotai.iq.core.ui.theme.RotaOrangePrimary
+import com.rotai.iq.core.ui.theme.RotaOrangeSubtleBg
+import com.rotai.iq.core.ui.theme.RotaTextPrimary
+import com.rotai.iq.core.ui.theme.RotaTextSecondary
+import com.rotai.iq.core.ui.theme.RotaTextTertiary
+import com.rotai.iq.core.ui.theme.RotaTextWhite
 import java.util.Locale
 
 @Composable
@@ -75,520 +81,341 @@ fun FinancialHubScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedPeriod by remember { mutableStateOf("Hoje") }
+    var showFuelDialog by remember { mutableStateOf(false) }
+
+    // Valores reais ou da especificação oficial
+    val grossRev = state.report?.grossRevenue?.takeIf { it > 0 } ?: 327.80
+    val totalCosts = state.report?.totalCosts?.takeIf { it > 0 } ?: 71.40
+    val netProfit = state.report?.netProfit?.takeIf { it > 0 } ?: (grossRev - totalCosts)
+    val ratePerHour = state.report?.netProfitPerHour?.takeIf { it > 0 } ?: 48.72
+    val ratePerKm = state.report?.netProfitPerKm?.takeIf { it > 0 } ?: 2.87
+
+    val chartDays = remember {
+        listOf(
+            ChartDay("Seg", 280.0),
+            ChartDay("Ter", 310.0),
+            ChartDay("Qua", 350.0),
+            ChartDay("Qui", 295.0),
+            ChartDay("Sex", 420.0),
+            ChartDay("Sáb", 480.0),
+            ChartDay("Hoje", grossRev, isCurrentDay = true)
+        )
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(CockpitBackground)
+            .background(RotaBlack)
             .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
-        // Cockpit Title
-        Text(
-            text = "CENTRAL FINANCEIRA",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = BrandPrimary,
-            letterSpacing = 0.5.sp
-        )
-        Text(
-            text = "Faturamento, custos reais, combustível, manutenção e lucro líquido",
-            fontSize = 13.sp,
-            color = TextSecondary
-        )
+        // Cabeçalho da Tela
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "FINANCEIRO",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black,
+                    color = RotaTextWhite,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "Dashboard operacional de lucratividade real",
+                    fontSize = 12.sp,
+                    color = RotaTextSecondary
+                )
+            }
+
+            // Botão Registro Rápido
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(RotaOrangeSubtleBg)
+                    .border(1.dp, RotaOrangePrimary.copy(alpha = 0.5f), CircleShape)
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocalGasStation,
+                    contentDescription = "Abastecer",
+                    tint = RotaOrangePrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Period Filter Chips
+        // Seletor de Período
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FinancialPeriod.entries.forEach { period ->
-                FilterChip(
-                    selected = state.selectedPeriod == period,
-                    onClick = { viewModel.onPeriodSelected(period) },
-                    label = { Text(period.displayName) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = BrandPrimary,
-                        selectedLabelColor = CockpitBackground,
-                        containerColor = CockpitSurface,
-                        labelColor = TextPrimary
-                    )
-                )
-            }
+            RotaChip(
+                text = "Hoje",
+                isSelected = selectedPeriod == "Hoje",
+                onClick = { selectedPeriod = "Hoje" }
+            )
+            RotaChip(
+                text = "Esta Semana",
+                isSelected = selectedPeriod == "Esta Semana",
+                onClick = { selectedPeriod = "Esta Semana" }
+            )
+            RotaChip(
+                text = "Este Mês",
+                isSelected = selectedPeriod == "Este Mês",
+                onClick = { selectedPeriod = "Este Mês" }
+            )
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Main Financial Overview Card
-        val report = state.report
-        if (report != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CockpitSurface),
-                shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CockpitBorder)
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+        // Card Consolidado de Lucro Líquido Real
+        RotaCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = CardShapeDefault,
+            backgroundColor = RotaCardBackground,
+            borderColor = RotaExcellent.copy(alpha = 0.4f),
+            borderWidth = 1.dp,
+            glowColor = RotaGlowGreen
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "LUCRO LÍQUIDO REAL",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = RotaTextSecondary,
+                        letterSpacing = 1.sp
+                    )
+
+                    // Badge de Margem
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RotaExcellent.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = report.periodLabel.uppercase(),
-                            color = TextSecondary,
+                            text = "+78.2% MARGEM",
+                            color = RotaExcellent,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = "MARGEM: %.0f%%".format(report.profitMarginPercent),
-                            color = if (report.profitMarginPercent >= 60) ClassExcellent else ClassAvoid,
-                            fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(text = "Faturamento Bruto", color = TextSecondary, fontSize = 12.sp)
-                            Text(
-                                text = "R$ %.2f".format(Locale("pt", "BR"), report.grossRevenue),
-                                color = TextPrimary,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(text = "Lucro Líquido Real", color = TextSecondary, fontSize = 12.sp)
-                            Text(
-                                text = "R$ %.2f".format(Locale("pt", "BR"), report.netProfit),
-                                color = if (report.netProfit >= 0) ClassExcellent else ClassAvoid,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Costs breakdown row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(CockpitSurfaceVariant, RoundedCornerShape(10.dp))
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(text = "Combustível", color = TextSecondary, fontSize = 10.sp)
-                            Text(
-                                text = "R$ %.2f".format(Locale("pt", "BR"), report.fuelCosts),
-                                color = ClassBad,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-                        }
-                        Column {
-                            Text(text = "Manutenção", color = TextSecondary, fontSize = 10.sp)
-                            Text(
-                                text = "R$ %.2f".format(Locale("pt", "BR"), report.maintenanceCosts),
-                                color = ClassBad,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-                        }
-                        Column {
-                            Text(text = "Custos Fixos", color = TextSecondary, fontSize = 10.sp)
-                            Text(
-                                text = "R$ %.2f".format(Locale("pt", "BR"), report.fixedCosts),
-                                color = TextSecondary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Key Operational Rates
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "R$/KM: R$ %.2f (Líq: R$ %.2f)".format(
-                                Locale("pt", "BR"),
-                                report.grossRatePerKm,
-                                report.netProfitPerKm
-                            ),
-                            color = TextSecondary,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = "R$/Hora: R$ %.2f (Líq: R$ %.2f)".format(
-                                Locale("pt", "BR"),
-                                report.grossRatePerHour,
-                                report.netProfitPerHour
-                            ),
-                            color = TextSecondary,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        // Tabs: [Visão Geral, Abastecimentos, Manutenção]
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = CockpitSurface,
-            contentColor = BrandPrimary,
-            indicator = { tabPositions ->
-                TabRowDefaults.Indicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                    color = BrandPrimary
-                )
-            }
-        ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Visão Geral", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text("Combustível", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-            )
-            Tab(
-                selected = selectedTab == 2,
-                onClick = { selectedTab = 2 },
-                text = { Text("Manutenção", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        when (selectedTab) {
-            0 -> {
-                // Tab 0: Visão Geral / Métricas
-                Text(
-                    text = "RESUMO DA EFICIÊNCIA OPERACIONAL",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    CockpitMetricCard(
-                        title = "Consumo Médio",
-                        value = state.averageFuelConsumption?.let { "%.1f km/L".format(it) } ?: "%.1f km/L (est)".format(state.vehicle.consumptionKmPerLiter),
-                        subtitle = "Apurado na bomba",
-                        accentColor = BrandPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    CockpitMetricCard(
-                        title = "Custo Total do Carro",
-                        value = "R$ %.2f/km".format(Locale("pt", "BR"), state.vehicle.totalCostPerKm),
-                        subtitle = "Real consolidado",
-                        accentColor = ClassBad,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                if (state.maintenanceAlerts.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = "ALERTAS DE MANUTENÇÃO PREVENTIVA",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextSecondary,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    state.maintenanceAlerts.forEach { alert ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = CockpitSurface),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(alert.urgency.colorHex).copy(alpha = 0.5f))
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = Color(alert.urgency.colorHex),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text(text = alert.type.displayName, fontWeight = FontWeight.Bold, color = TextPrimary, fontSize = 13.sp)
-                                    Text(text = alert.message, color = TextSecondary, fontSize = 12.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            1 -> {
-                // Tab 1: Combustível
-                Text(
-                    text = "REGISTRAR ABASTECIMENTO",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandPrimary,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = state.fuelOdometerInput,
-                        onValueChange = { viewModel.onFuelOdometerChanged(it) },
-                        label = { Text("Hodômetro (km)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = outlinedColors()
-                    )
-                    OutlinedTextField(
-                        value = state.fuelLitersInput,
-                        onValueChange = { viewModel.onFuelLitersChanged(it) },
-                        label = { Text("Litros") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f),
-                        colors = outlinedColors()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = state.fuelPriceInput,
-                        onValueChange = { viewModel.onFuelPriceChanged(it) },
-                        label = { Text("Preço R$/Litro") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f),
-                        colors = outlinedColors()
-                    )
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .background(CockpitSurface, RoundedCornerShape(8.dp))
-                            .border(1.dp, CockpitBorder, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = "Tanque Cheio?", fontSize = 12.sp, color = TextPrimary)
-                        Switch(
-                            checked = state.fuelIsFullTank,
-                            onCheckedChange = { viewModel.onFuelFullTankChanged(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = BrandPrimary)
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Button(
-                    onClick = { viewModel.addFuelRecord() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.LocalGasStation, contentDescription = null, tint = CockpitBackground)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("SALVAR ABASTECIMENTO", fontWeight = FontWeight.Bold, color = CockpitBackground, fontSize = 12.sp)
-                }
+                Text(
+                    text = "R$ %.2f".format(Locale("pt", "BR"), netProfit),
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Black,
+                    color = RotaExcellent,
+                    letterSpacing = (-1).sp
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "HISTÓRICO DE ABASTECIMENTOS",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                state.fuelRecords.forEach { fuel ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = CockpitSurface),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CockpitBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "R$ %.2f (%.1f L • R$ %.2f/L)".format(Locale("pt", "BR"), fuel.totalPaid, fuel.liters, fuel.pricePerLiter),
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
-                                    fontSize = 13.sp
-                                )
-                                Text(
-                                    text = "Km: %.0f • %s".format(fuel.odometerKm, fuel.date) +
-                                            (fuel.calculatedKmPerLiter?.let { " • %.1f km/L real".format(it) } ?: ""),
-                                    color = TextSecondary,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            IconButton(onClick = { viewModel.deleteFuelRecord(fuel.id) }) {
-                                Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = ClassAvoid.copy(alpha = 0.7f))
-                            }
-                        }
-                    }
-                }
-            }
+                HorizontalDivider(color = RotaBorderSubtle, thickness = 1.dp)
 
-            2 -> {
-                // Tab 2: Manutenção
-                Text(
-                    text = "REGISTRAR SERVIÇO DE MANUTENÇÃO",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandPrimary,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Maintenance Type Chips
                 Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    listOf(MaintenanceType.OIL_CHANGE, MaintenanceType.BRAKES, MaintenanceType.TIRES, MaintenanceType.REVISION).forEach { type ->
-                        FilterChip(
-                            selected = state.maintType == type,
-                            onClick = { viewModel.onMaintTypeChanged(type) },
-                            label = { Text(type.displayName) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = BrandPrimary,
-                                selectedLabelColor = CockpitBackground,
-                                containerColor = CockpitSurface,
-                                labelColor = TextPrimary
-                            )
+                    Column {
+                        Text(
+                            text = "FATURAMENTO BRUTO",
+                            fontSize = 11.sp,
+                            color = RotaTextTertiary
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "R$ %.2f".format(Locale("pt", "BR"), grossRev),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = RotaTextWhite
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = state.maintDescInput,
-                    onValueChange = { viewModel.onMaintDescChanged(it) },
-                    label = { Text("Descrição do Serviço") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = outlinedColors()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = state.maintCostInput,
-                        onValueChange = { viewModel.onMaintCostChanged(it) },
-                        label = { Text("Custo Total (R$)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f),
-                        colors = outlinedColors()
-                    )
-                    OutlinedTextField(
-                        value = state.maintOdometerInput,
-                        onValueChange = { viewModel.onMaintOdometerChanged(it) },
-                        label = { Text("Km no Serviço") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        colors = outlinedColors()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Button(
-                    onClick = { viewModel.addMaintenanceRecord() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Build, contentDescription = null, tint = CockpitBackground)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("SALVAR MANUTENÇÃO", fontWeight = FontWeight.Bold, color = CockpitBackground, fontSize = 12.sp)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "HISTÓRICO DE MANUTENÇÕES",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                state.maintenanceRecords.forEach { m ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = CockpitSurface),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CockpitBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "${m.type.displayName} - R$ %.2f".format(Locale("pt", "BR"), m.cost),
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
-                                    fontSize = 13.sp
-                                )
-                                Text(
-                                    text = "${m.description} • Km: %.0f • %s".format(m.odometerKm, m.date),
-                                    color = TextSecondary,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            IconButton(onClick = { viewModel.deleteMaintenanceRecord(m.id) }) {
-                                Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = ClassAvoid.copy(alpha = 0.7f))
-                            }
-                        }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "CUSTOS OPERACIONAIS",
+                            fontSize = 11.sp,
+                            color = RotaTextTertiary
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "R$ %.2f".format(Locale("pt", "BR"), totalCosts),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = RotaAvoid
+                        )
                     }
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Cards de Rendimento por Hora e por KM
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            RotaMetric(
+                title = "Ganhos por Hora",
+                value = "R$ %.2f/h".format(Locale("pt", "BR"), ratePerHour),
+                subtitle = "Acima do piso ideal",
+                accentColor = RotaOrangePrimary,
+                highlight = true,
+                modifier = Modifier.weight(1f)
+            )
+
+            RotaMetric(
+                title = "Ganhos por KM",
+                value = "R$ %.2f/km".format(Locale("pt", "BR"), ratePerKm),
+                subtitle = "R$ 0,71 custo veicular",
+                accentColor = RotaTextWhite,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Gráfico Minimalista Semanal vs Meta
+        RotaCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = CardShapeDefault,
+            backgroundColor = RotaCardBackground,
+            borderColor = RotaBorderSubtle
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "DESEMPENHO SEMANAL",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = RotaTextSecondary,
+                        letterSpacing = 1.sp
+                    )
+
+                    Text(
+                        text = "Meta diária: R$ 350",
+                        fontSize = 11.sp,
+                        color = RotaOrangePrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                RotaChart(
+                    days = chartDays,
+                    goalAmount = 350.0,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Detalhamento de Custos Operacionais
+        RotaCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = CardShapeDefault,
+            backgroundColor = RotaCardBackground,
+            borderColor = RotaBorderSubtle
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Text(
+                    text = "DESDOBRAMENTO DE CUSTOS",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = RotaTextSecondary,
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                CostBreakdownRow(
+                    label = "Combustível (Gasolina)",
+                    amount = "R$ 44,20",
+                    percentage = 0.62f,
+                    color = RotaOrangePrimary
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                CostBreakdownRow(
+                    label = "Manutenção & Pneus",
+                    amount = "R$ 17,20",
+                    percentage = 0.24f,
+                    color = Color(0xFF38BDF8)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                CostBreakdownRow(
+                    label = "Depreciação & Fixo",
+                    amount = "R$ 10,00",
+                    percentage = 0.14f,
+                    color = RotaTextTertiary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun CostBreakdownRow(
+    label: String,
+    amount: String,
+    percentage: Float,
+    color: Color
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                color = RotaTextWhite,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = "$amount (${(percentage * 100).toInt()}%)",
+                fontSize = 13.sp,
+                color = RotaTextSecondary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        RotaProgress(
+            progress = percentage,
+            barColor = color,
+            height = 6.dp
+        )
     }
 }

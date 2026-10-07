@@ -131,3 +131,31 @@ Este documento define o plano mestre de evolução do **ROTA IQ** da Fundação 
   * Sincronização offline-first e persistência em nuvem.
 - [x] **2 novos testes unitários** (total de **93 testes unitários automatizados**, 29 suítes, 100% de aprovação).
 - [x] Novo APK Debug gerado e validado (`app-debug.apk` de 16.7 MB).
+
+---
+
+## 🟢 FASE 8: Redesign Visual Premium — Identidade Dark Obsidian & Electric Orange (CONCLUÍDA ✅)
+- [x] **Design System ROTA IQ Modular (`com.rotai.iq.core.ui.designsystem`)**:
+  * `RotaCard`: Containers com border radius de 18-24dp, profundidade e glow suave de veredito.
+  * `RotaButton`: Botões pill de alto impacto em laranja vibrante (`#FF7A00`) com feedback visual tátil.
+  * `RotaMetric`: Cards com forte hierarquia visual para métricas financeiras de alto valor.
+  * `RotaScore`: Badges de veredito (🟢 Excelente, 🟡 Atenção, 🔴 Evitar) com glow temático.
+  * `RotaHeader`: Cabeçalho integrado com marca, saudação ("Leonardo 👋"), status ONLINE pulsante, sino e avatar.
+  * `RotaProgress`: Barra de progresso com cantos arredondados e gradiente.
+  * `RotaChip`: Cápsulas modernas de filtros e categorias.
+  * `RotaChart`: Gráfico minimalista de barras semanais vs meta diária.
+  * `RotaBottomBar`: Barra inferior integrada com as 5 abas principais e acento ativo em laranja.
+- [x] **Redesign das Telas Principais**:
+  * **Home / Dashboard**: Card de Meta de Hoje (R$ 247,80 / R$ 350,00), Card Principal de Corrida (R$ 32,80, 9,4 km, 26 min, lucro R$ 26,60 e botão "ANALISAR CORRIDA →"), atalhos rápidos e toggle para "Modo Motorista".
+  * **Modo Motorista (Driver Mode)**: Alternância em tempo real para tela de alto contraste com fontes gigantes e botões massivos para operação segura ao volante.
+  * **Corridas**: Histórico categorizado por filtros (Todas, Boas, Ruins), métricas de turno e cards detalhados.
+  * **Financeiro**: Dashboard de rentabilidade líquida com destaque em R$ 256,40 (+78.2% margem), métricas horárias/km e desdobramento de custos.
+  * **Análise Estratégica**: AI Copilot com card de recomendação em destaque (glow laranja) e análise de horários, regiões e comparativo de plataformas.
+  * **Perfil & Veículo**: Card estilizado do Toyota Corolla 2022 (R$ 0,71/km) com 4 componentes de custo e menus de configurações e preferências.
+- [x] **Overlay / HUD Flutuante Atualizado**:
+  * Harmonizado para a identidade Dark Obsidian (`#0E0E0E`) com border radius 20dp, métricas em laranja elétrico e semáforo financeiro.
+- [x] **Identidade de Marca 100% Unificada**:
+  * Ícone oficial squircle ciano elétrico empacotado em todas as densidades do APK e no Favicon/Web.
+  * Simulador Web atualizado com a paleta dark obsidian e electric amber.
+- [x] **100% dos 93 testes unitários aprovados e APK Debug compilado com sucesso**.
+

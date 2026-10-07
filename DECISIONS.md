@@ -195,6 +195,17 @@ Este documento registra as principais decisões técnicas e de design tomadas no
 - **Status**: Aprovado e Implementado
 - **Contexto**: Para viabilizar sincronização em nuvem sem custos proibitivos de infraestrutura e com facilidade de manutenção para o ecossistema ROTA IQ, foi selecionado o Supabase (PostgreSQL 15 gerenciado).
 - **Decisão**: Configurar o projeto Supabase em produção com 16 tabelas relacionais (`supabase_setup.sql`), chaves públicas (`sb_publishable_...`) e secretas (`sb_secret_...`), políticas de segurança por linha (Row Level Security - RLS) para isolamento de dados por motorista, e implementar clientes leves desacoplados tanto no backend Python quanto no aplicativo Android (`SupabaseSyncClient`).
-- **Consequências**: Zero custo fixo inicial, alta escalabilidade, conformidade com LGPD com políticas RLS nativas no banco e sincronização fluida offline-first.
+---
+
+### ADR-025: Redesign Visual Premium com Identidade Dark Obsidian e Electric Orange (Fase 8)
+- **Status**: Aprovado e Implementado
+- **Contexto**: A experiência do usuário no aplicativo necessitava de um salto estético profissional para um patamar comercial de 2026, com foco em ergonomia no trânsito, acabamento tecnológico e forte hierarquia visual.
+- **Decisão**: 
+  1. Adotar a paleta base em preto profundo/obsidian (`#080808`, `#0D0D0D`, `#141414`), com acentos em laranja vibrante (`#FF7A00`) para ações e progresso, e semáforo financeiro clássico (verde neon `#00E676`, amarelo `#FFD600`, vermelho `#FF334B`).
+  2. Implementar o Design System ROTA IQ modular (`RotaCard`, `RotaButton`, `RotaMetric`, `RotaScore`, `RotaBottomBar`, `RotaHeader`, `RotaProgress`, `RotaChip`, `RotaStatus`, `RotaChart`) com border radius de 18-24dp, glow sutil e microinterações táteis.
+  3. Redesenhar a Home com foco absoluto no Card de Meta de Hoje e no Card Principal de Corrida (R$ 32,80, grid de métricas e lucro estimado), incluindo o "Modo Motorista" de alto contraste.
+  4. Redesenhar as telas de Corridas, Financeiro, Análise Estratégica, Perfil/Veículo e HUD Flutuante sob a mesma identidade visual coesa.
+- **Consequências**: Clareza de leitura imediata para motoristas em movimento, percepção de valor elevada e consistência de marca 100% alinhada entre Android e Simulador Web.
+
 
 

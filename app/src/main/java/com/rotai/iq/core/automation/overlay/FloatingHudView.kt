@@ -10,7 +10,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.rotai.iq.core.domain.model.EvaluationClassification
@@ -38,17 +37,17 @@ class FloatingHudView(
     private val reasonsText: TextView
 
     init {
-        // Container principal do Card HUD
+        // Container principal do Card HUD — Dark Premium ROTA IQ
         container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(14))
+            setPadding(dp(18), dp(14), dp(18), dp(16))
             val bg = GradientDrawable().apply {
-                setColor(Color.parseColor("#141923"))
-                cornerRadius = dp(16).toFloat()
+                setColor(Color.parseColor("#0E0E0E"))
+                cornerRadius = dp(20).toFloat()
                 setStroke(dp(2), Color.parseColor("#00E676"))
             }
             background = bg
-            elevation = dp(12).toFloat()
+            elevation = dp(16).toFloat()
         }
 
         // Header: Score + Classificação + Botão Fechar
@@ -59,20 +58,20 @@ class FloatingHudView(
         }
 
         scoreText = TextView(context).apply {
-            textSize = 22f
+            textSize = 24f
             setTypeface(null, Typeface.BOLD)
             setTextColor(Color.parseColor("#00E676"))
-            text = "88"
+            text = "96"
         }
 
         classBadge = TextView(context).apply {
-            textSize = 13f
+            textSize = 12f
             setTypeface(null, Typeface.BOLD)
-            setTextColor(Color.WHITE)
-            setPadding(dp(8), dp(2), dp(8), dp(2))
+            setTextColor(Color.BLACK)
+            setPadding(dp(10), dp(4), dp(10), dp(4))
             val badgeBg = GradientDrawable().apply {
                 setColor(Color.parseColor("#00E676"))
-                cornerRadius = dp(6).toFloat()
+                cornerRadius = dp(8).toFloat()
             }
             background = badgeBg
             text = "EXCELENTE"
@@ -86,7 +85,7 @@ class FloatingHudView(
             text = "✕"
             textSize = 18f
             setTypeface(null, Typeface.BOLD)
-            setTextColor(Color.parseColor("#90A4AE"))
+            setTextColor(Color.parseColor("#757575"))
             setPadding(dp(8), dp(4), dp(8), dp(4))
             setOnClickListener { onCloseClicked() }
         }
@@ -95,36 +94,37 @@ class FloatingHudView(
         val scoreMargin = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { leftMargin = dp(8) }
+        ).apply { leftMargin = dp(10) }
         header.addView(classBadge, scoreMargin)
         header.addView(spacer)
         header.addView(closeBtn)
         container.addView(header)
 
-        // Linha de Lucro Líquido Real ("Sobra Limpo")
+        // Linha de Lucro Líquido Real ("LUCRO ESTIMADO")
         profitText = TextView(context).apply {
-            textSize = 20f
+            textSize = 22f
             setTypeface(null, Typeface.BOLD)
             setTextColor(Color.WHITE)
-            text = "Sobra: R$ 22,40"
-            setPadding(0, dp(6), 0, dp(2))
+            text = "LUCRO: R$ 26,60"
+            setPadding(0, dp(8), 0, dp(2))
         }
         container.addView(profitText)
 
-        // Métricas Operacionais (R$/h e R$/km)
+        // Métricas Operacionais com destaque Laranja Vibrante
         metricsText = TextView(context).apply {
             textSize = 13f
-            setTextColor(Color.parseColor("#00D2FF"))
-            text = "R$ 48,00/h  •  R$ 2,85/km"
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.parseColor("#FF7A00"))
+            text = "R$ 75,69/h  •  R$ 3,49/km  (9,4 km)"
         }
         container.addView(metricsText)
 
         // Justificativas e Alertas
         reasonsText = TextView(context).apply {
             textSize = 11f
-            setTextColor(Color.parseColor("#B0BEC5"))
-            text = "Embarque rápido (1.0km) • Margem líquida 68%"
-            setPadding(0, dp(4), 0, 0)
+            setTextColor(Color.parseColor("#9E9E9E"))
+            text = "✓ Acima da meta • Região Centro favorável"
+            setPadding(0, dp(6), 0, 0)
         }
         container.addView(reasonsText)
 
@@ -162,48 +162,48 @@ class FloatingHudView(
     fun updateWithEvaluation(evaluation: RideEvaluation) {
         val colorHex = when (evaluation.classification) {
             EvaluationClassification.EXCELLENT -> "#00E676"
-            EvaluationClassification.GOOD -> "#00D2FF"
-            EvaluationClassification.ACCEPTABLE -> "#FFB300"
-            EvaluationClassification.BAD -> "#FF7043"
-            EvaluationClassification.AVOID -> "#FF5252"
+            EvaluationClassification.GOOD -> "#76FF03"
+            EvaluationClassification.ACCEPTABLE -> "#FFD600"
+            EvaluationClassification.BAD -> "#FF9100"
+            EvaluationClassification.AVOID -> "#FF334B"
         }
         val mainColor = Color.parseColor(colorHex)
 
-        // Atualiza borda do container
+        // Atualiza borda do container com o veredito da corrida
         (container.background as? GradientDrawable)?.setStroke(dp(2), mainColor)
 
         // Score e Badge
         scoreText.text = evaluation.score.toString()
         scoreText.setTextColor(mainColor)
 
-        classBadge.text = evaluation.classification.name
+        classBadge.text = evaluation.classification.label.uppercase()
         (classBadge.background as? GradientDrawable)?.setColor(mainColor)
 
         // Lucro Líquido
         profitText.text = if (evaluation.netProfit >= 0) {
-            "Sobra: R$ %.2f".format(Locale("pt", "BR"), evaluation.netProfit)
+            "LUCRO: R$ %.2f".format(Locale("pt", "BR"), evaluation.netProfit)
         } else {
-            "Prejuízo: -R$ %.2f".format(Locale("pt", "BR"), -evaluation.netProfit)
+            "PREJUÍZO: -R$ %.2f".format(Locale("pt", "BR"), -evaluation.netProfit)
         }
-        profitText.setTextColor(if (evaluation.netProfit >= 0) Color.WHITE else Color.parseColor("#FF5252"))
+        profitText.setTextColor(if (evaluation.netProfit >= 0) Color.WHITE else Color.parseColor("#FF334B"))
 
         // Métricas
-        metricsText.text = "R$ %.2f/h  •  R$ %.2f/km (bruto: R$ %.2f)".format(
+        metricsText.text = "R$ %.2f/h  •  R$ %.2f/km  (%.1f km)".format(
             Locale("pt", "BR"),
             evaluation.netRatePerHour,
-            evaluation.netRatePerKm,
-            evaluation.grossFare
+            evaluation.grossRatePerKm,
+            evaluation.offer.totalDistanceKm
         )
 
         // Alertas / Motivos
         val firstAlert = evaluation.alerts.firstOrNull()
-        val firstReason = evaluation.reasons.firstOrNull() ?: "Análise em tempo real concluída"
+        val firstReason = evaluation.reasons.firstOrNull() ?: "Análise ROTA IQ concluída"
         reasonsText.text = if (!firstAlert.isNullOrBlank()) {
             "⚠️ $firstAlert"
         } else {
             "✓ $firstReason"
         }
-        reasonsText.setTextColor(if (!firstAlert.isNullOrBlank()) Color.parseColor("#FFB300") else Color.parseColor("#B0BEC5"))
+        reasonsText.setTextColor(if (!firstAlert.isNullOrBlank()) Color.parseColor("#FFD600") else Color.parseColor("#9E9E9E"))
     }
 
     private fun dp(value: Int): Int {

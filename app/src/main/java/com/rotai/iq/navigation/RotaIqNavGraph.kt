@@ -1,17 +1,17 @@
 package com.rotai.iq.navigation
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -19,10 +19,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.rotai.iq.RotaIqViewModelFactory
-import com.rotai.iq.core.ui.theme.BrandPrimary
-import com.rotai.iq.core.ui.theme.CockpitBackground
-import com.rotai.iq.core.ui.theme.CockpitSurface
-import com.rotai.iq.core.ui.theme.TextSecondary
+import com.rotai.iq.core.ui.designsystem.RotaBottomBar
+import com.rotai.iq.core.ui.designsystem.RotaNavItem
+import com.rotai.iq.core.ui.theme.RotaBlack
 import com.rotai.iq.feature.admin.AdminMetricsScreen
 import com.rotai.iq.feature.admin.AdminMetricsViewModel
 import com.rotai.iq.feature.advanced.AdvancedToolsScreen
@@ -57,59 +56,54 @@ fun RotaIqApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val screens = listOf(
-        Screen.Dashboard,
-        Screen.Automation,
-        Screen.GeoInsights,
-        Screen.Finance,
-        Screen.Simulator,
-        Screen.Vehicle
+    // 5 Abas Principais alinhadas à filosofia da referência visual oficial
+    val navItems = listOf(
+        RotaNavItem(
+            route = Screen.Dashboard.route,
+            label = "INÍCIO",
+            icon = Icons.Default.Home
+        ),
+        RotaNavItem(
+            route = Screen.History.route,
+            label = "CORRIDAS",
+            icon = Icons.Default.History
+        ),
+        RotaNavItem(
+            route = Screen.GeoInsights.route,
+            label = "ANÁLISE",
+            icon = Icons.Default.Analytics
+        ),
+        RotaNavItem(
+            route = Screen.Finance.route,
+            label = "FINANCEIRO",
+            icon = Icons.Default.AccountBalanceWallet
+        ),
+        RotaNavItem(
+            route = Screen.Vehicle.route,
+            label = "PERFIL",
+            icon = Icons.Default.DirectionsCar
+        )
     )
 
     Scaffold(
         modifier = modifier,
+        containerColor = RotaBlack,
         bottomBar = {
-            NavigationBar(
-                containerColor = CockpitSurface,
-                tonalElevation = 8.dp
-            ) {
-                screens.forEach { screen ->
-                    val isSelected = currentRoute == screen.route
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            if (currentRoute != screen.route) {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+            RotaBottomBar(
+                items = navItems,
+                currentRoute = currentRoute,
+                onItemSelected = { route ->
+                    if (currentRoute != route) {
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = screen.icon,
-                                contentDescription = screen.title
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = screen.title,
-                                fontSize = 10.sp
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CockpitBackground,
-                            selectedTextColor = BrandPrimary,
-                            indicatorColor = BrandPrimary,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary
-                        )
-                    )
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 }
-            }
+            )
         }
     ) { innerPadding ->
         NavHost(
@@ -141,9 +135,9 @@ fun RotaIqApp(
                     }
                 )
             }
-            composable(Screen.Automation.route) {
-                val vm: AutomationViewModel = viewModel(factory = viewModelFactory)
-                AutomationHubScreen(viewModel = vm)
+            composable(Screen.History.route) {
+                val vm: HistoryViewModel = viewModel(factory = viewModelFactory)
+                RideHistoryScreen(viewModel = vm)
             }
             composable(Screen.GeoInsights.route) {
                 val vm: GeoInsightsViewModel = viewModel(factory = viewModelFactory)
@@ -153,21 +147,21 @@ fun RotaIqApp(
                 val vm: FinancialHubViewModel = viewModel(factory = viewModelFactory)
                 FinancialHubScreen(viewModel = vm)
             }
-            composable(Screen.Simulator.route) {
-                val vm: RideSimulatorViewModel = viewModel(factory = viewModelFactory)
-                RideSimulatorScreen(viewModel = vm)
-            }
             composable(Screen.Vehicle.route) {
                 val vm: VehicleViewModel = viewModel(factory = viewModelFactory)
                 VehicleScreen(viewModel = vm)
             }
+            composable(Screen.Automation.route) {
+                val vm: AutomationViewModel = viewModel(factory = viewModelFactory)
+                AutomationHubScreen(viewModel = vm)
+            }
+            composable(Screen.Simulator.route) {
+                val vm: RideSimulatorViewModel = viewModel(factory = viewModelFactory)
+                RideSimulatorScreen(viewModel = vm)
+            }
             composable(Screen.Goals.route) {
                 val vm: GoalsViewModel = viewModel(factory = viewModelFactory)
                 GoalsScreen(viewModel = vm)
-            }
-            composable(Screen.History.route) {
-                val vm: HistoryViewModel = viewModel(factory = viewModelFactory)
-                RideHistoryScreen(viewModel = vm)
             }
             composable(Screen.Subscription.route) {
                 val vm: SubscriptionPaywallViewModel = viewModel(factory = viewModelFactory)
