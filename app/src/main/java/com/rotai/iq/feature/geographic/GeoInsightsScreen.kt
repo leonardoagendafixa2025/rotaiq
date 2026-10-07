@@ -23,8 +23,11 @@ import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rotai.iq.core.domain.engine.GeoHeatmapEngine
 import com.rotai.iq.core.domain.model.DemandLevel
 import com.rotai.iq.core.ui.designsystem.RotaButton
 import com.rotai.iq.core.ui.designsystem.RotaButtonVariant
@@ -264,6 +268,11 @@ fun GeoInsightsScreen(
                 onClick = { selectedTab = "Zonas" }
             )
             RotaChip(
+                text = "Simulador Deadhead",
+                isSelected = selectedTab == "Deadhead",
+                onClick = { selectedTab = "Deadhead" }
+            )
+            RotaChip(
                 text = "Comparativo Apps",
                 isSelected = selectedTab == "Comparativo",
                 onClick = { selectedTab = "Comparativo" }
@@ -284,6 +293,9 @@ fun GeoInsightsScreen(
                     )
                 }
             }
+        } else if (selectedTab == "Deadhead") {
+            // Simulador Preditivo de Volta Vazia (Deadhead Trap Detector)
+            DeadheadSimulatorSection(state = state, viewModel = viewModel)
         } else {
             // Comparativo de Plataformas Real ou Empty State
             if (!hasComparisons) {
@@ -494,3 +506,337 @@ private fun PlatformCompareRow(
         )
     }
 }
+
+@Composable
+private fun DeadheadSimulatorSection(
+    state: GeoInsightsUiState,
+    viewModel: GeoInsightsViewModel
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        // 1. Seletor de Zona de Destino
+        Text(
+            text = "SELECIONE A REGIÃO DE DESTINO DA CORRIDA",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = RotaOrangePrimary,
+            letterSpacing = 0.8.sp
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val allZones = GeoHeatmapEngine.getDefaultZones()
+            allZones.forEach { zone ->
+                val isSelected = zone.id == state.selectedZone.id
+                RotaCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = CardShapeElevated,
+                    backgroundColor = if (isSelected) RotaOrangeSubtleBg else RotaCardBackground,
+                    borderColor = if (isSelected) RotaOrangePrimary else RotaBorderSubtle,
+                    borderWidth = if (isSelected) 1.5.dp else 1.dp,
+                    onClick = { viewModel.selectZone(zone) }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = zone.name,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) RotaOrangePrimary else RotaTextWhite
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Retorno local: %.0f%% • Distância ao centro: %.0f km".format(
+                                    Locale("pt", "BR"),
+                                    zone.returnTripProbability * 100.0,
+                                    zone.deadheadKmToCenter
+                                ),
+                                fontSize = 11.sp,
+                                color = RotaTextSecondary
+                            )
+                        }
+
+                        if (zone.isAvoidZone) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(RotaAvoid.copy(alpha = 0.2f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "EVITAR",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = RotaAvoid
+                                )
+                            }
+                        } else if (zone.returnTripProbability >= 0.85) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(RotaExcellent.copy(alpha = 0.2f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "ALTO RETORNO",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = RotaExcellent
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 2. Parâmetros da Oferta
+        Text(
+            text = "PARÂMETROS DA OFERTA EM ANÁLISE",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = RotaTextSecondary,
+            letterSpacing = 0.8.sp
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = state.simFare,
+                onValueChange = { viewModel.updateInputs(it, state.simDistanceKm, state.simPickupKm) },
+                label = { Text("Valor R$", fontSize = 11.sp) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = RotaTextWhite,
+                    unfocusedTextColor = RotaTextWhite,
+                    focusedBorderColor = RotaOrangePrimary,
+                    unfocusedBorderColor = RotaBorderSubtle,
+                    focusedLabelColor = RotaOrangePrimary,
+                    unfocusedLabelColor = RotaTextSecondary,
+                    cursorColor = RotaOrangePrimary
+                ),
+                shape = RoundedCornerShape(10.dp),
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+
+            OutlinedTextField(
+                value = state.simDistanceKm,
+                onValueChange = { viewModel.updateInputs(state.simFare, it, state.simPickupKm) },
+                label = { Text("Viagem km", fontSize = 11.sp) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = RotaTextWhite,
+                    unfocusedTextColor = RotaTextWhite,
+                    focusedBorderColor = RotaOrangePrimary,
+                    unfocusedBorderColor = RotaBorderSubtle,
+                    focusedLabelColor = RotaOrangePrimary,
+                    unfocusedLabelColor = RotaTextSecondary,
+                    cursorColor = RotaOrangePrimary
+                ),
+                shape = RoundedCornerShape(10.dp),
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+
+            OutlinedTextField(
+                value = state.simPickupKm,
+                onValueChange = { viewModel.updateInputs(state.simFare, state.simDistanceKm, it) },
+                label = { Text("Busca km", fontSize = 11.sp) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = RotaTextWhite,
+                    unfocusedTextColor = RotaTextWhite,
+                    focusedBorderColor = RotaOrangePrimary,
+                    unfocusedBorderColor = RotaBorderSubtle,
+                    focusedLabelColor = RotaOrangePrimary,
+                    unfocusedLabelColor = RotaTextSecondary,
+                    cursorColor = RotaOrangePrimary
+                ),
+                shape = RoundedCornerShape(10.dp),
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 3. Resultado do Diagnóstico Preditivo
+        state.deadheadAnalysis?.let { analysis ->
+            val isTrap = analysis.isDeadheadTrap
+            val bannerColor = if (isTrap) RotaAvoid else RotaExcellent
+            val bannerTitle = if (isTrap) "ARMADILHA DE DEADHEAD DETECTADA" else "DESTINO FAVORÁVEL"
+
+            RotaCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = CardShapeDefault,
+                backgroundColor = RotaCardBackground,
+                borderColor = bannerColor.copy(alpha = 0.8f),
+                borderWidth = 1.5.dp
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (isTrap) Icons.Default.Warning else Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = bannerColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = bannerTitle,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                color = bannerColor,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(bannerColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "Retorno: %.0f%%".format(Locale("pt", "BR"), analysis.returnProbability * 100.0),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = bannerColor
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(RotaDarkCanvas)
+                                .border(1.dp, RotaBorderSubtle, RoundedCornerShape(12.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    text = "LUCRO ORIGINAL",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = RotaTextSecondary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "R$ %.2f".format(Locale("pt", "BR"), analysis.originalNetProfit),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = RotaTextWhite
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(RotaDarkCanvas)
+                                .border(1.dp, RotaBorderSubtle, RoundedCornerShape(12.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    text = "CUSTO VOLTA VAZIA",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = RotaAvoid
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "- R$ %.2f".format(Locale("pt", "BR"), analysis.emptyReturnCost),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = RotaAvoid
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (analysis.adjustedNetProfit > 0) RotaOrangeSubtleBg else RotaAvoid.copy(alpha = 0.1f))
+                            .border(
+                                1.dp,
+                                if (analysis.adjustedNetProfit > 0) RotaOrangePrimary.copy(alpha = 0.5f) else RotaAvoid.copy(alpha = 0.5f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "LUCRO REAL AJUSTADO (SOBRA LIMPO)",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (analysis.adjustedNetProfit > 0) RotaOrangePrimary else RotaAvoid,
+                                    letterSpacing = 0.5.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "R$ %.2f".format(Locale("pt", "BR"), analysis.adjustedNetProfit),
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (analysis.adjustedNetProfit > 0) RotaExcellent else RotaAvoid
+                                )
+                            }
+
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "KM VAZIO ESPERADO",
+                                    fontSize = 10.sp,
+                                    color = RotaTextSecondary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "%.1f km".format(Locale("pt", "BR"), analysis.expectedEmptyReturnKm),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = RotaTextWhite
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = analysis.coachingRecommendation,
+                        fontSize = 12.sp,
+                        color = RotaTextSecondary,
+                        lineHeight = 17.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
