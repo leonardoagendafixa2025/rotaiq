@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROTA IQ ADMIN — Painel de Controle e Gestão Comercial</title>
+    <meta name="description" content="Painel de Administração e Gestão de Assinaturas, Motoristas e Telemetria do ROTA IQ.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-glow-top"></div>
+
+    <!-- Tela de Login do Administrador -->
+    <div id="admin-login-modal" class="login-overlay">
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="brand-badge">IQ</div>
+                <h2>ROTA IQ <span>ADMIN</span></h2>
+            </div>
+            <p class="login-desc">Portal Administrativo Exclusivo. Acesso restrito a administradores e analistas autorizados.</p>
+
+            <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+                <div class="form-group">
+                    <label for="admin-email">E-mail do Administrador</label>
+                    <input type="email" id="admin-email" placeholder="admin@rotai.app" required value="admin@rotai.app">
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Senha de Segurança</label>
+                    <input type="password" id="admin-password" placeholder="••••••••••••" required value="Admin@2026Secure">
+                </div>
+                <div class="form-group">
+                    <label for="admin-role">Nível de Acesso (RBAC)</label>
+                    <select id="admin-role">
+                        <option value="SUPER_ADMIN">SUPER_ADMIN (Acesso Total)</option>
+                        <option value="ADMIN" selected>ADMIN (Gestão Operacional)</option>
+                        <option value="ANALYST">ANALYST (Leitura e Métricas)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary-action" id="btn-login-submit">
+                    ENTRAR NO PAINEL
+                </button>
+            </form>
+            <div id="login-error-msg" class="error-banner" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Interface Principal do Painel Administrativo -->
+    <div id="admin-app" class="admin-wrapper" style="display: none;">
+        <!-- Top Bar -->
+        <header class="admin-header">
+            <div class="header-left">
+                <div class="brand-logo">IQ</div>
+                <div>
+                    <div class="brand-title">ROTA IQ <span>ADMIN</span></div>
+                    <div class="brand-sub">CONTROLE OPERACIONAL, FINANCEIRO & ESCALA</div>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="connection-status">
+                    <span class="status-dot"></span>
+                    <span id="conn-status-text">SUPABASE POSTGRESQL ATIVO</span>
+                </div>
+                <div class="user-profile">
+                    <span class="user-role-badge" id="current-role-badge">SUPER_ADMIN</span>
+                    <span class="user-email" id="current-user-email">admin@rotai.app</span>
+                    <button class="btn-logout" onclick="handleAdminLogout()">SAIR</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navegação Principal -->
+        <nav class="admin-nav">
+            <button class="nav-tab active" onclick="switchTab('overview')">📊 Visão Geral</button>
+            <button class="nav-tab" onclick="switchTab('drivers')">🚗 Motoristas Cadastrados</button>
+            <button class="nav-tab" onclick="switchTab('subscriptions')">💎 Planos & Assinaturas</button>
+            <button class="nav-tab" onclick="switchTab('flags')">⚡ Feature Flags</button>
+            <button class="nav-tab" onclick="switchTab('database')">🛡️ Banco & Auditoria</button>
+        </nav>
+
+        <main class="admin-content">
+            <!-- 1. Aba: Visão Geral -->
+            <section id="tab-overview" class="tab-panel active">
+                <div class="section-header">
+                    <h2>Métricas Comerciais em Tempo Real</h2>
+                    <span class="live-tag">● 100% DADOS REAIS DO POSTGRESQL</span>
+                </div>
+
+                <div class="kpi-grid">
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">MRR APURADO (REAIS)</div>
+                        <div class="kpi-value" id="kpi-mrr">R$ 0,00</div>
+                        <div class="kpi-sub">Soma de assinaturas ativas no banco</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">TOTAL DE USUÁRIOS</div>
+                        <div class="kpi-value" id="kpi-users">0</div>
+                        <div class="kpi-sub">Registros na tabela <code>users</code></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">MOTORISTAS CADASTRADOS</div>
+                        <div class="kpi-value" id="kpi-drivers">0</div>
+                        <div class="kpi-sub">Registros na tabela <code>drivers</code></div>
+                    </div>
+                    <div class="kpi-card highlight-green">
+                        <div class="kpi-label">ASSINANTES PRO ATIVOS</div>
+                        <div class="kpi-value" id="kpi-subs">0</div>
+                        <div class="kpi-sub">Assinaturas com status <code>ACTIVE</code></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">CORRIDAS AVALIADAS</div>
+                        <div class="kpi-value" id="kpi-evals">0</div>
+                        <div class="kpi-sub">Registros em <code>ride_evaluations</code></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">ABASTECIMENTOS REGISTRADOS</div>
+                        <div class="kpi-value" id="kpi-fuel">0</div>
+                        <div class="kpi-sub">Registros em <code>fuel_records</code></div>
+                    </div>
+                </div>
+
+                <div class="overview-grid">
+                    <div class="panel-card">
+                        <h3>Status da Infraestrutura Cloud</h3>
+                        <div class="info-row">
+                            <span>Provedor:</span>
+                            <strong id="infra-provider">Supabase PostgreSQL</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>Endpoint REST:</span>
+                            <code id="infra-endpoint">https://jkreduqzekllsmzxiugn.supabase.co</code>
+                        </div>
+                        <div class="info-row">
+                            <span>Sincronização Offline-First:</span>
+                            <span class="badge-success">OPERACIONAL</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Data do Snapshot:</span>
+                            <span id="infra-snapshot-date">2026-10-07</span>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <h3>Ações Rápidas de Administração</h3>
+                        <div class="action-buttons-group">
+                            <button class="btn-secondary" onclick="fetchAdminMetrics()">🔄 Atualizar Métricas do Banco</button>
+                            <button class="btn-secondary" onclick="switchTab('drivers')">👥 Ver Tabela de Motoristas</button>
+                            <button class="btn-secondary" onclick="switchTab('flags')">⚙️ Ajustar Feature Flags</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Aba: Motoristas -->
+            <section id="tab-drivers" class="tab-panel">
+                <div class="section-header">
+                    <h2>Motoristas Registrados no Sistema</h2>
+                    <button class="btn-secondary" onclick="loadDriversTable()">🔄 Recarregar</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID Motorista</th>
+                                <th>Cidade / UF</th>
+                                <th>Status</th>
+                                <th>Data de Cadastro</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drivers-table-body">
+                            <tr>
+                                <td colspan="5" class="table-loading">Carregando motoristas do banco...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 3. Aba: Assinaturas e Planos -->
+            <section id="tab-subscriptions" class="tab-panel">
+                <div class="section-header">
+                    <h2>Catálogo Comercial de Planos</h2>
+                    <span class="live-tag">TABELA subscription_plans</span>
+                </div>
+
+                <div class="plans-grid" id="plans-container">
+                    <div class="plan-card">
+                        <div class="plan-badge">GRATUITO</div>
+                        <h3>Free Tier</h3>
+                        <div class="plan-price">R$ 0,00<span>/mês</span></div>
+                        <ul class="plan-features">
+                            <li>✓ 15 avaliações diárias gratuitas</li>
+                            <li>✓ HUD Flutuante básico</li>
+                            <li>✓ Cálculo de R$/km</li>
+                        </ul>
+                    </div>
+                    <div class="plan-card highlight">
+                        <div class="plan-badge">MAIS POPULAR</div>
+                        <h3>Pro Mensal</h3>
+                        <div class="plan-price">R$ 29,90<span>/mês</span></div>
+                        <ul class="plan-features">
+                            <li>✓ Avaliações ilimitadas</li>
+                            <li>✓ Copiloto por Voz TTS hands-free</li>
+                            <li>✓ Predição de Volta Vazia (Deadhead)</li>
+                            <li>✓ Heatmap de Zonas de Demanda</li>
+                            <li>✓ DRE Financeiro Completo</li>
+                        </ul>
+                    </div>
+                    <div class="plan-card">
+                        <div class="plan-badge">ECONOMIA 33%</div>
+                        <h3>Pro Anual</h3>
+                        <div class="plan-price">R$ 239,90<span>/ano</span></div>
+                        <ul class="plan-features">
+                            <li>✓ Todos os recursos do Pro</li>
+                            <li>✓ Equivalente a R$ 19,99/mês</li>
+                            <li>✓ Prioridade em suporte técnico</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. Aba: Feature Flags -->
+            <section id="tab-flags" class="tab-panel">
+                <div class="section-header">
+                    <h2>Controle de Feature Flags Remotas</h2>
+                    <span class="live-tag">GERENCIAMENTO DINÂMICO</span>
+                </div>
+
+                <div class="panel-card">
+                    <div class="flag-row">
+                        <div>
+                            <strong>copilot_voice_tts</strong>
+                            <p>Habilita a síntese vocal no aplicativo Android dos motoristas.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="flag-tts" checked onchange="toggleFlag('copilot_voice_tts', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flag-row">
+                        <div>
+                            <strong>deadhead_prediction</strong>
+                            <p>Ativa o cálculo preditivo de volta vazia e alerta de armadilhas.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="flag-deadhead" checked onchange="toggleFlag('deadhead_prediction', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="flag-row">
+                        <div>
+                            <strong>pix_instant_checkout</strong>
+                            <p>Permite pagamento instantâneo de assinaturas via PIX Copia e Cola.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="flag-pix" checked onchange="toggleFlag('pix_instant_checkout', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. Aba: Banco & Auditoria -->
+            <section id="tab-database" class="tab-panel">
+                <div class="section-header">
+                    <h2>Auditoria de Dados & Conformidade LGPD</h2>
+                    <span class="live-tag">SEGURANÇA & PRIVACY BY DESIGN</span>
+                </div>
+
+                <div class="overview-grid">
+                    <div class="panel-card">
+                        <h3>Políticas de Segurança e RLS</h3>
+                        <ul class="audit-list">
+                            <li>✓ <strong>Row Level Security (RLS)</strong> ativado em todas as tabelas transacionais</li>
+                            <li>✓ <strong>PBKDF2-HMAC-SHA256</strong> com salt de 16 bytes e 100.000 iterações para senhas</li>
+                            <li>✓ <strong>JWT Tokens</strong> assinados via HMAC com revogação e expiração</li>
+                            <li>✓ <strong>Zero Dados Pessoais (PII)</strong> na telemetria remota</li>
+                            <li>✓ <strong>LGPD Art. 18</strong>: Exportação e Direito ao Esquecimento suportados</li>
+                        </ul>
+                    </div>
+
+                    <div class="panel-card">
+                        <h3>Status da API REST</h3>
+                        <div class="info-row">
+                            <span>Versão do Backend:</span>
+                            <strong>2.0.0 (FastAPI + Python 3.13)</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>Endpoints Ativos:</span>
+                            <strong>28 rotas RESTful</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>Sincronização Offline:</span>
+                            <span class="badge-success">CONECTADA</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

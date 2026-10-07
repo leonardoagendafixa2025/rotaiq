@@ -288,3 +288,71 @@ def test_13_subscription_plans():
     assert "free" in codes
     assert "pro_monthly" in codes
     assert "pro_annual" in codes
+
+def test_14_admin_drivers_list():
+    resp = client.get("/api/v1/admin/drivers")
+    assert resp.status_code == 200
+    drivers = resp.json()
+    assert isinstance(drivers, list)
+    if len(drivers) > 0:
+        d = drivers[0]
+        assert "id" in d
+        assert "user_id" in d
+        assert "status" in d
+
+def test_15_feature_flags():
+    # Atualiza ou cria flag
+    update_resp = client.post("/api/v1/admin/feature-flags", json={
+        "key": "test_phase5_flag",
+        "is_enabled": True,
+        "description": "Flag de teste automatizado Fase 5"
+    })
+    assert update_resp.status_code == 200
+
+    # Consulta flags
+    list_resp = client.get("/api/v1/admin/feature-flags")
+    assert list_resp.status_code == 200
+    flags = list_resp.json()
+    assert isinstance(flags, list)
+
+def test_16_lgpd_export(authenticated_driver):
+    headers = authenticated_driver["headers"]
+    resp = client.post("/api/v1/lgpd/export", headers=headers, json={
+        "driver_id": authenticated_driver["driver_id"]
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "exported_at" in data
+    assert "user" in data
+    assert "driver" in data
+    assert "ride_evaluations_count" in data
+
+def test_17_lgpd_anonymize(authenticated_driver):
+    headers = authenticated_driver["headers"]
+    resp = client.post("/api/v1/lgpd/anonymize", headers=headers, json={
+        "reason": "Exercício de Direito ao Esquecimento - LGPD Art. 18"
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "COMPLETED"
+    assert "confirmation_id" in data
+
+def test_18_telemetry_sanitized():
+    resp = client.post("/api/v1/telemetry/events", json={
+        "events": [
+            {
+                "event_name": "screen_view",
+                "app_version": "2.0.0",
+                "driver_id_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "properties": {
+                    "screen": "cockpit_live",
+                    "mode": "HEADS_UP"
+                }
+            }
+        ]
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert data["ingested_count"] == 1
+

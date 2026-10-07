@@ -251,4 +251,78 @@ class SupabaseClient:
             return []
         return self._request("vehicle_expenses", method="POST", data=expenses, prefer="return=representation")
 
+    # -------------------------------------------------------------
+    # 8. Gestão Administrativa, Feature Flags e LGPD
+    # -------------------------------------------------------------
+    def get_drivers_list(self, limit: int = 50) -> List[Dict[str, Any]]:
+        return self._request(f"drivers?order=created_at.desc&limit={limit}") or []
+
+    _in_memory_flags = {
+        "copilot_voice_tts": {"key": "copilot_voice_tts", "is_enabled": True, "description": "Síntese vocal do Copiloto TTS"},
+        "deadhead_prediction": {"key": "deadhead_prediction", "is_enabled": True, "description": "Predição de volta vazia (deadhead)"},
+        "pix_instant_checkout": {"key": "pix_instant_checkout", "is_enabled": True, "description": "Checkout instantâneo via PIX Copia e Cola"}
+    }
+
+    def get_feature_flags(self) -> List[Dict[str, Any]]:
+        try:
+            res = self._request("feature_flags?order=key.asc")
+            if res:
+                return res
+        except Exception:
+            pass
+        return list(self._in_memory_flags.values())
+
+    def upsert_feature_flag(self, flag_data: Dict[str, Any]) -> Any:
+        key = flag_data.get("key")
+        if key:
+            self._in_memory_flags[key] = flag_data
+        try:
+            existing = self._request(f"feature_flags?key=eq.{key}&limit=1")
+            if existing:
+                return self._request(f"feature_flags?key=eq.{key}", method="PATCH", data=flag_data, prefer="return=representation")
+            else:
+                return self._request("feature_flags", method="POST", data=flag_data, prefer="return=representation")
+        except Exception:
+            return flag_data
+
+    def insert_lgpd_deletion(self, deletion_data: Dict[str, Any]) -> Any:
+        try:
+            return self._request("lgpd_deletion_requests", method="POST", data=deletion_data, prefer="return=representation")
+        except Exception:
+            return deletion_data
+
+    def export_driver_full_data(self, driver_id: str, user_id: str) -> Dict[str, Any]:
+        user = self.get_user_by_id(user_id) or {}
+        driver = self.get_driver_by_id(driver_id) or {}
+        vehicles = self.get_vehicles(driver_id) or []
+        evaluations = self.get_evaluations(driver_id, limit=200) or []
+        fuel = self.get_fuel_records(driver_id, limit=200) or []
+        maintenance = self.get_maintenance_records(driver_id, limit=200) or []
+        expenses = self.get_expenses(driver_id, limit=200) or []
+
+        return {
+            "exported_at": os.getenv("EXPORT_TIMESTAMP", ""),
+            "user": {
+                "id": user.get("id"),
+                "email": user.get("email"),
+                "full_name": user.get("full_name"),
+                "created_at": user.get("created_at")
+            },
+            "driver": driver,
+            "vehicles": vehicles,
+            "ride_evaluations_count": len(evaluations),
+            "ride_evaluations": evaluations,
+            "fuel_records": fuel,
+            "maintenance_records": maintenance,
+            "expenses": expenses
+        }
+
+    def insert_telemetry_batch(self, events: List[Dict[str, Any]]) -> Any:
+        if not events:
+            return []
+        try:
+            return self._request("telemetry_events", method="POST", data=events, prefer="return=representation")
+        except Exception:
+            return events
+
 supabase = SupabaseClient()

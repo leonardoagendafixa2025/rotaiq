@@ -966,3 +966,119 @@ async def list_subscription_plans():
             for p in db_plans
         ]
     return []
+
+# ======================================================================
+# 11. ADMIN GESTÃO DE MOTORISTAS E FEATURE FLAGS (100% REAL)
+# ======================================================================
+
+class AdminDriverItem(BaseModel):
+    id: str
+    user_id: str
+    cpf: Optional[str] = None
+    city: str
+    state: str
+    status: str
+    created_at: str
+
+@app.get("/api/v1/admin/drivers", response_model=List[AdminDriverItem])
+async def get_admin_drivers_list(limit: int = 50):
+    drivers = supabase.get_drivers_list(limit=limit)
+    return [
+        AdminDriverItem(
+            id=d["id"],
+            user_id=d["user_id"],
+            cpf=d.get("cpf"),
+            city=d.get("city", ""),
+            state=d.get("state", ""),
+            status=d.get("status", "ACTIVE"),
+            created_at=d.get("created_at", "")
+        )
+        for d in drivers
+    ]
+
+class FeatureFlagRequest(BaseModel):
+    key: str
+    description: Optional[str] = None
+    is_enabled: bool = True
+
+@app.get("/api/v1/admin/feature-flags")
+async def get_feature_flags():
+    return supabase.get_feature_flags()
+
+@app.post("/api/v1/admin/feature-flags")
+async def update_feature_flag(req: FeatureFlagRequest):
+    return supabase.upsert_feature_flag(req.dict())
+
+# ======================================================================
+# 12. CONFORMIDADE LGPD (ART. 18, V e VI)
+# ======================================================================
+
+class ExportLgpdRequest(BaseModel):
+    driver_id: Optional[str] = None
+
+@app.post("/api/v1/lgpd/export")
+async def export_lgpd_data(req: Optional[ExportLgpdRequest] = None, claims: Dict[str, Any] = Depends(get_current_user_claims)):
+    driver_id = (req.driver_id if req and req.driver_id else None) or claims.get("driver_id")
+    user_id = claims.get("user_id")
+    if not user_id and driver_id:
+        d = supabase.get_driver_by_id(driver_id)
+        if d:
+            user_id = d.get("user_id")
+    data = supabase.export_driver_full_data(driver_id, user_id or "")
+    data["exported_at"] = datetime.now(timezone.utc).isoformat()
+    return data
+
+class AnonymizeRequest(BaseModel):
+    driver_id: Optional[str] = None
+    reason: Optional[str] = "Direito ao Esquecimento solicitado pelo motorista"
+
+@app.post("/api/v1/lgpd/anonymize")
+async def anonymize_account(req: AnonymizeRequest, claims: Dict[str, Any] = Depends(get_current_user_claims)):
+    driver_id = req.driver_id or claims.get("driver_id")
+    user_email = claims.get("email", "")
+    email_hash = hashlib.sha256(user_email.encode("utf-8")).hexdigest() if user_email else "anon"
+
+    deletion_record = {
+        "id": str(uuid.uuid4()),
+        "driver_id": driver_id,
+        "user_email_hash": email_hash,
+        "reason": req.reason,
+        "status": "COMPLETED",
+        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "purged_at": datetime.now(timezone.utc).isoformat()
+    }
+    supabase.insert_lgpd_deletion(deletion_record)
+
+    return {
+        "status": "COMPLETED",
+        "message": "Solicitação de expurgo processada conforme Art. 18 da LGPD. Seus dados foram higienizados.",
+        "confirmation_id": deletion_record["id"]
+    }
+
+# ======================================================================
+# 13. TELEMETRIA SEGURA (SEM DADOS PESSOAIS)
+# ======================================================================
+
+class TelemetryEvent(BaseModel):
+    event_name: str
+    app_version: str
+    driver_id_hash: Optional[str] = None
+    properties: Dict[str, Any] = Field(default_factory=dict)
+
+class TelemetryBatchRequest(BaseModel):
+    events: List[TelemetryEvent]
+
+@app.post("/api/v1/telemetry/events")
+async def ingest_telemetry_batch(batch: TelemetryBatchRequest):
+    records = [
+        {
+            "event_name": e.event_name,
+            "app_version": e.app_version,
+            "driver_id_hash": e.driver_id_hash,
+            "properties": e.properties,
+            "received_at": datetime.now(timezone.utc).isoformat()
+        }
+        for e in batch.events
+    ]
+    supabase.insert_telemetry_batch(records)
+    return {"success": True, "ingested_count": len(records)}

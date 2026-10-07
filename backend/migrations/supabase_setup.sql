@@ -241,6 +241,19 @@ CREATE TABLE IF NOT EXISTS sanitized_telemetry_events (
     received_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS feature_flags (
+    key VARCHAR(100) PRIMARY KEY,
+    description TEXT,
+    is_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+INSERT INTO feature_flags (key, description, is_enabled) VALUES
+    ('copilot_voice_tts', 'Habilita síntese vocal TTS no app motorista', TRUE),
+    ('deadhead_prediction', 'Ativa cálculo de volta vazia e zonas mortas', TRUE),
+    ('pix_instant_checkout', 'Permite pagamento instantâneo via PIX Copia e Cola', TRUE)
+ON CONFLICT (key) DO NOTHING;
+
 -- -------------------------------------------------------------
 -- 8. ÍNDICES DE ALTA PERFORMANCE
 -- -------------------------------------------------------------

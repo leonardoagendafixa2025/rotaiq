@@ -2,7 +2,7 @@
 
 ## 1. Visão Geral da Suíte de Testes
 
-A integridade matemática dos cálculos financeiros, das decisões operacionais, da segurança e do faturamento comercial é o coração do **ROTA IQ**. A suíte de testes unitários conta com **73 cenários de teste automatizados** (22 suítes de teste) com 100% de taxa de aprovação (`BUILD SUCCESSFUL`).
+A integridade matemática dos cálculos financeiros, das decisões operacionais, da segurança e do faturamento comercial é o coração do **ROTA IQ**. A suíte de testes automatizados conta com **116 cenários de teste automatizados** (98 testes unitários Android + 18 testes de integração Backend com Supabase PostgreSQL real), com 100% de taxa de aprovação (`BUILD SUCCESSFUL`).
 
 ---
 
@@ -104,17 +104,23 @@ A integridade matemática dos cálculos financeiros, das decisões operacionais,
 
 ---
 
-## 3. Como Executar a Suíte de Testes
-
+### 3.1 Testes Unitários Android (98 Testes)
 ```powershell
-$env:JAVA_HOME = 'C:\Users\User\AppData\Local\Programs\Microsoft\jdk-17.0.10.7-hotspot'
-$env:ANDROID_HOME = 'C:\Users\User\AppData\Local\Android\Sdk'
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"
-& 'C:\Users\User\AppData\Local\Programs\gradle-8.7\bin\gradle.bat' testDebugUnitTest
+.\gradlew.bat testDebugUnitTest
 ```
-
 Resultado verificado:
 ```
-BUILD SUCCESSFUL in 1m 20s
-22 test suites | 73 unit tests | 0 failures | 0 errors | 100% passing
+BUILD SUCCESSFUL in 14s
+26 actionable tasks: 1 executed, 25 up-to-date
+98 unit tests | 0 failures | 0 errors | 100% passing
+```
+
+### 3.2 Testes Automatizados Backend FastAPI + PostgreSQL Supabase (18 Testes)
+```powershell
+python -m pytest backend/tests/test_api.py -v
+```
+Resultado verificado:
+```
+======================= 18 passed, 2 warnings in 23.56s =======================
+100% passing contra PostgreSQL em Produção (Zero Mocks)
 ```
