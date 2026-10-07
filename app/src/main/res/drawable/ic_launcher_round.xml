@@ -8,10 +8,10 @@
         android:fillColor="#0A1019"
         android:pathData="M0,0h108v108h-108z"/>
 
-    <!-- Electric Cyan Squircle -->
+    <!-- Electric Cyan Circular Badge -->
     <path
         android:fillColor="#00D2FF"
-        android:pathData="M34,8 L74,8 C89,8 100,19 100,34 L100,74 C100,89 89,100 74,100 L34,100 C19,100 8,89 8,74 L8,34 C8,19 19,8 34,8 Z"/>
+        android:pathData="M54,8 C79.4,8 100,28.6 100,54 C100,79.4 79.4,100 54,100 C28.6,100 8,79.4 8,54 C8,28.6 28.6,8 54,8 Z"/>
 
     <!-- Letter 'I' (Obsidian Black) -->
     <path
