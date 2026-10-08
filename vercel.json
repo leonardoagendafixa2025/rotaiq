@@ -1,36 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/v1/:match*",
+      "source": "/(.*)",
       "destination": "/api/index.py"
-    },
-    {
-      "source": "/api/:match*",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/health",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/admin",
-      "destination": "/web/admin/index.html"
-    },
-    {
-      "source": "/admin/",
-      "destination": "/web/admin/index.html"
-    },
-    {
-      "source": "/admin/:match*",
-      "destination": "/web/admin/:match*"
-    },
-    {
-      "source": "/",
-      "destination": "/web/index.html"
-    },
-    {
-      "source": "/:match*",
-      "destination": "/web/:match*"
     }
   ]
 }
