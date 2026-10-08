@@ -70,6 +70,12 @@ class RotaIqApplication : Application() {
         telemetryManager = TelemetryManager()
         featureFlagManager = FeatureFlagManager()
         secureStorage = AndroidSecureStorage(this)
+
+        // Inicializa Canais de Notificação Android (Geral, Marketing, Sistema, Corridas)
+        com.rotai.iq.core.notifications.NotificationChannels.createChannels(this)
+
+        // Sincroniza Token FCM e inscrição no tópico global 'rotaiq_all'
+        com.rotai.iq.core.notifications.DeviceTokenManager.syncDevice(this)
     }
 
     override fun onTerminate() {

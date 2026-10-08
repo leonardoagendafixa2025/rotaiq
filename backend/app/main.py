@@ -25,9 +25,14 @@ from app.auth import (
     decode_token,
     get_current_user_claims,
     require_admin_claims,
-    require_super_admin_claims
+    require_super_admin_claims,
+    require_campaign_send_permission,
+    require_campaign_manage_permission
 )
-from app.admin_service import AdminService
+from app.admin_service import AdminService, admin_store
+from app.campaign_service import campaign_service
+from app.push_service import push_service
+
 
 app = FastAPI(
     title="ROTA IQ - Backend Oficial",
@@ -1510,4 +1515,321 @@ async def webhook_pix_notification(payload: PixWebhookPayload):
             supabase.create_or_update_subscription(sub_record)
 
     return {"status": "RECEIVED", "order_id": payload.order_id}
+
+
+# ======================================================================
+# 12. MÓDULO REAL DE DISPOSITIVOS E PUSH NOTIFICATIONS (FCM)
+# ======================================================================
+
+class DeviceTokenRegisterRequest(BaseModel):
+    user_id: Optional[str] = None
+    fcm_token: str
+    platform: Optional[str] = "android"
+    device_id: Optional[str] = None
+    app_version: Optional[str] = None
+    os_version: Optional[str] = None
+    notifications_enabled: Optional[bool] = True
+
+class DeviceTokenUnregisterRequest(BaseModel):
+    fcm_token: str
+
+class CampaignCreateRequest(BaseModel):
+    name: str
+    type: Optional[str] = "MARKETING"
+    title: str
+    body: str
+    image_url: Optional[str] = None
+    deep_link: Optional[str] = "rotaiq://home"
+    audience_type: Optional[str] = "ALL"
+    audience_filter: Optional[Dict[str, Any]] = None
+    scheduled_at: Optional[str] = None
+    action: Optional[str] = "DRAFT"  # "SEND_NOW", "SCHEDULE", "DRAFT"
+
+class CampaignUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    title: Optional[str] = None
+    body: Optional[str] = None
+    image_url: Optional[str] = None
+    deep_link: Optional[str] = None
+    audience_type: Optional[str] = None
+    audience_filter: Optional[Dict[str, Any]] = None
+    scheduled_at: Optional[str] = None
+
+class CampaignScheduleRequest(BaseModel):
+    scheduled_at: str
+
+class AudiencePreviewRequest(BaseModel):
+    audience_type: str = "ALL"
+    audience_filter: Optional[Dict[str, Any]] = None
+
+class CampaignTemplateCreateRequest(BaseModel):
+    name: str
+    type: Optional[str] = "MARKETING"
+    title: str
+    body: str
+    deep_link: Optional[str] = "rotaiq://home"
+
+
+# --- 12.1 Registro e Renovação de Tokens de Dispositivos (APK Android) ---
+
+@app.post("/api/v1/devices/register")
+async def register_device_token(req: DeviceTokenRegisterRequest):
+    """
+    Registra ou atualiza o token FCM de um dispositivo Android.
+    Associa o token ao motorista/usuário, atualiza versão do app e timestamp.
+    """
+    token_info = admin_store.register_device_token(
+        user_id=req.user_id,
+        fcm_token=req.fcm_token,
+        platform=req.platform or "android",
+        device_id=req.device_id,
+        app_version=req.app_version,
+        os_version=req.os_version,
+        notifications_enabled=req.notifications_enabled if req.notifications_enabled is not None else True
+    )
+    return {
+        "success": True,
+        "message": "Dispositivo registrado para notificações push com sucesso.",
+        "device": token_info
+    }
+
+@app.post("/api/v1/devices/unregister")
+async def unregister_device_token(req: DeviceTokenUnregisterRequest):
+    """Desativa o token FCM quando o usuário faz logout ou desativa notificações."""
+    ok = admin_store.deactivate_device_token(req.fcm_token)
+    return {
+        "success": ok,
+        "message": "Token de dispositivo desativado." if ok else "Token não encontrado."
+    }
+
+
+# --- 12.2 Dashboard e Gestão de Campanhas (Admin) ---
+
+@app.get("/api/v1/admin/campaigns/dashboard")
+async def get_campaigns_dashboard_stats(claims: Dict[str, Any] = Depends(require_admin_claims)):
+    """Métricas em tempo real sobre campanhas, agendamentos e notificações entregues."""
+    return admin_store.get_campaigns_dashboard_stats()
+
+@app.get("/api/v1/admin/campaigns")
+async def list_campaigns_endpoint(
+    status: Optional[str] = None,
+    type: Optional[str] = None,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Lista todas as campanhas cadastradas com filtros de status e tipo."""
+    return campaign_service.list_campaigns(status=status, type=type)
+
+@app.post("/api/v1/admin/campaigns/audience-preview")
+async def audience_preview_endpoint(
+    req: AudiencePreviewRequest,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """
+    Calcula o público elegível real com contagem precisa de usuários e dispositivos conectados.
+    Zero mocks: processa dados reais do banco.
+    """
+    return campaign_service.preview_audience(req.audience_type, req.audience_filter)
+
+@app.post("/api/v1/admin/campaigns")
+async def create_campaign_endpoint(
+    req: CampaignCreateRequest,
+    claims: Dict[str, Any] = Depends(require_campaign_manage_permission)
+):
+    """Cria uma nova campanha e opcionalmente executa o envio imediato ou agenda."""
+    admin_email = claims.get("email", "admin@rotai.app")
+    
+    # Determina o status inicial baseado na ação solicitada
+    initial_status = "DRAFT"
+    if req.action == "SCHEDULE" and req.scheduled_at:
+        initial_status = "SCHEDULED"
+
+    campaign = campaign_service.create_campaign(
+        name=req.name,
+        type=req.type or "MARKETING",
+        title=req.title,
+        body=req.body,
+        image_url=req.image_url,
+        deep_link=req.deep_link or "rotaiq://home",
+        audience_type=req.audience_type or "ALL",
+        audience_filter=req.audience_filter or {},
+        scheduled_at=req.scheduled_at,
+        created_by=admin_email,
+        status=initial_status
+    )
+
+    # Se a ação foi enviar imediatamente
+    if req.action == "SEND_NOW":
+        # Validação de segurança: apenas SUPER_ADMIN ou SEND_CAMPAIGNS
+        role = claims.get("role")
+        permissions = claims.get("permissions") or []
+        if role != "SUPER_ADMIN" and "SEND_CAMPAIGNS" not in permissions and "SUPER_ADMIN" not in permissions and "MANAGE_NOTIFICATIONS" not in permissions:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acesso negado: Requer permissão SEND_CAMPAIGNS ou SUPER_ADMIN para disparar."
+            )
+
+        send_result = await campaign_service.execute_send_campaign(campaign["id"], admin_email=admin_email)
+        return {
+            "success": True,
+            "campaign": campaign_service.get_campaign(campaign["id"]),
+            "send_result": send_result
+        }
+
+    return {
+        "success": True,
+        "campaign": campaign
+    }
+
+@app.get("/api/v1/admin/campaigns/{campaign_id}")
+async def get_campaign_detail(
+    campaign_id: str,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Retorna detalhes completos de uma campanha."""
+    camp = campaign_service.get_campaign(campaign_id)
+    if not camp:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada.")
+    return camp
+
+@app.patch("/api/v1/admin/campaigns/{campaign_id}")
+async def update_campaign_endpoint(
+    campaign_id: str,
+    req: CampaignUpdateRequest,
+    claims: Dict[str, Any] = Depends(require_campaign_manage_permission)
+):
+    """Atualiza dados de uma campanha existente (permitido apenas em rascunho ou agendada)."""
+    admin_email = claims.get("email", "admin")
+    updates = req.dict(exclude_unset=True)
+    try:
+        updated = campaign_service.update_campaign(campaign_id, updates, admin_email=admin_email)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Campanha não encontrada.")
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/v1/admin/campaigns/{campaign_id}")
+async def delete_campaign_endpoint(
+    campaign_id: str,
+    claims: Dict[str, Any] = Depends(require_campaign_manage_permission)
+):
+    """Exclui uma campanha do sistema."""
+    ok = admin_store.delete_campaign(campaign_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada.")
+    return {"success": True, "message": "Campanha removida com sucesso."}
+
+@app.post("/api/v1/admin/campaigns/{campaign_id}/send")
+async def send_campaign_endpoint(
+    campaign_id: str,
+    claims: Dict[str, Any] = Depends(require_campaign_send_permission)
+):
+    """Dispara uma campanha existente imediatamente para os dispositivos elegíveis."""
+    admin_email = claims.get("email", "admin")
+    try:
+        result = await campaign_service.execute_send_campaign(campaign_id, admin_email=admin_email)
+        return {
+            "success": True,
+            "message": "Campanha processada e enviada via Firebase Cloud Messaging.",
+            "result": result
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/v1/admin/campaigns/{campaign_id}/schedule")
+async def schedule_campaign_endpoint(
+    campaign_id: str,
+    req: CampaignScheduleRequest,
+    claims: Dict[str, Any] = Depends(require_campaign_manage_permission)
+):
+    """Agenda o envio automático de uma campanha para uma data e hora específicas."""
+    admin_email = claims.get("email", "admin")
+    try:
+        updated = campaign_service.update_campaign(
+            campaign_id,
+            {"status": "SCHEDULED", "scheduled_at": req.scheduled_at},
+            admin_email=admin_email
+        )
+        return {"success": True, "campaign": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/v1/admin/campaigns/{campaign_id}/cancel")
+async def cancel_campaign_endpoint(
+    campaign_id: str,
+    claims: Dict[str, Any] = Depends(require_campaign_manage_permission)
+):
+    """Cancela o agendamento de uma campanha."""
+    admin_email = claims.get("email", "admin")
+    try:
+        updated = campaign_service.cancel_campaign(campaign_id, admin_email=admin_email)
+        return {"success": True, "campaign": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/v1/admin/campaigns/{campaign_id}/duplicate")
+async def duplicate_campaign_endpoint(
+    campaign_id: str,
+    claims: Dict[str, Any] = Depends(require_campaign_manage_permission)
+):
+    """Duplica uma campanha existente gerando um novo RASCUNHO (status DRAFT)."""
+    admin_email = claims.get("email", "admin")
+    try:
+        new_camp = campaign_service.duplicate_campaign(campaign_id, admin_email=admin_email)
+        return {"success": True, "campaign": new_camp}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/v1/admin/campaigns/{campaign_id}/report")
+async def get_campaign_report_endpoint(
+    campaign_id: str,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Gera relatório de desempenho e auditoria da campanha com dados reais de entrega."""
+    try:
+        report = campaign_service.get_campaign_report(campaign_id)
+        return report
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# --- 12.3 Templates Reutilizáveis de Campanha ---
+
+@app.get("/api/v1/admin/campaign-templates")
+async def list_campaign_templates_endpoint(claims: Dict[str, Any] = Depends(require_admin_claims)):
+    """Lista templates prontos para criação rápida de campanhas."""
+    return admin_store.list_campaign_templates()
+
+@app.post("/api/v1/admin/campaign-templates")
+async def create_campaign_template_endpoint(
+    req: CampaignTemplateCreateRequest,
+    claims: Dict[str, Any] = Depends(require_campaign_manage_permission)
+):
+    """Salva um novo modelo de notificação reutilizável."""
+    tmpl = {
+        "id": str(uuid.uuid4()),
+        "name": req.name,
+        "type": req.type or "MARKETING",
+        "title": req.title,
+        "body": req.body,
+        "deep_link": req.deep_link or "rotaiq://home",
+        "created_by": claims.get("email", "admin"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    admin_store.save_campaign_template(tmpl)
+    return {"success": True, "template": tmpl}
+
+@app.delete("/api/v1/admin/campaign-templates/{template_id}")
+async def delete_campaign_template_endpoint(
+    template_id: str,
+    claims: Dict[str, Any] = Depends(require_campaign_manage_permission)
+):
+    """Exclui um template salvo."""
+    ok = admin_store.delete_campaign_template(template_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Template não encontrado.")
+    return {"success": True, "message": "Template excluído com sucesso."}
+
 

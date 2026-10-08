@@ -77,6 +77,7 @@
         <nav class="admin-nav">
             <button class="nav-tab active" onclick="switchTab('overview')">📊 Visão Geral</button>
             <button class="nav-tab" onclick="switchTab('drivers')">🚗 Motoristas</button>
+            <button class="nav-tab" onclick="switchTab('campaigns')">📣 Campanhas</button>
             <button class="nav-tab" onclick="switchTab('plans')">💎 Planos & Preços</button>
             <button class="nav-tab" onclick="switchTab('subs-payments')">💳 Assinaturas & Pix</button>
             <button class="nav-tab" onclick="switchTab('flags')">⚡ Funcionalidades</button>
@@ -310,6 +311,101 @@
                     </div>
                 </div>
             </section>
+
+            <!-- 7. Aba: 📣 Campanhas & Push Notifications Real -->
+            <section id="tab-campaigns" class="tab-panel">
+                <div class="section-header">
+                    <div>
+                        <h2>📣 Campanhas & Notificações Push (Firebase FCM)</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Envie notificações nativas reais para os usuários Android do ROTA IQ via Firebase Cloud Messaging.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn-secondary" onclick="loadCampaignsDashboard(); loadCampaignsTable();">🔄 Atualizar</button>
+                        <button class="btn-secondary" onclick="openTemplatesModal()">📋 Modelos (Templates)</button>
+                        <button class="btn-primary-action" onclick="openNewCampaignWizard()">+ NOVA CAMPANHA</button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards de Campanhas -->
+                <div class="kpi-grid">
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">TOTAL DE CAMPANHAS</div>
+                        <div class="kpi-value" id="kpi-camp-total">0</div>
+                        <div class="kpi-sub">Campanhas cadastradas</div>
+                    </div>
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">CAMPANHAS ENVIADAS</div>
+                        <div class="kpi-value" id="kpi-camp-sent">0</div>
+                        <div class="kpi-sub">Disparos concluídos</div>
+                    </div>
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">CAMPANHAS AGENDADAS</div>
+                        <div class="kpi-value" id="kpi-camp-scheduled">0</div>
+                        <div class="kpi-sub">Aguardando horário</div>
+                    </div>
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">RASCUNHOS</div>
+                        <div class="kpi-value" id="kpi-camp-drafts">0</div>
+                        <div class="kpi-sub">Em elaboração</div>
+                    </div>
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">DISPOSITIVOS ELEGÍVEIS</div>
+                        <div class="kpi-value" id="kpi-camp-devices">0</div>
+                        <div class="kpi-sub">Tokens FCM ativos</div>
+                    </div>
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">NOTIFICAÇÕES ENVIADAS</div>
+                        <div class="kpi-value" id="kpi-camp-total-sent">0</div>
+                        <div class="kpi-sub">Total acumulado</div>
+                    </div>
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">FALHAS DE ENTREGA</div>
+                        <div class="kpi-value" id="kpi-camp-failures">0</div>
+                        <div class="kpi-sub">Erros ou tokens inválidos</div>
+                    </div>
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">TAXA MÉDIA DE ABERTURA</div>
+                        <div class="kpi-value" id="kpi-camp-open-rate">N/D</div>
+                        <div class="kpi-sub">Aberturas rastreadas</div>
+                    </div>
+                </div>
+
+                <!-- Submenus de Filtro por Status -->
+                <div class="status-filter-pills" style="margin-bottom: 20px;">
+                    <button class="pill-btn active" onclick="filterCampaignsByStatus('ALL', this)">Campanhas (Todas)</button>
+                    <button class="pill-btn" onclick="filterCampaignsByStatus('SENT', this)">Enviadas</button>
+                    <button class="pill-btn" onclick="filterCampaignsByStatus('SCHEDULED', this)">Agendadas</button>
+                    <button class="pill-btn" onclick="filterCampaignsByStatus('DRAFT', this)">Rascunhos</button>
+                    <button class="pill-btn" onclick="filterCampaignsByStatus('PROCESSING', this)">Em Processamento</button>
+                    <button class="pill-btn" onclick="filterCampaignsByStatus('CANCELLED', this)">Canceladas</button>
+                </div>
+
+                <!-- Tabela de Campanhas -->
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Campanha / Título</th>
+                                <th>Tipo</th>
+                                <th>Público Alvo</th>
+                                <th>Status</th>
+                                <th>Data / Agendamento</th>
+                                <th>Destinatários</th>
+                                <th>Enviadas / Falhas</th>
+                                <th>Aberturas</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="campaigns-table-body">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                    Carregando campanhas do sistema...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -473,6 +569,533 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" onclick="closeModal('modal-driver-details')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Modal: Wizard de Nova Campanha Push FCM -->
+    <div id="modal-campaign-wizard" class="admin-modal-overlay">
+        <div class="admin-modal" style="max-width: 860px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="wizard-title">Nova Campanha <span>Push Notification</span></h3>
+                    <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 2px;">Envio direto para o aplicativo Android via Firebase Cloud Messaging (FCM).</p>
+                </div>
+                <button class="btn-close-modal" onclick="closeModal('modal-campaign-wizard')">&times;</button>
+            </div>
+
+            <!-- Stepper da Campanha -->
+            <div class="wizard-stepper">
+                <div class="step-item active" id="step-pill-1" onclick="goToWizardStep(1)">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Conteúdo</div>
+                </div>
+                <div class="step-line" id="step-line-1"></div>
+                <div class="step-item" id="step-pill-2" onclick="goToWizardStep(2)">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Público</div>
+                </div>
+                <div class="step-line" id="step-line-2"></div>
+                <div class="step-item" id="step-pill-3" onclick="goToWizardStep(3)">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Ação</div>
+                </div>
+                <div class="step-line" id="step-line-3"></div>
+                <div class="step-item" id="step-pill-4" onclick="goToWizardStep(4)">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Revisão</div>
+                </div>
+                <div class="step-line" id="step-line-4"></div>
+                <div class="step-item" id="step-pill-5">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Envio</div>
+                </div>
+            </div>
+
+            <!-- ETAPA 1: CONTEÚDO E PRÉVIA ANDROID NATIVA -->
+            <div id="wizard-step-1" class="wizard-step-content active">
+                <div style="display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start;">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label for="camp-name">Nome Interno da Campanha <span style="color: var(--primary-orange);">*</span></label>
+                            <input type="text" id="camp-name" placeholder="Ex: Promoção Pro - Alta Demanda Outubro" required>
+                            <span class="field-hint">Uso exclusivo da equipe admin (não é exibido ao motorista).</span>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group">
+                                <label for="camp-type">Tipo de Campanha</label>
+                                <select id="camp-type">
+                                    <option value="MARKETING">Marketing & Vendas</option>
+                                    <option value="INFORMATIVA" selected>Informativa</option>
+                                    <option value="PROMOCAO">Promoção & Desconto</option>
+                                    <option value="ATUALIZACAO">Atualização de Versão</option>
+                                    <option value="ENGAJAMENTO">Engajamento / Retenção</option>
+                                    <option value="SISTEMA">Alerta de Sistema</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="camp-channel">Canal Android</label>
+                                <select id="camp-channel">
+                                    <option value="rotaiq_general" selected>Geral (rotaiq_general)</option>
+                                    <option value="rotaiq_marketing">Marketing (rotaiq_marketing)</option>
+                                    <option value="rotaiq_rides">Corridas (rotaiq_rides)</option>
+                                    <option value="rotaiq_system">Sistema (rotaiq_system)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label for="camp-title">Título da Notificação <span style="color: var(--primary-orange);">*</span></label>
+                                <span class="char-counter" id="char-count-title">0/60</span>
+                            </div>
+                            <input type="text" id="camp-title" maxlength="60" placeholder="🚗 Nova oportunidade no ROTA IQ!" oninput="updateLivePreview()" required>
+                        </div>
+
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label for="camp-body">Mensagem da Notificação <span style="color: var(--primary-orange);">*</span></label>
+                                <span class="char-counter" id="char-count-body">0/160</span>
+                            </div>
+                            <textarea id="camp-body" rows="3" maxlength="160" placeholder="Confira as novas corridas com alto ganho na sua região agora mesmo!" oninput="updateLivePreview()" required style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="camp-image">URL da Imagem Opcional (Banner Push)</label>
+                            <input type="url" id="camp-image" placeholder="https://exemplo.com/banner.png" oninput="updateLivePreview()">
+                            <span class="field-hint">Exibida em estilo BigPicture no Android.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="camp-deeplink-select">Ao Tocar na Notificação (Deep Link)</label>
+                            <select id="camp-deeplink-select" onchange="handleDeepLinkSelect(this.value)">
+                                <option value="rotaiq://home">Tela Inicial (Home)</option>
+                                <option value="rotaiq://subscription">Assinatura Pro (Planos)</option>
+                                <option value="rotaiq://rides">Histórico de Corridas</option>
+                                <option value="rotaiq://finance">Módulo Financeiro</option>
+                                <option value="custom">URL / Deep Link Personalizado...</option>
+                            </select>
+                            <input type="text" id="camp-deeplink-custom" placeholder="ex: rotaiq://custom_screen" style="display: none; margin-top: 8px;">
+                        </div>
+                    </div>
+
+                    <!-- Coluna de Prévia Android Nativa -->
+                    <div class="preview-column">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            📱 Prévia Android Nativa
+                        </div>
+                        <div class="android-mockup-frame">
+                            <div class="android-status-bar">
+                                <span>18:30</span>
+                                <div style="display: flex; gap: 4px; font-size: 0.7rem;">
+                                    <span>📶</span>
+                                    <span>🔋 95%</span>
+                                </div>
+                            </div>
+                            <div class="android-notification-card">
+                                <div class="android-notif-header">
+                                    <div class="android-app-badge">
+                                        <div class="android-mini-logo">IQ</div>
+                                        <span class="android-app-name">ROTA IQ</span>
+                                    </div>
+                                    <span class="android-notif-time">agora</span>
+                                </div>
+                                <div class="android-notif-title" id="preview-notif-title">🚗 Título da Notificação</div>
+                                <div class="android-notif-body" id="preview-notif-body">A mensagem que você escrever no painel aparecerá aqui exatamente como no Android do motorista.</div>
+                                <div id="preview-notif-image-container" style="display: none; margin-top: 8px;">
+                                    <img id="preview-notif-image" src="" alt="Push Banner" style="width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center;">
+                            Visualização aproximada da notificação no painel de notificações do Android.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modal-campaign-wizard')">Cancelar</button>
+                    <button type="button" class="btn-primary-action" onclick="goToWizardStep(2)">Avançar para Público →</button>
+                </div>
+            </div>
+
+            <!-- ETAPA 2: ESCOLHA DE PÚBLICO & AUDIÊNCIA REAL -->
+            <div id="wizard-step-2" class="wizard-step-content" style="display: none;">
+                <div class="audience-section">
+                    <h4 style="color: #fff; margin-bottom: 12px;">Quem deverá receber esta notificação?</h4>
+
+                    <div class="audience-options-grid">
+                        <label class="audience-card">
+                            <input type="radio" name="audience_target" value="ALL" checked onchange="handleAudienceTypeChange('ALL')">
+                            <div class="audience-card-body">
+                                <div class="audience-icon">📢</div>
+                                <div class="audience-title">TODOS OS USUÁRIOS</div>
+                                <div class="audience-desc">Todos os motoristas elegíveis com aplicativo Android instalado e notificações ativas.</div>
+                            </div>
+                        </label>
+
+                        <label class="audience-card">
+                            <input type="radio" name="audience_target" value="FREE" onchange="handleAudienceTypeChange('FREE')">
+                            <div class="audience-card-body">
+                                <div class="audience-icon">🆓</div>
+                                <div class="audience-title">Apenas Usuários Free</div>
+                                <div class="audience-desc">Motoristas no plano gratuito (ideal para campanhas de upgrade para o Plano Pro).</div>
+                            </div>
+                        </label>
+
+                        <label class="audience-card">
+                            <input type="radio" name="audience_target" value="PRO" onchange="handleAudienceTypeChange('PRO')">
+                            <div class="audience-card-body">
+                                <div class="audience-icon">💎</div>
+                                <div class="audience-title">Apenas Usuários Pro</div>
+                                <div class="audience-desc">Assinantes pagantes do ROTA IQ Pro (novas ferramentas, dicas exclusivas).</div>
+                            </div>
+                        </label>
+
+                        <label class="audience-card">
+                            <input type="radio" name="audience_target" value="ACTIVE" onchange="handleAudienceTypeChange('ACTIVE')">
+                            <div class="audience-card-body">
+                                <div class="audience-icon">⚡</div>
+                                <div class="audience-title">Usuários Ativos</div>
+                                <div class="audience-desc">Motoristas com atividade recente e aplicativo online nos últimos 30 dias.</div>
+                            </div>
+                        </label>
+
+                        <label class="audience-card">
+                            <input type="radio" name="audience_target" value="INACTIVE" onchange="handleAudienceTypeChange('INACTIVE')">
+                            <div class="audience-card-body">
+                                <div class="audience-icon">💤</div>
+                                <div class="audience-title">Usuários Inativos</div>
+                                <div class="audience-desc">Campanha de reativação para quem não utiliza o app há mais de 15 dias.</div>
+                            </div>
+                        </label>
+
+                        <label class="audience-card">
+                            <input type="radio" name="audience_target" value="DRIVERS" onchange="handleAudienceTypeChange('DRIVERS')">
+                            <div class="audience-card-body">
+                                <div class="audience-icon">🚗</div>
+                                <div class="audience-title">Todos os Motoristas</div>
+                                <div class="audience-desc">Base geral de motoristas cadastrados na plataforma.</div>
+                            </div>
+                        </label>
+
+                        <label class="audience-card">
+                            <input type="radio" name="audience_target" value="CUSTOM_GEO" onchange="handleAudienceTypeChange('CUSTOM_GEO')">
+                            <div class="audience-card-body">
+                                <div class="audience-icon">📍</div>
+                                <div class="audience-title">Por Cidade / Estado</div>
+                                <div class="audience-desc">Segmentação geográfica personalizada para praças específicas.</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Filtros Geográficos Opcionais -->
+                    <div id="audience-geo-filters" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px;">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                            <div class="form-group">
+                                <label for="filter-city">Cidade</label>
+                                <input type="text" id="filter-city" placeholder="Ex: São Paulo">
+                            </div>
+                            <div class="form-group">
+                                <label for="filter-state">UF (Estado)</label>
+                                <input type="text" id="filter-state" placeholder="SP" maxlength="2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caixa de Cálculo de Audiência Real -->
+                    <div class="audience-preview-box" style="margin-top: 20px; padding: 16px; background: rgba(255, 122, 0, 0.05); border: 1px solid rgba(255, 122, 0, 0.2); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div>
+                                <span style="font-weight: 600; color: #fff; font-size: 0.95rem;">📊 Estimativa de Destinatários Reais</span>
+                                <div style="font-size: 0.78rem; color: var(--text-muted);">Calculado em tempo real direto da base de usuários e tokens FCM.</div>
+                            </div>
+                            <button type="button" class="btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="calculateAudiencePreview()">🔍 Calcular Audiência</button>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">USUÁRIOS ENCONTRADOS</div>
+                                <div style="font-size: 1.3rem; font-weight: 700; color: #fff;" id="aud-count-users">-</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">DISPOSITIVOS ELEGÍVEIS</div>
+                                <div style="font-size: 1.3rem; font-weight: 700; color: var(--primary-orange);" id="aud-count-devices">-</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">SEM NOTIFICAÇÃO/TOKEN</div>
+                                <div style="font-size: 1.3rem; font-weight: 700; color: #aaa;" id="aud-count-no-token">-</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">SEGMENTAÇÃO</div>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent-blue);" id="aud-segment-name">Geral</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="button" class="btn-secondary" onclick="goToWizardStep(1)">← Voltar para Conteúdo</button>
+                    <button type="button" class="btn-primary-action" onclick="goToWizardStep(3)">Avançar para Ação →</button>
+                </div>
+            </div>
+
+            <!-- ETAPA 3: AÇÃO DE ENVIO OU AGENDAMENTO -->
+            <div id="wizard-step-3" class="wizard-step-content" style="display: none;">
+                <h4 style="color: #fff; margin-bottom: 12px;">Quando esta campanha deverá ser disparada?</h4>
+
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <label class="action-option-card">
+                        <input type="radio" name="campaign_action_choice" value="SEND_NOW" checked onchange="handleActionChoiceChange('SEND_NOW')">
+                        <div style="margin-left: 10px;">
+                            <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">🚀 Disparar Agora (Envio Imediato)</div>
+                            <div style="font-size: 0.82rem; color: var(--text-muted);">A campanha entrará em processamento imediato pelo worker e será enviada pelo Firebase FCM.</div>
+                        </div>
+                    </label>
+
+                    <label class="action-option-card">
+                        <input type="radio" name="campaign_action_choice" value="SCHEDULE" onchange="handleActionChoiceChange('SCHEDULE')">
+                        <div style="margin-left: 10px;">
+                            <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">⏰ Agendar para uma Data e Hora Futura</div>
+                            <div style="font-size: 0.82rem; color: var(--text-muted);">A campanha será salva como AGENDADA e enviada automaticamente no momento estipulado.</div>
+                        </div>
+                    </label>
+
+                    <label class="action-option-card">
+                        <input type="radio" name="campaign_action_choice" value="DRAFT" onchange="handleActionChoiceChange('DRAFT')">
+                        <div style="margin-left: 10px;">
+                            <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">📝 Salvar apenas como Rascunho</div>
+                            <div style="font-size: 0.82rem; color: var(--text-muted);">Salva a campanha para revisão e disparo posterior sem enviar notificações agora.</div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Formulário de Agendamento -->
+                <div id="schedule-fields-container" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label for="sched-date">Data do Disparo</label>
+                            <input type="date" id="sched-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="sched-time">Horário (HH:MM)</label>
+                            <input type="time" id="sched-time">
+                        </div>
+                        <div class="form-group">
+                            <label for="sched-timezone">Fuso Horário</label>
+                            <select id="sched-timezone">
+                                <option value="America/Sao_Paulo" selected>Brasília (UTC-3)</option>
+                                <option value="America/Manaus">Manaus (UTC-4)</option>
+                                <option value="America/Rio_Branco">Rio Branco (UTC-5)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="button" class="btn-secondary" onclick="goToWizardStep(2)">← Voltar para Público</button>
+                    <button type="button" class="btn-primary-action" onclick="goToWizardStep(4)">Avançar para Revisão →</button>
+                </div>
+            </div>
+
+            <!-- ETAPA 4: REVISÃO COMPLETA E DUPLA CONFIRMAÇÃO -->
+            <div id="wizard-step-4" class="wizard-step-content" style="display: none;">
+                <h4 style="color: #fff; margin-bottom: 12px;">Revise todos os detalhes antes de confirmar</h4>
+
+                <div class="review-summary-card" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9rem;">
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">NOME DA CAMPANHA:</span>
+                            <div style="font-weight: 600; color: #fff;" id="rev-name">-</div>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">TIPO:</span>
+                            <div style="font-weight: 600; color: var(--primary-orange);" id="rev-type">-</div>
+                        </div>
+                        <div style="grid-column: 1/-1;">
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">MENSAGEM PUSH:</span>
+                            <div style="font-weight: 600; color: #fff; margin-top: 2px;" id="rev-title">-</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem;" id="rev-body">-</div>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">PÚBLICO ALVO:</span>
+                            <div style="font-weight: 600; color: #fff;" id="rev-audience">-</div>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">DISPOSITIVOS ELEGÍVEIS:</span>
+                            <div style="font-weight: 600; color: var(--primary-orange);" id="rev-devices">-</div>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">AÇÃO:</span>
+                            <div style="font-weight: 600; color: #fff;" id="rev-action">-</div>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">DEEP LINK:</span>
+                            <div style="font-weight: 600; color: var(--accent-blue);" id="rev-deeplink">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerta Especial e Dupla Confirmação para TODOS OS USUÁRIOS -->
+                <div id="rev-all-users-warning" style="display: none; margin-top: 16px; padding: 16px; background: rgba(255, 51, 75, 0.1); border: 1px solid rgba(255, 51, 75, 0.4); border-radius: 8px;">
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <span style="font-size: 1.4rem;">⚠️</span>
+                        <div>
+                            <div style="font-weight: 700; color: #FF334B; font-size: 0.95rem;">DUPLA CONFIRMAÇÃO — DISPARO GLOBAL</div>
+                            <div style="font-size: 0.85rem; color: #ddd; margin-top: 4px;">
+                                Esta campanha será enviada para <strong>TODOS os dispositivos Android elegíveis</strong> registrados no aplicativo. Não é possível reverter o envio após a confirmação.
+                            </div>
+                            <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; cursor: pointer; color: #fff; font-size: 0.85rem;">
+                                <input type="checkbox" id="rev-confirm-all-check" required>
+                                <span>Estou ciente e confirmo o envio para todos os dispositivos elegíveis.</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="button" class="btn-secondary" onclick="goToWizardStep(3)">← Voltar para Ação</button>
+                    <button type="button" class="btn-primary-action" id="btn-submit-campaign-wizard" onclick="submitCampaignWizard()">CONFIRMAR E EXECUTAR 🚀</button>
+                </div>
+            </div>
+
+            <!-- ETAPA 5: EXECUÇÃO, PROGRESSO E RESULTADO REAL -->
+            <div id="wizard-step-5" class="wizard-step-content" style="display: none; text-align: center; padding: 20px;">
+                <div id="wizard-status-loading">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">⏳</div>
+                    <h3 style="color: #fff;">Processando Envio da Campanha...</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">Comunicando com o Firebase Cloud Messaging e gravando logs de auditoria.</p>
+                    <div style="width: 100%; max-width: 380px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin: 20px auto; overflow: hidden;">
+                        <div style="width: 100%; height: 100%; background: var(--primary-orange); animation: indeterminate 1.5s infinite linear;"></div>
+                    </div>
+                </div>
+
+                <div id="wizard-status-result" style="display: none;">
+                    <div style="font-size: 3.5rem; margin-bottom: 10px;" id="wizard-result-icon">✅</div>
+                    <h3 style="color: #fff;" id="wizard-result-title">Campanha Enviada com Sucesso!</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 6px;" id="wizard-result-desc">A notificação foi entregue ao servidor do Firebase FCM.</p>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; text-align: center;">
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">DISPARADAS COM SUCESSO</div>
+                            <div style="font-size: 1.4rem; font-weight: 700; color: #00E676;" id="res-sent-count">0</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">FALHAS DE ENTREGA</div>
+                            <div style="font-size: 1.4rem; font-weight: 700; color: #FF334B;" id="res-failure-count">0</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">TOKENS INVÁLIDOS</div>
+                            <div style="font-size: 1.4rem; font-weight: 700; color: #FFB300;" id="res-invalid-count">0</div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer" style="justify-content: center; margin-top: 20px;">
+                        <button type="button" class="btn-primary-action" onclick="closeModal('modal-campaign-wizard'); loadCampaignsDashboard(); loadCampaignsTable();">Concluir e Voltar ao Painel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Modal: Relatório Detalhado da Campanha -->
+    <div id="modal-campaign-report" class="admin-modal-overlay">
+        <div class="admin-modal" style="max-width: 760px; max-height: 88vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div>
+                    <h3>Relatório de <span>Campanha Push</span></h3>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);" id="rep-camp-name">-</div>
+                </div>
+                <button class="btn-close-modal" onclick="closeModal('modal-campaign-report')">&times;</button>
+            </div>
+
+            <!-- Dados da Campanha -->
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle); margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; font-size: 0.88rem;">
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.78rem;">TÍTULO & MENSAGEM:</span>
+                        <div style="font-weight: 600; color: #fff;" id="rep-notif-title">-</div>
+                        <div style="color: var(--text-secondary); font-size: 0.82rem;" id="rep-notif-body">-</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.78rem;">STATUS / DATA:</span>
+                        <div id="rep-badge-status">-</div>
+                        <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;" id="rep-sent-at">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Métricas Reais (Sem Invenção de Dados) -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle); text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">DISPOSITIVOS ELEGÍVEIS</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: #fff;" id="rep-devices-count">0</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle); text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">DISPARADAS</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: #00E676;" id="rep-sent-count">0</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle); text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">FALHAS</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: #FF334B;" id="rep-failed-count">0</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle); text-align: center;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">TAXA DE ABERTURA</div>
+                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--accent-blue);" id="rep-open-rate">N/D</div>
+                </div>
+            </div>
+
+            <!-- Log de Disparos -->
+            <div style="font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 8px;">
+                Registros Individuais de Entrega (Auditoria):
+            </div>
+            <div style="max-height: 240px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                <table class="admin-table" style="font-size: 0.8rem;">
+                    <thead>
+                        <tr>
+                            <th>Dispositivo / ID</th>
+                            <th>Status</th>
+                            <th>ID da Mensagem FCM</th>
+                            <th>Código de Erro</th>
+                            <th>Horário</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rep-deliveries-table-body">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                                Carregando entregas da campanha...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer" style="margin-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-campaign-report')">Fechar Relatório</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Modal: Modelos de Campanha (Templates) -->
+    <div id="modal-campaign-templates" class="admin-modal-overlay">
+        <div class="admin-modal" style="max-width: 680px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div>
+                    <h3>Modelos <span>Reutilizáveis (Templates)</span></h3>
+                    <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 2px;">Escolha um modelo pronto para acelerar a criação de novas campanhas.</p>
+                </div>
+                <button class="btn-close-modal" onclick="closeModal('modal-campaign-templates')">&times;</button>
+            </div>
+
+            <div id="templates-list-container" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                    Carregando modelos...
+                </div>
+            </div>
+
+            <div class="modal-footer" style="margin-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-campaign-templates')">Fechar</button>
             </div>
         </div>
     </div>

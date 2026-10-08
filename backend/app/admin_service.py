@@ -101,7 +101,98 @@ class AdminStore:
                 )
             """)
 
+            # 5. Tokens de Dispositivos FCM
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS device_tokens (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT,
+                    fcm_token TEXT UNIQUE NOT NULL,
+                    platform TEXT NOT NULL DEFAULT 'android',
+                    device_id TEXT,
+                    app_version TEXT,
+                    os_version TEXT,
+                    active INTEGER NOT NULL DEFAULT 1,
+                    notifications_enabled INTEGER NOT NULL DEFAULT 1,
+                    last_seen_at TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+
+            # 6. Campanhas de Notificação
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS campaigns (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    type TEXT NOT NULL DEFAULT 'MARKETING',
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    image_url TEXT,
+                    deep_link TEXT DEFAULT 'rotaiq://home',
+                    status TEXT NOT NULL DEFAULT 'DRAFT',
+                    audience_type TEXT NOT NULL DEFAULT 'ALL',
+                    audience_filter TEXT DEFAULT '{}',
+                    scheduled_at TEXT,
+                    sent_at TEXT,
+                    total_recipients INTEGER DEFAULT 0,
+                    total_sent INTEGER DEFAULT 0,
+                    total_failed INTEGER DEFAULT 0,
+                    total_opened INTEGER DEFAULT 0,
+                    created_by TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+
+            # 7. Entregas de Notificações
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS campaign_deliveries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    campaign_id TEXT NOT NULL,
+                    user_id TEXT,
+                    fcm_token TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    fcm_message_id TEXT,
+                    error_code TEXT,
+                    sent_at TEXT NOT NULL,
+                    opened_at TEXT,
+                    created_at TEXT NOT NULL
+                )
+            """)
+
+            # 8. Templates de Campanha
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS campaign_templates (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    type TEXT NOT NULL DEFAULT 'MARKETING',
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    deep_link TEXT DEFAULT 'rotaiq://home',
+                    created_by TEXT NOT NULL DEFAULT 'system',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+
             conn.commit()
+
+            # Seed de Templates Padrão se tabela vazia
+            cur.execute("SELECT COUNT(*) FROM campaign_templates")
+            if cur.fetchone()[0] == 0:
+                now_tmpl = datetime.now(timezone.utc).isoformat()
+                cur.execute("""
+                    INSERT INTO campaign_templates (id, name, type, title, body, deep_link, created_by, created_at, updated_at)
+                    VALUES 
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?),
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?),
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    str(uuid.uuid4()), "Atualização Disponível", "ATUALIZACAO", "🚀 Nova versão do ROTA IQ!", "Atualizamos o copiloto com novas métricas de lucro e suporte aprimorado. Toque para atualizar.", "rotaiq://home", "system", now_tmpl, now_tmpl,
+                    str(uuid.uuid4()), "Oferta Especial Pro", "PROMOCAO", "💎 30% OFF no ROTA IQ Pro!", "Desbloqueie avaliações ilimitadas e HUD flutuante com desconto especial para você.", "rotaiq://subscription", "system", now_tmpl, now_tmpl,
+                    str(uuid.uuid4()), "Alerta de Alta Demanda", "ENGAJAMENTO", "🔥 Chuva de Corridas na sua Região!", "A demanda está alta agora na sua praça. Abra o app e ative o filtro inteligente de corridas.", "rotaiq://rides", "system", now_tmpl, now_tmpl
+                ))
+                conn.commit()
 
             # Seed inicial de Super Admin se não existir
             cur.execute("SELECT id FROM admin_users WHERE email = ?", ("admin@rotai.app",))
@@ -163,6 +254,345 @@ class AdminStore:
                     """, (k, nm, desc, en, now))
 
             conn.commit()
+
+    # -------------------------------------------------------------
+    # Dispositivos & Tokens FCM
+    # -------------------------------------------------------------
+    def register_device_token(
+        self,
+        user_id: Optional[str],
+        fcm_token: str,
+        platform: str = "android",
+        device_id: Optional[str] = None,
+        app_version: Optional[str] = None,
+        os_version: Optional[str] = None,
+        notifications_enabled: bool = True
+    ) -> Dict[str, Any]:
+        now = datetime.now(timezone.utc).isoformat()
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id, user_id FROM device_tokens WHERE fcm_token = ?", (fcm_token,))
+            row = cur.fetchone()
+            if row:
+                cur.execute("""
+                    UPDATE device_tokens SET
+                        user_id = COALESCE(?, user_id),
+                        platform = ?,
+                        device_id = COALESCE(?, device_id),
+                        app_version = COALESCE(?, app_version),
+                        os_version = COALESCE(?, os_version),
+                        active = 1,
+                        notifications_enabled = ?,
+                        last_seen_at = ?,
+                        updated_at = ?
+                    WHERE fcm_token = ?
+                """, (user_id, platform, device_id, app_version, os_version, 1 if notifications_enabled else 0, now, now, fcm_token))
+                token_id = row["id"]
+            else:
+                token_id = str(uuid.uuid4())
+                cur.execute("""
+                    INSERT INTO device_tokens (id, user_id, fcm_token, platform, device_id, app_version, os_version, active, notifications_enabled, last_seen_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+                """, (token_id, user_id, fcm_token, platform, device_id, app_version, os_version, 1 if notifications_enabled else 0, now, now, now))
+            conn.commit()
+
+            return {
+                "id": token_id,
+                "user_id": user_id,
+                "fcm_token": fcm_token,
+                "platform": platform,
+                "active": True,
+                "notifications_enabled": notifications_enabled,
+                "last_seen_at": now
+            }
+
+    def deactivate_device_token(self, fcm_token: str) -> bool:
+        now = datetime.now(timezone.utc).isoformat()
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE device_tokens SET active = 0, updated_at = ? WHERE fcm_token = ?", (now, fcm_token))
+            conn.commit()
+            return cur.rowcount > 0
+
+    def get_all_device_tokens(self) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM device_tokens ORDER BY last_seen_at DESC")
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "user_id": r["user_id"],
+                    "fcm_token": r["fcm_token"],
+                    "platform": r["platform"],
+                    "device_id": r["device_id"],
+                    "app_version": r["app_version"],
+                    "os_version": r["os_version"],
+                    "active": bool(r["active"]),
+                    "notifications_enabled": bool(r["notifications_enabled"]),
+                    "last_seen_at": r["last_seen_at"],
+                    "created_at": r["created_at"],
+                    "updated_at": r["updated_at"]
+                }
+                for r in rows
+            ]
+
+    # -------------------------------------------------------------
+    # Campanhas de Notificação
+    # -------------------------------------------------------------
+    def save_campaign(self, record: Dict[str, Any]) -> None:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO campaigns (id, name, type, title, body, image_url, deep_link, status, audience_type, audience_filter, scheduled_at, sent_at, total_recipients, total_sent, total_failed, total_opened, created_by, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                record["id"],
+                record["name"],
+                record["type"],
+                record["title"],
+                record["body"],
+                record.get("image_url"),
+                record.get("deep_link") or "rotaiq://home",
+                record.get("status", "DRAFT"),
+                record.get("audience_type", "ALL"),
+                json.dumps(record.get("audience_filter") or {}),
+                record.get("scheduled_at"),
+                record.get("sent_at"),
+                record.get("total_recipients", 0),
+                record.get("total_sent", 0),
+                record.get("total_failed", 0),
+                record.get("total_opened", 0),
+                record["created_by"],
+                record["created_at"],
+                record["updated_at"]
+            ))
+            conn.commit()
+
+    def get_campaign(self, campaign_id: str) -> Optional[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM campaigns WHERE id = ?", (campaign_id,))
+            r = cur.fetchone()
+            if not r:
+                return None
+            return {
+                "id": r["id"],
+                "name": r["name"],
+                "type": r["type"],
+                "title": r["title"],
+                "body": r["body"],
+                "image_url": r["image_url"],
+                "deep_link": r["deep_link"],
+                "status": r["status"],
+                "audience_type": r["audience_type"],
+                "audience_filter": json.loads(r["audience_filter"]) if r["audience_filter"] else {},
+                "scheduled_at": r["scheduled_at"],
+                "sent_at": r["sent_at"],
+                "total_recipients": r["total_recipients"],
+                "total_sent": r["total_sent"],
+                "total_failed": r["total_failed"],
+                "total_opened": r["total_opened"],
+                "created_by": r["created_by"],
+                "created_at": r["created_at"],
+                "updated_at": r["updated_at"]
+            }
+
+    def list_campaigns(self, status: Optional[str] = None, type: Optional[str] = None) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            query = "SELECT * FROM campaigns"
+            params = []
+            conditions = []
+            if status and status.upper() != "ALL":
+                conditions.append("status = ?")
+                params.append(status.upper())
+            if type and type.upper() != "ALL":
+                conditions.append("type = ?")
+                params.append(type.upper())
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+            query += " ORDER BY created_at DESC"
+            cur.execute(query, params)
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "type": r["type"],
+                    "title": r["title"],
+                    "body": r["body"],
+                    "image_url": r["image_url"],
+                    "deep_link": r["deep_link"],
+                    "status": r["status"],
+                    "audience_type": r["audience_type"],
+                    "audience_filter": json.loads(r["audience_filter"]) if r["audience_filter"] else {},
+                    "scheduled_at": r["scheduled_at"],
+                    "sent_at": r["sent_at"],
+                    "total_recipients": r["total_recipients"],
+                    "total_sent": r["total_sent"],
+                    "total_failed": r["total_failed"],
+                    "total_opened": r["total_opened"],
+                    "created_by": r["created_by"],
+                    "created_at": r["created_at"],
+                    "updated_at": r["updated_at"]
+                }
+                for r in rows
+            ]
+
+    def update_campaign(self, campaign_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        now = datetime.now(timezone.utc).isoformat()
+        updates["updated_at"] = now
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            set_parts = []
+            params = []
+            for k, v in updates.items():
+                set_parts.append(f"{k} = ?")
+                if isinstance(v, (dict, list)):
+                    params.append(json.dumps(v))
+                else:
+                    params.append(v)
+            params.append(campaign_id)
+            cur.execute(f"UPDATE campaigns SET {', '.join(set_parts)} WHERE id = ?", params)
+            conn.commit()
+            return self.get_campaign(campaign_id)
+
+    def delete_campaign(self, campaign_id: str) -> bool:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM campaigns WHERE id = ?", (campaign_id,))
+            cur.execute("DELETE FROM campaign_deliveries WHERE campaign_id = ?", (campaign_id,))
+            conn.commit()
+            return cur.rowcount > 0
+
+    def record_campaign_delivery(
+        self,
+        campaign_id: str,
+        user_id: Optional[str],
+        fcm_token: str,
+        status: str,
+        fcm_message_id: Optional[str] = None,
+        error_code: Optional[str] = None,
+        opened_at: Optional[str] = None
+    ) -> None:
+        now = datetime.now(timezone.utc).isoformat()
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO campaign_deliveries (campaign_id, user_id, fcm_token, status, fcm_message_id, error_code, sent_at, opened_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (campaign_id, user_id, fcm_token, status, fcm_message_id, error_code, now, opened_at, now))
+            conn.commit()
+
+    def get_campaign_deliveries(self, campaign_id: str, limit: int = 500) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM campaign_deliveries WHERE campaign_id = ? ORDER BY id DESC LIMIT ?", (campaign_id, limit))
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "campaign_id": r["campaign_id"],
+                    "user_id": r["user_id"],
+                    "fcm_token": r["fcm_token"],
+                    "status": r["status"],
+                    "fcm_message_id": r["fcm_message_id"],
+                    "error_code": r["error_code"],
+                    "sent_at": r["sent_at"],
+                    "opened_at": r["opened_at"],
+                    "created_at": r["created_at"]
+                }
+                for r in rows
+            ]
+
+    def list_campaign_templates(self) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM campaign_templates ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "type": r["type"],
+                    "title": r["title"],
+                    "body": r["body"],
+                    "deep_link": r["deep_link"],
+                    "created_by": r["created_by"],
+                    "created_at": r["created_at"],
+                    "updated_at": r["updated_at"]
+                }
+                for r in rows
+            ]
+
+    def save_campaign_template(self, record: Dict[str, Any]) -> None:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO campaign_templates (id, name, type, title, body, deep_link, created_by, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                record["id"],
+                record["name"],
+                record["type"],
+                record["title"],
+                record["body"],
+                record.get("deep_link") or "rotaiq://home",
+                record.get("created_by", "admin"),
+                record["created_at"],
+                record["updated_at"]
+            ))
+            conn.commit()
+
+    def delete_campaign_template(self, template_id: str) -> bool:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM campaign_templates WHERE id = ?", (template_id,))
+            conn.commit()
+            return cur.rowcount > 0
+
+    def get_campaigns_dashboard_stats(self) -> Dict[str, Any]:
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM campaigns")
+            total = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM campaigns WHERE status = 'SENT'")
+            sent = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM campaigns WHERE status = 'SCHEDULED'")
+            scheduled = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM campaigns WHERE status = 'DRAFT'")
+            drafts = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM campaign_deliveries WHERE status = 'SENT'")
+            deliv_sent = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM campaign_deliveries WHERE status = 'FAILED'")
+            deliv_failed = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM device_tokens WHERE active = 1 AND notifications_enabled = 1")
+            active_devices = cur.fetchone()[0]
+            cur.execute("SELECT sent_at FROM campaigns WHERE status = 'SENT' ORDER BY sent_at DESC LIMIT 1")
+            last_sent_row = cur.fetchone()
+            last_sent = last_sent_row[0] if last_sent_row else None
+
+            return {
+                "total_campaigns": total,
+                "sent_campaigns": sent,
+                "scheduled_campaigns": scheduled,
+                "draft_campaigns": drafts,
+                "total_notifications_sent": deliv_sent,
+                "total_notifications_failed": deliv_failed,
+                "active_eligible_devices": active_devices,
+                "eligible_devices": active_devices,
+                "last_sent_at": last_sent,
+                "average_open_rate": "N/D",
+                "open_rate": "N/D"
+            }
+
+    def list_drivers(self, status: str = "ALL") -> List[Dict[str, Any]]:
+        try:
+            res = AdminService.get_drivers_paged(status_filter=status, page=1, limit=1000)
+            return res.get("items", [])
+        except Exception:
+            return []
 
 
 admin_store = AdminStore()

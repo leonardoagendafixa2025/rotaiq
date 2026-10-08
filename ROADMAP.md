@@ -159,3 +159,30 @@ Este documento define o plano mestre de evolução do **ROTA IQ** da Fundação 
   * Simulador Web atualizado com a paleta dark obsidian e electric amber.
 - [x] **100% dos 93 testes unitários aprovados e APK Debug compilado com sucesso**.
 
+---
+
+## 🟢 FASE 9: Campanhas, Push Notifications Reais via Firebase FCM & Backoffice Operacional (CONCLUÍDA ✅)
+- [x] **Módulo de Notificações Android Nativas (FCM)**:
+  * `DeviceTokenManager`: Registro, sincronização automática e renovação de tokens FCM junto ao backend.
+  * `NotificationChannels`: Canais oficiais no Android (`rota_iq_campaigns`, `rota_iq_alerts`, `rota_iq_financial`).
+  * `RotaFirebaseMessagingService`: Processamento nativo em foreground/background, notificações ricas com deep links e ícone elétrico.
+  * Solicitação de permissão `POST_NOTIFICATIONS` em tempo de execução no Android 13+ (API 33+) em `MainActivity.kt`.
+- [x] **Motor de Push Notifications & Campanhas (`push_service.py` & `campaign_service.py`)**:
+  * Integração oficial com Google Cloud OAuth2 RS256 e Firebase Cloud Messaging (FCM) HTTP v1 API.
+  * Segmentação de audiência em tempo real (Todos, Free, Pro, Ativos, Inativos, Cidade, Estado, IDs específicos).
+  * Ciclo de vida completo das campanhas (`DRAFT`, `SCHEDULED`, `PROCESSING`, `SENT`, `CANCELLED`).
+  * Despacho em lotes, retries exponenciais, invalidação automática de tokens revogados e relatórios analíticos de entrega.
+  * Templates de notificação reutilizáveis.
+- [x] **Migração 005 PostgreSQL (`005_push_campaigns_and_devices.sql`)**:
+  * Tabelas `device_tokens`, `campaigns`, `campaign_deliveries` e `campaign_templates`.
+- [x] **Backoffice Administrativo Web (`web/admin/`)**:
+  * Cockpit executivo refinado: Visão Geral, Motoristas, Campanhas, Planos, Assinaturas & Pix, Flags e Configurações.
+  * Aba interativa de Campanhas: KPIs de entrega, tabela dinâmica por status, relatórios individuais.
+  * Wizard de criação em etapas (Conteúdo, Público, Agendamento) com Live Mockup de smartphone Android renderizando a prévia em tempo real.
+  * Modal de seleção e aplicação rápida de Modelos (Templates).
+- [x] **Suíte de Testes & Validação Completa**:
+  * 102 testes unitários no Android (100% aprovados).
+  * 38 testes de integração no Backend (100% aprovados).
+  * Total de **140 testes automatizados** passando no projeto.
+  * Novo APK Debug compilado e validado (`app-debug.apk` de 17.6 MB).
+

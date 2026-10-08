@@ -113,3 +113,29 @@ def require_super_admin_claims(credentials: HTTPAuthorizationCredentials = Secur
             detail="Acesso negado: Operação exclusiva para SUPER_ADMIN."
         )
     return claims
+
+def require_campaign_send_permission(credentials: HTTPAuthorizationCredentials = Security(security)) -> Dict[str, Any]:
+    """Exige privilégios de SUPER_ADMIN ou ADMIN com permissão explícita SEND_CAMPAIGNS."""
+    claims = get_current_user_claims(credentials)
+    role = claims.get("role")
+    permissions = claims.get("permissions") or []
+    if role == "SUPER_ADMIN":
+        return claims
+    if role == "ADMIN" and ("SEND_CAMPAIGNS" in permissions or "SUPER_ADMIN" in permissions or "MANAGE_NOTIFICATIONS" in permissions):
+        return claims
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Acesso negado: Requer permissão SEND_CAMPAIGNS ou SUPER_ADMIN."
+    )
+
+def require_campaign_manage_permission(credentials: HTTPAuthorizationCredentials = Security(security)) -> Dict[str, Any]:
+    """Exige privilégios para criar/editar campanhas (SUPER_ADMIN ou ADMIN)."""
+    claims = get_current_user_claims(credentials)
+    role = claims.get("role")
+    if role in ["SUPER_ADMIN", "ADMIN"]:
+        return claims
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Acesso negado: Requer privilégios administrativos para gerenciar campanhas."
+    )
+

@@ -161,6 +161,9 @@ function switchTab(tabName) {
         fetchAdminDashboard();
     } else if (tabName === 'drivers') {
         loadDriversTable(1);
+    } else if (tabName === 'campaigns') {
+        loadCampaignsDashboard();
+        loadCampaignsTable();
     } else if (tabName === 'plans') {
         loadPlansCatalog();
     } else if (tabName === 'subs-payments') {
@@ -833,7 +836,769 @@ async function saveSetting(key) {
 }
 
 // ==========================================================================
-// 10. UTILITÁRIOS, MODAIS & TOASTS
+// 10. 📣 MÓDULO REAL DE CAMPANHAS E PUSH NOTIFICATIONS (FIREBASE FCM)
+// ==========================================================================
+
+let currentCampaignsStatusFilter = 'ALL';
+let currentAudienceStats = {
+    total_users: 0,
+    eligible_devices: 0,
+    users_without_token: 0,
+    segment: 'Geral'
+};
+let editingCampaignId = null;
+
+/**
+ * Carrega indicadores do dashboard de campanhas
+ */
+async function loadCampaignsDashboard() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/dashboard`, {
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) throw new Error('Falha ao carregar métricas de campanhas.');
+
+        const stats = await response.json();
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val !== null && val !== undefined ? val : 'N/D';
+        };
+
+        setVal('kpi-camp-total', stats.total_campaigns);
+        setVal('kpi-camp-sent', stats.sent_campaigns);
+        setVal('kpi-camp-scheduled', stats.scheduled_campaigns);
+        setVal('kpi-camp-drafts', stats.draft_campaigns);
+        setVal('kpi-camp-devices', stats.eligible_devices ?? stats.active_eligible_devices);
+        setVal('kpi-camp-total-sent', stats.total_notifications_sent);
+        setVal('kpi-camp-failures', stats.total_notifications_failed);
+        setVal('kpi-camp-open-rate', stats.open_rate ?? stats.average_open_rate ?? 'N/D');
+    } catch (err) {
+        console.warn('Erro ao carregar dashboard de campanhas:', err);
+    }
+}
+
+/**
+ * Filtra campanhas por status através dos pills de navegação
+ */
+function filterCampaignsByStatus(status, btnElement) {
+    currentCampaignsStatusFilter = status;
+    const pills = document.querySelectorAll('.status-filter-pills .pill-btn');
+    pills.forEach(p => p.classList.remove('active'));
+    if (btnElement) btnElement.classList.add('active');
+    loadCampaignsTable(status);
+}
+
+/**
+ * Carrega a tabela de campanhas com filtros reais
+ */
+async function loadCampaignsTable(filterStatus = null) {
+    const tbody = document.getElementById('campaigns-table-body');
+    if (!tbody) return;
+
+    const status = filterStatus || currentCampaignsStatusFilter;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">Consultando banco de dados...</td></tr>`;
+
+    try {
+        let url = `${API_BASE_URL}/admin/campaigns`;
+        if (status && status !== 'ALL') {
+            url += `?status=${encodeURIComponent(status)}`;
+        }
+
+        const response = await fetch(url, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Falha ao listar campanhas.');
+
+        const data = await response.json();
+        const campaigns = data.campaigns || [];
+
+        if (campaigns.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhuma campanha encontrada com o filtro selecionado.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        campaigns.forEach(c => {
+            const tr = document.createElement('tr');
+
+            // Formatação do Tipo
+            const typeClass = `chip-${(c.type || 'informativa').toLowerCase()}`;
+            const typeLabel = escapeHtml(c.type || 'INFORMATIVA');
+
+            // Formatação do Status
+            let statusBadge = `<span class="badge badge-warning">${escapeHtml(c.status)}</span>`;
+            if (c.status === 'SENT') {
+                statusBadge = `<span class="badge badge-success">ENVIADA</span>`;
+            } else if (c.status === 'SCHEDULED') {
+                statusBadge = `<span class="badge badge-info">AGENDADA</span>`;
+            } else if (c.status === 'DRAFT') {
+                statusBadge = `<span class="badge badge-secondary">RASCUNHO</span>`;
+            } else if (c.status === 'PROCESSING') {
+                statusBadge = `<span class="badge badge-primary">PROCESSANDO</span>`;
+            } else if (c.status === 'CANCELLED') {
+                statusBadge = `<span class="badge badge-danger">CANCELADA</span>`;
+            } else if (c.status === 'FAILED') {
+                statusBadge = `<span class="badge badge-danger">FALHOU</span>`;
+            }
+
+            // Data / Agendamento
+            const dateStr = c.sent_at || c.scheduled_at || c.created_at;
+            const formattedDate = dateStr ? new Date(dateStr).toLocaleString('pt-BR') : 'N/D';
+
+            // Destinatários e métricas reais
+            const recipients = c.recipient_count || 'N/D';
+            const sentAndFailures = `${c.sent_count || 0} / <span style="color: ${c.failure_count > 0 ? '#FF334B' : 'inherit'}">${c.failure_count || 0}</span>`;
+            const openings = c.open_count !== null && c.open_count !== undefined ? c.open_count : 'N/D';
+
+            // Ações disponíveis com base no estado
+            let actionsHtml = `
+                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                    <button class="btn-action" title="Ver Relatório Detalhado" onclick="openCampaignReport('${c.id}')">📊 Relatório</button>
+                    <button class="btn-action" title="Duplicar Campanha" onclick="handleDuplicateCampaign('${c.id}')">📋 Duplicar</button>
+            `;
+
+            if (c.status === 'SCHEDULED') {
+                actionsHtml += `<button class="btn-action btn-action-danger" title="Cancelar Agendamento" onclick="handleCancelCampaign('${c.id}')">❌ Cancelar</button>`;
+            } else if (c.status === 'DRAFT') {
+                actionsHtml += `
+                    <button class="btn-action btn-action-primary" title="Disparar Agora" onclick="handleSendCampaignNow('${c.id}')">🚀 Enviar</button>
+                    <button class="btn-action btn-action-danger" title="Excluir Rascunho" onclick="handleDeleteCampaign('${c.id}')">🗑️ Excluir</button>
+                `;
+            }
+
+            actionsHtml += `</div>`;
+
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight: 600; color: #fff;">${escapeHtml(c.name)}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(c.title)}</div>
+                </td>
+                <td><span class="chip-type ${typeClass}">${typeLabel}</span></td>
+                <td><span style="font-size: 0.82rem; color: #eee;">${escapeHtml(formatAudienceName(c.audience_type))}</span></td>
+                <td>${statusBadge}</td>
+                <td style="font-size: 0.82rem; color: var(--text-secondary);">${formattedDate}</td>
+                <td style="font-weight: 600; color: #fff;">${recipients}</td>
+                <td style="font-size: 0.85rem;">${sentAndFailures}</td>
+                <td style="font-size: 0.85rem; color: var(--accent-blue);">${openings}</td>
+                <td style="text-align: right;">${actionsHtml}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #FF334B; padding: 20px;">Erro: ${err.message}</td></tr>`;
+    }
+}
+
+function formatAudienceName(type) {
+    const map = {
+        'ALL': '📢 Todos os Usuários',
+        'FREE': '🆓 Apenas Free',
+        'PRO': '💎 Apenas Pro',
+        'ACTIVE': '⚡ Usuários Ativos',
+        'INACTIVE': '💤 Usuários Inativos',
+        'DRIVERS': '🚗 Todos os Motoristas',
+        'CUSTOM_GEO': '📍 Por Cidade / Estado'
+    };
+    return map[type] || type || 'Todos';
+}
+
+/**
+ * ==========================================================================
+ * FLUXO WIZARD DE CRIAÇÃO DA CAMPANHA (5 ETAPAS)
+ * ==========================================================================
+ */
+
+function openNewCampaignWizard() {
+    editingCampaignId = null;
+    document.getElementById('wizard-title').innerHTML = `Nova Campanha <span>Push Notification</span>`;
+    
+    // Reset dos campos
+    document.getElementById('camp-name').value = '';
+    document.getElementById('camp-type').value = 'INFORMATIVA';
+    document.getElementById('camp-channel').value = 'rotaiq_general';
+    document.getElementById('camp-title').value = '';
+    document.getElementById('camp-body').value = '';
+    document.getElementById('camp-image').value = '';
+    document.getElementById('camp-deeplink-select').value = 'rotaiq://home';
+    document.getElementById('camp-deeplink-custom').value = '';
+    document.getElementById('camp-deeplink-custom').style.display = 'none';
+
+    // Reset público e ação
+    const allRadio = document.querySelector('input[name="audience_target"][value="ALL"]');
+    if (allRadio) allRadio.checked = true;
+    handleAudienceTypeChange('ALL');
+
+    const sendNowRadio = document.querySelector('input[name="campaign_action_choice"][value="SEND_NOW"]');
+    if (sendNowRadio) sendNowRadio.checked = true;
+    handleActionChoiceChange('SEND_NOW');
+
+    // Reset contadores e preview
+    updateLivePreview();
+    calculateAudiencePreview();
+
+    // Navegar para o passo 1
+    goToWizardStep(1);
+    openModal('modal-campaign-wizard');
+}
+
+function goToWizardStep(stepNumber) {
+    // Validações antes de avançar
+    if (stepNumber > 1) {
+        const name = document.getElementById('camp-name').value.trim();
+        const title = document.getElementById('camp-title').value.trim();
+        const body = document.getElementById('camp-body').value.trim();
+
+        if (!name) {
+            showToast('Informe o nome interno da campanha.', 'error');
+            return;
+        }
+        if (!title) {
+            showToast('Informe o título da notificação push.', 'error');
+            return;
+        }
+        if (!body) {
+            showToast('Informe a mensagem da notificação.', 'error');
+            return;
+        }
+    }
+
+    if (stepNumber === 4) {
+        // Prepara dados da tela de revisão
+        populateReviewStep();
+    }
+
+    wizardCurrentStep = stepNumber;
+
+    // Atualiza stepper pills
+    for (let i = 1; i <= 5; i++) {
+        const pill = document.getElementById(`step-pill-${i}`);
+        const line = document.getElementById(`step-line-${i}`);
+        const content = document.getElementById(`wizard-step-${i}`);
+
+        if (pill) {
+            if (i <= stepNumber) {
+                pill.classList.add('active');
+            } else {
+                pill.classList.remove('active');
+            }
+        }
+        if (line) {
+            if (i < stepNumber) {
+                line.classList.add('active');
+            } else {
+                line.classList.remove('active');
+            }
+        }
+        if (content) {
+            content.style.display = i === stepNumber ? 'block' : 'none';
+        }
+    }
+}
+
+/**
+ * Atualiza prévia nativa do Android em tempo real e contadores de caracteres
+ */
+function updateLivePreview() {
+    const titleInput = document.getElementById('camp-title');
+    const bodyInput = document.getElementById('camp-body');
+    const imageInput = document.getElementById('camp-image');
+
+    const titleVal = titleInput ? titleInput.value : '';
+    const bodyVal = bodyInput ? bodyInput.value : '';
+    const imageVal = imageInput ? imageInput.value.trim() : '';
+
+    // Contadores
+    const countTitle = document.getElementById('char-count-title');
+    const countBody = document.getElementById('char-count-body');
+    if (countTitle) countTitle.innerText = `${titleVal.length}/60`;
+    if (countBody) countBody.innerText = `${bodyVal.length}/160`;
+
+    // Atualiza frame do Android
+    const previewTitle = document.getElementById('preview-notif-title');
+    const previewBody = document.getElementById('preview-notif-body');
+    const previewImgContainer = document.getElementById('preview-notif-image-container');
+    const previewImg = document.getElementById('preview-notif-image');
+
+    if (previewTitle) {
+        previewTitle.innerText = titleVal.trim() || '🚗 Título da Notificação';
+    }
+    if (previewBody) {
+        previewBody.innerText = bodyVal.trim() || 'A mensagem que você escrever no painel aparecerá aqui exatamente como no Android do motorista.';
+    }
+
+    if (imageVal && isValidHttpUrl(imageVal)) {
+        if (previewImg) previewImg.src = imageVal;
+        if (previewImgContainer) previewImgContainer.style.display = 'block';
+    } else {
+        if (previewImgContainer) previewImgContainer.style.display = 'none';
+    }
+}
+
+function isValidHttpUrl(string) {
+    try {
+        const url = new URL(string);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch (_) {
+        return false;
+    }
+}
+
+function handleDeepLinkSelect(val) {
+    const customInput = document.getElementById('camp-deeplink-custom');
+    if (customInput) {
+        customInput.style.display = val === 'custom' ? 'block' : 'none';
+    }
+}
+
+function handleAudienceTypeChange(audienceType) {
+    const geoFilters = document.getElementById('audience-geo-filters');
+    if (geoFilters) {
+        geoFilters.style.display = audienceType === 'CUSTOM_GEO' ? 'block' : 'none';
+    }
+    calculateAudiencePreview();
+}
+
+/**
+ * Consulta a API real para obter audiência elegível (sem mocks)
+ */
+async function calculateAudiencePreview() {
+    const selectedRadio = document.querySelector('input[name="audience_target"]:checked');
+    const audienceType = selectedRadio ? selectedRadio.value : 'ALL';
+    const city = document.getElementById('filter-city')?.value.trim() || null;
+    const state = document.getElementById('filter-state')?.value.trim() || null;
+
+    const payload = {
+        audience_type: audienceType,
+        audience_filter: { city, state }
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/audience-preview`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentAudienceStats = data;
+
+            document.getElementById('aud-count-users').innerText = data.total_users ?? 0;
+            document.getElementById('aud-count-devices').innerText = data.eligible_devices ?? 0;
+            document.getElementById('aud-count-no-token').innerText = data.users_without_token ?? 0;
+            document.getElementById('aud-segment-name').innerText = data.segment_description || 'Geral';
+        }
+    } catch (err) {
+        console.warn('Erro ao consultar estimativa de audiência:', err);
+    }
+}
+
+function handleActionChoiceChange(actionChoice) {
+    const schedContainer = document.getElementById('schedule-fields-container');
+    if (schedContainer) {
+        schedContainer.style.display = actionChoice === 'SCHEDULE' ? 'block' : 'none';
+    }
+}
+
+/**
+ * Preenche a tela de revisão e ativa o banner de confirmação dupla quando necessário
+ */
+function populateReviewStep() {
+    const name = document.getElementById('camp-name').value;
+    const type = document.getElementById('camp-type').value;
+    const title = document.getElementById('camp-title').value;
+    const body = document.getElementById('camp-body').value;
+    const deepSelect = document.getElementById('camp-deeplink-select').value;
+    const deepCustom = document.getElementById('camp-deeplink-custom').value;
+    const deepLink = deepSelect === 'custom' ? deepCustom : deepSelect;
+
+    const selectedAudience = document.querySelector('input[name="audience_target"]:checked')?.value || 'ALL';
+    const selectedAction = document.querySelector('input[name="campaign_action_choice"]:checked')?.value || 'SEND_NOW';
+
+    document.getElementById('rev-name').innerText = name;
+    document.getElementById('rev-type').innerText = type;
+    document.getElementById('rev-title').innerText = title;
+    document.getElementById('rev-body').innerText = body;
+    document.getElementById('rev-audience').innerText = formatAudienceName(selectedAudience);
+    document.getElementById('rev-devices').innerText = currentAudienceStats.eligible_devices ?? '0';
+    document.getElementById('rev-deeplink').innerText = deepLink;
+
+    let actionLabel = '🚀 Envio Imediato';
+    if (selectedAction === 'SCHEDULE') {
+        const sDate = document.getElementById('sched-date').value;
+        const sTime = document.getElementById('sched-time').value;
+        actionLabel = `⏰ Agendado para ${sDate} às ${sTime}`;
+    } else if (selectedAction === 'DRAFT') {
+        actionLabel = '📝 Salvar Rascunho';
+    }
+    document.getElementById('rev-action').innerText = actionLabel;
+
+    // Dupla Confirmação para TODOS OS USUÁRIOS
+    const warningDiv = document.getElementById('rev-all-users-warning');
+    const confirmCheck = document.getElementById('rev-confirm-all-check');
+    if (selectedAudience === 'ALL' && selectedAction === 'SEND_NOW') {
+        if (warningDiv) warningDiv.style.display = 'block';
+        if (confirmCheck) confirmCheck.checked = false;
+    } else {
+        if (warningDiv) warningDiv.style.display = 'none';
+        if (confirmCheck) confirmCheck.checked = true;
+    }
+}
+
+/**
+ * Envia ou agenda a campanha após revisão
+ */
+async function submitCampaignWizard() {
+    const selectedAudience = document.querySelector('input[name="audience_target"]:checked')?.value || 'ALL';
+    const selectedAction = document.querySelector('input[name="campaign_action_choice"]:checked')?.value || 'SEND_NOW';
+
+    // Verificação de dupla confirmação para envio global
+    if (selectedAudience === 'ALL' && selectedAction === 'SEND_NOW') {
+        const confirmCheck = document.getElementById('rev-confirm-all-check');
+        if (confirmCheck && !confirmCheck.checked) {
+            showToast('Marque a caixa de confirmação para autorizar o disparo para TODOS os dispositivos.', 'error');
+            return;
+        }
+    }
+
+    const name = document.getElementById('camp-name').value.trim();
+    const type = document.getElementById('camp-type').value;
+    const channelId = document.getElementById('camp-channel').value;
+    const title = document.getElementById('camp-title').value.trim();
+    const body = document.getElementById('camp-body').value.trim();
+    const imageUrl = document.getElementById('camp-image').value.trim() || null;
+    const deepSelect = document.getElementById('camp-deeplink-select').value;
+    const deepCustom = document.getElementById('camp-deeplink-custom').value.trim();
+    const deepLink = deepSelect === 'custom' ? deepCustom : deepSelect;
+
+    let scheduledAt = null;
+    if (selectedAction === 'SCHEDULE') {
+        const sDate = document.getElementById('sched-date').value;
+        const sTime = document.getElementById('sched-time').value;
+        if (!sDate || !sTime) {
+            showToast('Informe a data e o horário para agendamento.', 'error');
+            goToWizardStep(3);
+            return;
+        }
+        scheduledAt = `${sDate}T${sTime}:00`;
+    }
+
+    const payload = {
+        name,
+        type,
+        title,
+        body,
+        image_url: imageUrl,
+        deep_link: deepLink,
+        channel_id: channelId,
+        audience_type: selectedAudience,
+        audience_filter: {
+            city: document.getElementById('filter-city')?.value.trim() || null,
+            state: document.getElementById('filter-state')?.value.trim() || null
+        },
+        action: selectedAction,
+        scheduled_at: scheduledAt
+    };
+
+    // Navega para o passo 5 (progresso)
+    goToWizardStep(5);
+    document.getElementById('wizard-status-loading').style.display = 'block';
+    document.getElementById('wizard-status-result').style.display = 'none';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Falha ao processar campanha.');
+        }
+
+        const result = await response.json();
+
+        // Oculta loading e exibe resultado real
+        document.getElementById('wizard-status-loading').style.display = 'none';
+        document.getElementById('wizard-status-result').style.display = 'block';
+
+        if (selectedAction === 'SEND_NOW') {
+            document.getElementById('wizard-result-icon').innerText = '🚀';
+            document.getElementById('wizard-result-title').innerText = 'Notificação Push Disparada!';
+            document.getElementById('wizard-result-desc').innerText = `Campanha enviada via Firebase Cloud Messaging para ${result.sent_count || 0} dispositivos Android.`;
+            document.getElementById('res-sent-count').innerText = result.sent_count || 0;
+            document.getElementById('res-failure-count').innerText = result.failure_count || 0;
+            document.getElementById('res-invalid-count').innerText = result.invalid_tokens || 0;
+        } else if (selectedAction === 'SCHEDULE') {
+            document.getElementById('wizard-result-icon').innerText = '⏰';
+            document.getElementById('wizard-result-title').innerText = 'Campanha Agendada com Sucesso!';
+            document.getElementById('wizard-result-desc').innerText = `Disparo programado para ${new Date(result.scheduled_at || scheduledAt).toLocaleString('pt-BR')}.`;
+            document.getElementById('res-sent-count').innerText = '0 (Agendada)';
+            document.getElementById('res-failure-count').innerText = '0';
+            document.getElementById('res-invalid-count').innerText = '0';
+        } else {
+            document.getElementById('wizard-result-icon').innerText = '📝';
+            document.getElementById('wizard-result-title').innerText = 'Rascunho Salvo com Sucesso!';
+            document.getElementById('wizard-result-desc').innerText = 'Você pode revisar e disparar esta campanha a qualquer momento.';
+            document.getElementById('res-sent-count').innerText = '0 (Rascunho)';
+            document.getElementById('res-failure-count').innerText = '0';
+            document.getElementById('res-invalid-count').innerText = '0';
+        }
+
+        showToast('Operação realizada com sucesso!', 'success');
+        loadCampaignsDashboard();
+        loadCampaignsTable();
+    } catch (err) {
+        document.getElementById('wizard-status-loading').style.display = 'none';
+        document.getElementById('wizard-status-result').style.display = 'block';
+        document.getElementById('wizard-result-icon').innerText = '⚠️';
+        document.getElementById('wizard-result-title').innerText = 'Falha no Processamento';
+        document.getElementById('wizard-result-desc').innerText = err.message;
+        showToast(err.message, 'error');
+    }
+}
+
+/**
+ * Disparar campanha que estava como rascunho
+ */
+async function handleSendCampaignNow(id) {
+    if (!confirm('Deseja realmente disparar esta notificação PUSH agora para os dispositivos elegíveis?')) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/${id}/send`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Falha ao enviar campanha.');
+        }
+
+        const data = await response.json();
+        showToast(`Campanha disparada com sucesso para ${data.sent_count || 0} dispositivos!`, 'success');
+        loadCampaignsDashboard();
+        loadCampaignsTable();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+/**
+ * Cancelar campanha agendada
+ */
+async function handleCancelCampaign(id) {
+    if (!confirm('Deseja cancelar o envio agendado desta campanha?')) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/${id}/cancel`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Falha ao cancelar agendamento.');
+        }
+
+        showToast('Agendamento cancelado com sucesso.', 'info');
+        loadCampaignsDashboard();
+        loadCampaignsTable();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+/**
+ * Duplicar campanha existente
+ */
+async function handleDuplicateCampaign(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/${id}/duplicate`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Falha ao duplicar campanha.');
+        }
+
+        showToast('Campanha duplicada como Rascunho com sucesso!', 'success');
+        loadCampaignsDashboard();
+        loadCampaignsTable();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+/**
+ * Excluir campanha
+ */
+async function handleDeleteCampaign(id) {
+    if (!confirm('Tem certeza que deseja excluir esta campanha?')) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Falha ao excluir campanha.');
+        }
+
+        showToast('Campanha excluída com sucesso.', 'info');
+        loadCampaignsDashboard();
+        loadCampaignsTable();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+/**
+ * ==========================================================================
+ * RELATÓRIO COMPLETO DA CAMPANHA
+ * ==========================================================================
+ */
+
+async function openCampaignReport(id) {
+    openModal('modal-campaign-report');
+    document.getElementById('rep-camp-name').innerText = 'Carregando dados...';
+    document.getElementById('rep-deliveries-table-body').innerHTML = `
+        <tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">Consultando histórico de entregas...</td></tr>
+    `;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaigns/${id}/report`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Falha ao obter relatório da campanha.');
+
+        const data = await response.json();
+        const camp = data.campaign || {};
+        const deliveries = data.deliveries || [];
+
+        document.getElementById('rep-camp-name').innerText = camp.name || 'Sem nome';
+        document.getElementById('rep-notif-title').innerText = camp.title || '-';
+        document.getElementById('rep-notif-body').innerText = camp.body || '-';
+        document.getElementById('rep-badge-status').innerHTML = `<span class="badge badge-info">${escapeHtml(camp.status || '-')}</span>`;
+        document.getElementById('rep-sent-at').innerText = camp.sent_at ? new Date(camp.sent_at).toLocaleString('pt-BR') : 'Ainda não enviada';
+
+        // Métricas reais (sem invenções)
+        document.getElementById('rep-devices-count').innerText = data.eligible_devices !== undefined ? data.eligible_devices : 'N/D';
+        document.getElementById('rep-sent-count').innerText = data.messages_sent !== undefined ? data.messages_sent : '0';
+        document.getElementById('rep-failed-count').innerText = data.failures !== undefined ? data.failures : '0';
+        document.getElementById('rep-open-rate').innerText = data.open_rate || 'N/D';
+
+        // Tabela de entregas
+        const tbody = document.getElementById('rep-deliveries-table-body');
+        if (deliveries.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">Nenhum registro de entrega encontrado para esta campanha.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        deliveries.forEach(d => {
+            const tr = document.createElement('tr');
+            const statusColor = d.status === 'SENT' ? '#00E676' : (d.status === 'FAILED' ? '#FF334B' : '#FFB300');
+            tr.innerHTML = `
+                <td style="font-family: monospace;">${escapeHtml(d.device_token_id ? d.device_token_id.substring(0, 12) + '...' : 'Geral')}</td>
+                <td><span style="color: ${statusColor}; font-weight: 600;">${escapeHtml(d.status)}</span></td>
+                <td style="font-family: monospace; font-size: 0.75rem;">${escapeHtml(d.fcm_message_id || 'N/D')}</td>
+                <td style="color: #FF334B;">${escapeHtml(d.error_code || '-')}</td>
+                <td style="color: var(--text-muted);">${d.sent_at ? new Date(d.sent_at).toLocaleTimeString('pt-BR') : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+/**
+ * ==========================================================================
+ * MODELOS REUTILIZÁVEIS (TEMPLATES)
+ * ==========================================================================
+ */
+
+async function openTemplatesModal() {
+    openModal('modal-campaign-templates');
+    const container = document.getElementById('templates-list-container');
+    container.innerHTML = `<div style="text-align: center; padding: 30px; color: var(--text-muted);">Carregando modelos do sistema...</div>`;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/campaign-templates`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) throw new Error('Falha ao listar templates.');
+
+        const templates = await response.json();
+        if (templates.length === 0) {
+            container.innerHTML = `<div style="text-align: center; padding: 30px; color: var(--text-muted);">Nenhum template cadastrado.</div>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        templates.forEach(t => {
+            const card = document.createElement('div');
+            card.className = 'template-item-card';
+            card.style.background = 'rgba(255,255,255,0.03)';
+            card.style.border = '1px solid var(--border-subtle)';
+            card.style.borderRadius = '8px';
+            card.style.padding = '14px';
+            card.style.display = 'flex';
+            card.style.justifyContent = 'space-between';
+            card.style.alignItems = 'center';
+
+            card.innerHTML = `
+                <div>
+                    <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">${escapeHtml(t.name)}</div>
+                    <div style="font-size: 0.82rem; color: var(--primary-orange); margin-top: 2px;">${escapeHtml(t.title)}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; max-width: 420px;">${escapeHtml(t.body)}</div>
+                </div>
+                <button class="btn-primary-action" style="padding: 6px 14px; font-size: 0.82rem;" onclick="applyTemplate(${JSON.stringify(t).replace(/"/g, '&quot;')})">
+                    Usar este Modelo
+                </button>
+            `;
+            container.appendChild(card);
+        });
+    } catch (err) {
+        container.innerHTML = `<div style="text-align: center; color: #FF334B; padding: 20px;">Erro: ${err.message}</div>`;
+    }
+}
+
+function applyTemplate(template) {
+    closeModal('modal-campaign-templates');
+    openNewCampaignWizard();
+
+    document.getElementById('camp-name').value = `${template.name} - ${new Date().toLocaleDateString('pt-BR')}`;
+    document.getElementById('camp-type').value = template.type || 'INFORMATIVA';
+    document.getElementById('camp-title').value = template.title || '';
+    document.getElementById('camp-body').value = template.body || '';
+
+    if (template.deep_link) {
+        const select = document.getElementById('camp-deeplink-select');
+        const options = Array.from(select.options).map(o => o.value);
+        if (options.includes(template.deep_link)) {
+            select.value = template.deep_link;
+            document.getElementById('camp-deeplink-custom').style.display = 'none';
+        } else {
+            select.value = 'custom';
+            const custom = document.getElementById('camp-deeplink-custom');
+            custom.style.display = 'block';
+            custom.value = template.deep_link;
+        }
+    }
+
+    updateLivePreview();
+    showToast(`Modelo "${template.name}" aplicado!`, 'info');
+}
+
+// ==========================================================================
+// 11. UTILITÁRIOS, MODAIS & TOASTS
 // ==========================================================================
 
 function openModal(id) {

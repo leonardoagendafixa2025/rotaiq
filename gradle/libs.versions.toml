@@ -15,8 +15,11 @@ coroutines = "1.8.0"
 truth = "1.4.2"
 mockk = "1.13.10"
 materialIconsExtended = "1.6.7"
+firebaseBom = "33.1.0"
 
 [libraries]
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

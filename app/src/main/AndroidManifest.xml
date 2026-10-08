@@ -28,7 +28,23 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Deep Links Nativos: rotaiq://subscription, rotaiq://finance, rotaiq://rides, rotaiq://home -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="rotaiq" />
+            </intent-filter>
         </activity>
+
+        <!-- Serviço Oficial do Firebase Cloud Messaging (Push Notifications Nativas) -->
+        <service
+            android:name=".core.notifications.RotaFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- Serviço de Acessibilidade para Leitura em Tempo Real de Ofertas -->
         <service
