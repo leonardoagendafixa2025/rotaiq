@@ -7,7 +7,13 @@ e tokens de sessão JWT (HS256) com controle de expiração e revogação.
 import os
 import hashlib
 import secrets
-import jwt
+try:
+    import jwt
+except ImportError:
+    try:
+        from jose import jwt
+    except ImportError:
+        jwt = None
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from fastapi import HTTPException, Security, status
