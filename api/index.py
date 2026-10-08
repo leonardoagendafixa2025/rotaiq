@@ -1,42 +1,53 @@
 """
-ROTA IQ - Minimal guaranteed-working Vercel Python handler.
-Exports the FastAPI app as a global 'app' variable.
+ROTA IQ - Vercel Serverless Function Entrypoint
+Exporta a aplicação FastAPI oficial para o runtime serverless da Vercel.
 """
 
-from http.server import BaseHTTPRequestHandler
-import json
+import sys
+import os
 
-class handler(BaseHTTPRequestHandler):
-    """
-    Minimal BaseHTTPRequestHandler that always returns 200 OK.
-    Used to verify Vercel Python runtime is working.
-    """
-    def do_GET(self):
-        path = self.path
-        
-        # Serve the admin panel inline
-        if path == '/admin' or path == '/admin/' or path == '/admin/index.html':
-            self.send_response(302)
-            self.send_header('Location', '/admin/index.html')
-            self.end_headers()
-            return
-        
-        # Health check
-        body = json.dumps({
-            "status": "HEALTHY",
-            "service": "rota-iq-backend",
-            "version": "2.0.0",
-            "message": "Vercel Python runtime is working correctly"
-        }).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-    
-    def do_POST(self):
-        self.send_response(405)
-        self.end_headers()
-    
-    def log_message(self, format, *args):
-        pass  # Suppress logging
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(current_dir)
+
+for p in [root_dir, current_dir]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+app = None
+
+# Tentativa 1: Importar do backend principal
+try:
+    from backend.app.main import app as _app
+    app = _app
+except Exception as e1:
+    # Tentativa 2: Importar da cópia de segurança em api._app
+    try:
+        from api._app.main import app as _app
+        app = _app
+    except Exception as e2:
+        try:
+            from _app.main import app as _app
+            app = _app
+        except Exception as e3:
+            import traceback
+            err_trace = traceback.format_exc()
+            from fastapi import FastAPI
+            from fastapi.responses import JSONResponse
+
+            app = FastAPI(title="ROTA IQ Diagnostic Fallback")
+
+            @app.get("/health")
+            @app.get("/api/v1/health")
+            @app.get("/{catchall:path}")
+            async def fallback_handler(catchall: str = ""):
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "STARTUP_IMPORT_ERROR",
+                        "error_backend": str(e1),
+                        "error_api_app": str(e2),
+                        "error_app": str(e3),
+                        "traceback": err_trace,
+                        "sys_path": sys.path
+                    }
+                )
