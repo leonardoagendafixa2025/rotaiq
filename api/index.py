@@ -1,38 +1,58 @@
 """
 ROTA IQ - Vercel Serverless Function Entrypoint
-Exporta a aplicação ASGI FastAPI oficial para o runtime Python da Vercel.
+Exporta a aplicação FastAPI oficial para o runtime Python da Vercel.
 """
 
 import sys
 import os
 
-# Adiciona os caminhos de importação necessários
 current_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.abspath(os.path.join(current_dir, ".."))
 
-for path in [root_dir, current_dir]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
+for p in [current_dir, root_dir]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+# Cascata de importação resiliente para garantir carregamento em qualquer contexto de empacotamento da Vercel
+app = None
 
 try:
-    from backend.app.main import app
+    from _app.main import app
 except Exception:
+    pass
+
+if app is None:
     try:
         from api._app.main import app
-    except Exception as e:
-        import traceback
-        err_msg = traceback.format_exc()
-        from fastapi import FastAPI
-        from fastapi.responses import HTMLResponse
+    except Exception:
+        pass
 
-        app = FastAPI(title="ROTA IQ Diagnostic Mode")
+if app is None:
+    try:
+        from backend.app.main import app
+    except Exception:
+        pass
 
-        @app.get("/{catchall:path}")
-        async def diagnostic_view(catchall: str = ""):
-            return HTMLResponse(
-                f"<html><body style='background:#0f172a;color:#f8fafc;padding:2rem;font-family:sans-serif'>"
-                f"<h2 style='color:#ef4444'>ROTA IQ API - Startup Diagnostic</h2>"
-                f"<pre style='background:#1e293b;padding:1.5rem;border-radius:8px;overflow:auto'>{err_msg}</pre>"
-                f"</body></html>",
-                status_code=500
-            )
+if app is None:
+    import traceback
+    err_tb = traceback.format_exc()
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
+
+    app = FastAPI(title="ROTA IQ Diagnostic Mode")
+
+    @app.get("/")
+    @app.get("/health")
+    @app.get("/api/v1/health")
+    @app.get("/{catchall:path}")
+    async def fallback_diagnostic(catchall: str = ""):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "STARTUP_IMPORT_FAILED",
+                "detail": err_tb,
+                "sys_path": sys.path,
+                "current_dir": current_dir,
+                "root_dir": root_dir
+            }
+        )
