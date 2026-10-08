@@ -68,7 +68,7 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
 def decode_token(token: str) -> Dict[str, Any]:
     """Decodifica e valida assinatura, expiração e status de revogação do JWT."""
     try:
-        from app.auth_service import auth_service
+        from .auth_service import auth_service
         if auth_service.is_token_revoked(token):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

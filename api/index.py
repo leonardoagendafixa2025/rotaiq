@@ -17,23 +17,27 @@ if not os.environ.get("ENVIRONMENT"):
     os.environ["ENVIRONMENT"] = "production"
 
 try:
-    from app.main import app
+    from backend.app.main import app
 except Exception as err:
     try:
-        from backend.app.main import app
+        from api.app.main import app
     except Exception as err2:
-        from fastapi import FastAPI
-        from fastapi.responses import JSONResponse
-        app = FastAPI(title="ROTA IQ - Fallback")
-        @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
-        async def emergency_fallback(full_path: str):
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "error": "FastAPI initialization failed on Vercel",
-                    "error_primary": str(err),
-                    "error_secondary": str(err2),
-                    "path_attempted": full_path,
-                    "sys_path": sys.path
-                }
-            )
+        try:
+            from app.main import app
+        except Exception as err3:
+            from fastapi import FastAPI
+            from fastapi.responses import JSONResponse
+            app = FastAPI(title="ROTA IQ - Fallback")
+            @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
+            async def emergency_fallback(full_path: str):
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "error": "FastAPI initialization failed on Vercel",
+                        "error_primary": str(err),
+                        "error_secondary": str(err2),
+                        "error_tertiary": str(err3),
+                        "path_attempted": full_path,
+                        "sys_path": sys.path
+                    }
+                )

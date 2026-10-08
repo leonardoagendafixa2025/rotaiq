@@ -19,8 +19,8 @@ import hashlib
 import os
 import mimetypes
 
-from app.supabase_client import supabase
-from app.auth import (
+from .supabase_client import supabase
+from .auth import (
     hash_password,
     verify_password,
     create_access_token,
@@ -33,11 +33,11 @@ from app.auth import (
     require_campaign_manage_permission,
     security
 )
-from app.auth_service import auth_service
+from .auth_service import auth_service
 from fastapi.security import HTTPAuthorizationCredentials
-from app.admin_service import AdminService, admin_store
-from app.campaign_service import campaign_service
-from app.push_service import push_service
+from .admin_service import AdminService, admin_store
+from .campaign_service import campaign_service
+from .push_service import push_service
 
 
 app = FastAPI(

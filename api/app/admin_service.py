@@ -14,8 +14,8 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 
-from app.supabase_client import supabase
-from app.auth import hash_password, verify_password, create_access_token
+from .supabase_client import supabase
+from .auth import hash_password, verify_password, create_access_token
 
 # Caminho do banco local persistente para tabelas complementares (sobrevive a restarts e reboots)
 def get_admin_db_path() -> str:

@@ -19,8 +19,8 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 
-from app.admin_service import admin_store, AdminService
-from app.push_service import push_service
+from .admin_service import admin_store, AdminService
+from .push_service import push_service
 
 
 
