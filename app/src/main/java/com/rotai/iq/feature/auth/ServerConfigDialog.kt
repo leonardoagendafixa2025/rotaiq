@@ -103,7 +103,15 @@ fun ServerConfigDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Atalho 1: PC Wi-Fi Local (192.168.100.11)
+                // Atalho 1: Nuvem Produção (Vercel Oficial)
+                QuickUrlChip(
+                    label = "☁️ Nuvem Produção (Vercel)",
+                    isSelected = inputUrl == NetworkConfig.PROD_DEFAULT_URL,
+                    onClick = { inputUrl = NetworkConfig.PROD_DEFAULT_URL }
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Atalho 2: PC Wi-Fi Local (192.168.100.11)
                 QuickUrlChip(
                     label = "Wi-Fi Local (192.168.100.11:8000)",
                     isSelected = inputUrl == NetworkConfig.LAN_DEFAULT_URL,

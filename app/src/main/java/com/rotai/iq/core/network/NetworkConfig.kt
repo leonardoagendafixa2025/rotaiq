@@ -15,7 +15,10 @@ object NetworkConfig {
     private const val PREFS_NAME = "rota_iq_network_prefs"
     private const val KEY_CUSTOM_BASE_URL = "custom_base_url"
 
-    // IP da máquina host local na rede Wi-Fi
+    // URL Oficial de Produção na Nuvem (Vercel)
+    const val PROD_DEFAULT_URL = "https://rotaiq-puce.vercel.app/api/v1"
+
+    // IP da máquina host local na rede Wi-Fi (ambiente de desenvolvimento)
     const val LAN_DEFAULT_HOST = "192.168.100.11"
     const val LAN_DEFAULT_URL = "http://$LAN_DEFAULT_HOST:8000/api/v1"
 
@@ -44,7 +47,7 @@ object NetworkConfig {
                 return custom.trimEnd('/')
             }
         }
-        return if (isEmulator()) EMULATOR_DEFAULT_URL else LAN_DEFAULT_URL
+        return PROD_DEFAULT_URL
     }
 
     fun setCustomBaseUrl(context: Context, url: String) {
@@ -57,6 +60,7 @@ object NetworkConfig {
         val list = mutableListOf<String>()
         val current = getBaseUrl(context)
         list.add(current)
+        if (!list.contains(PROD_DEFAULT_URL)) list.add(PROD_DEFAULT_URL)
         if (!list.contains(LAN_DEFAULT_URL)) list.add(LAN_DEFAULT_URL)
         if (!list.contains(EMULATOR_DEFAULT_URL)) list.add(EMULATOR_DEFAULT_URL)
         if (!list.contains(ADB_REVERSE_URL)) list.add(ADB_REVERSE_URL)

@@ -189,31 +189,6 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Chip do Servidor Conectado
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0x18FFFFFF))
-                    .clickable { showServerDialog = true }
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = RotaOrangePrimary,
-                    modifier = Modifier.size(12.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Servidor: ${viewModel.getCurrentServerUrl(context).removePrefix("http://")}",
-                    color = RotaTextSecondary,
-                    fontSize = 11.sp
-                )
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
 
             // Card Principal do Formulário
