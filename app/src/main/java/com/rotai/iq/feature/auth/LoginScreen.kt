@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -35,10 +36,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -76,6 +82,8 @@ fun LoginScreen(
 ) {
     val state by viewModel.loginState.collectAsState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    var showServerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.navEvents.collectLatest { event ->
@@ -103,6 +111,20 @@ fun LoginScreen(
             .padding(horizontal = 24.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Botão Configurar Servidor no topo direito
+        IconButton(
+            onClick = { showServerDialog = true },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 16.dp, end = 4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Configurar Servidor",
+                tint = RotaOrangePrimary
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -167,7 +189,32 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Chip do Servidor Conectado
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0x18FFFFFF))
+                    .clickable { showServerDialog = true }
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                    tint = RotaOrangePrimary,
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Servidor: ${viewModel.getCurrentServerUrl(context).removePrefix("http://")}",
+                    color = RotaTextSecondary,
+                    fontSize = 11.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Card Principal do Formulário
             RotaCard(
@@ -352,6 +399,16 @@ fun LoginScreen(
             }
 
             Spacer(modifier = Modifier.height(36.dp))
+        }
+
+        if (showServerDialog) {
+            ServerConfigDialog(
+                currentUrl = viewModel.getCurrentServerUrl(context),
+                onDismiss = { showServerDialog = false },
+                onSaveUrl = { newUrl ->
+                    viewModel.updateServerUrl(context, newUrl)
+                }
+            )
         }
     }
 }

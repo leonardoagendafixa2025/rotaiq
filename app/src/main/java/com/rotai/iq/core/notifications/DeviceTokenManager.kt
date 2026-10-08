@@ -44,7 +44,8 @@ object DeviceTokenManager {
         notificationsEnabled: Boolean = true
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$DEFAULT_BACKEND_URL/devices/register")
+            val baseUrl = com.rotai.iq.core.network.NetworkConfig.getBaseUrl(context)
+            val url = URL("$baseUrl/devices/register")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")

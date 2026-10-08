@@ -4,8 +4,16 @@
  * Mutações persistentes em tempo real.
  */
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
-const HEALTH_URL = 'http://localhost:8000/health';
+const isLocal = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+const API_BASE_URL = isLocal 
+    ? `http://${window.location.hostname}:8000/api/v1` 
+    : `${window.location.origin}/api/v1`;
+
+const HEALTH_URL = isLocal 
+    ? `http://${window.location.hostname}:8000/health` 
+    : `${window.location.origin}/health`;
 
 // Estado global da sessão administrativa
 let currentSession = {
@@ -139,8 +147,15 @@ function showAdminDashboard() {
     document.getElementById('admin-login-modal').style.display = 'none';
     document.getElementById('admin-app').style.display = 'block';
 
-    document.getElementById('current-user-email').innerText = currentSession.email;
-    document.getElementById('current-role-badge').innerText = currentSession.role;
+    const emailEl = document.getElementById('current-user-email');
+    const roleEl = document.getElementById('current-role-badge');
+    const drawerEmailEl = document.getElementById('drawer-user-email');
+    const drawerRoleEl = document.getElementById('drawer-role-badge');
+
+    if (emailEl) emailEl.innerText = currentSession.email;
+    if (roleEl) roleEl.innerText = currentSession.role;
+    if (drawerEmailEl) drawerEmailEl.innerText = currentSession.email;
+    if (drawerRoleEl) drawerRoleEl.innerText = currentSession.role;
 
     // Carrega dados iniciais da visão geral e inicia sincronia contínua
     fetchAdminDashboard();
@@ -149,6 +164,7 @@ function showAdminDashboard() {
 
 function handleAdminLogout() {
     stopLiveSync();
+    toggleMobileDrawer(false);
     sessionStorage.removeItem('rota_iq_admin_session');
     currentSession = { token: null, email: null, role: 'ADMIN' };
     document.getElementById('admin-app').style.display = 'none';
@@ -216,23 +232,64 @@ function triggerCardGlow(cardId) {
 }
 
 // ==========================================================================
-// 3. NAVEGAÇÃO ENTRE ABAS
+// 3. NAVEGAÇÃO ENTRE ABAS & MOBILE DRAWER
 // ==========================================================================
+
+function toggleMobileDrawer(open) {
+    const drawer = document.getElementById('admin-mobile-drawer');
+    const backdrop = document.getElementById('drawer-backdrop');
+    if (open) {
+        drawer?.classList.add('active');
+        backdrop?.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    } else {
+        drawer?.classList.remove('active');
+        backdrop?.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
 
 function switchTab(tabName) {
     liveSyncState.activeTab = tabName;
-    const tabs = document.querySelectorAll('.nav-tab');
-    tabs.forEach(t => t.classList.remove('active'));
 
+    // 1. Sincroniza estado ativo em todos os menus (Desktop Sidebar, Drawer Mobile e Bottom Nav)
+    document.querySelectorAll('[data-tab]').forEach(el => {
+        if (el.getAttribute('data-tab') === tabName) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+
+    // 2. Alterna os painéis de abas
     const panels = document.querySelectorAll('.tab-panel');
     panels.forEach(p => p.classList.remove('active'));
-
-    const activeBtn = Array.from(tabs).find(t => t.getAttribute('onclick')?.includes(tabName));
-    if (activeBtn) activeBtn.classList.add('active');
 
     const activePanel = document.getElementById(`tab-${tabName}`);
     if (activePanel) activePanel.classList.add('active');
 
+    // 3. Atualiza texto do breadcrumb
+    const breadcrumb = document.getElementById('breadcrumb-current-tab');
+    const tabTitles = {
+        'overview': 'Visão Geral',
+        'drivers': 'Motoristas Cadastrados',
+        'campaigns': 'Campanhas & Push Notifications',
+        'plans': 'Planos & Preços',
+        'subs-payments': 'Assinaturas & Pix',
+        'flags': 'Funcionalidades do App',
+        'settings': 'Configurações Operacionais'
+    };
+    if (breadcrumb) {
+        breadcrumb.innerText = tabTitles[tabName] || tabName;
+    }
+
+    // 4. Fecha drawer mobile automaticamente e restaura scroll
+    toggleMobileDrawer(false);
+
+    // 5. Scroll suave ao topo da visualização
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // 6. Carrega dados frescos da respectiva área
     if (tabName === 'overview') {
         fetchAdminDashboard(true);
     } else if (tabName === 'drivers') {
@@ -249,6 +306,34 @@ function switchTab(tabName) {
     } else if (tabName === 'settings') {
         loadSettings();
     }
+}
+
+function openDriverFiltersSheet() {
+    const deskFilter = document.getElementById('driver-status-filter');
+    const mobileFilter = document.getElementById('mobile-driver-status-filter');
+    if (deskFilter && mobileFilter) {
+        mobileFilter.value = deskFilter.value;
+    }
+    openModal('sheet-driver-filters');
+}
+
+function applyDriverFiltersMobile() {
+    const deskFilter = document.getElementById('driver-status-filter');
+    const mobileFilter = document.getElementById('mobile-driver-status-filter');
+    if (deskFilter && mobileFilter) {
+        deskFilter.value = mobileFilter.value;
+    }
+    closeModal('sheet-driver-filters');
+    loadDriversTable(1);
+}
+
+function resetDriverFiltersMobile() {
+    const deskFilter = document.getElementById('driver-status-filter');
+    const mobileFilter = document.getElementById('mobile-driver-status-filter');
+    if (deskFilter) deskFilter.value = 'ALL';
+    if (mobileFilter) mobileFilter.value = 'ALL';
+    closeModal('sheet-driver-filters');
+    loadDriversTable(1);
 }
 
 // ==========================================================================
@@ -406,11 +491,13 @@ async function triggerLiveDriverTraffic() {
     }
 
     try {
-        const simId = Date.now().toString().slice(-4);
-        const driverName = `Motorista Teste #${simulationCounter++} (${simId})`;
+        const simId = `${Date.now()}_${Math.floor(Math.random() * 8999 + 1000)}`;
+        const driverName = `Motorista Teste #${simulationCounter++} (${simId.slice(-4)})`;
         const driverEmail = `motorista_${simId}@rotai.app`;
         const city = ['São Paulo', 'Campinas', 'Rio de Janeiro', 'Curitiba', 'Belo Horizonte'][Math.floor(Math.random() * 5)];
         const state = city === 'Rio de Janeiro' ? 'RJ' : (city === 'Curitiba' ? 'PR' : (city === 'Belo Horizonte' ? 'MG' : 'SP'));
+
+        const simPhone = '119' + Math.floor(10000000 + Math.random() * 89999999).toString();
 
         // 1. Cadastra o motorista no banco real
         const regResp = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -420,7 +507,7 @@ async function triggerLiveDriverTraffic() {
                 email: driverEmail,
                 password: 'SenhaForte@2026',
                 full_name: driverName,
-                phone: '11988887777'
+                phone: simPhone
             })
         });
 
@@ -442,12 +529,12 @@ async function triggerLiveDriverTraffic() {
                 user_id: driverId,
                 fcm_token: fcmToken,
                 platform: 'android',
-                device_id: `samsung_galaxy_s24_${simId}`,
+                device_id: `samsung_galaxy_s24_${simId.slice(-4)}`,
                 app_version: '1.0.0',
                 os_version: 'Android 14 (API 34)',
                 notifications_enabled: true
             })
-        });
+        }).catch(e => console.warn('Aviso no registro do FCM:', e));
 
         // 3. Sincroniza uma corrida e um abastecimento via /api/v1/sync/push
         const syncResp = await fetch(`${API_BASE_URL}/sync/push`, {
@@ -457,7 +544,7 @@ async function triggerLiveDriverTraffic() {
                 'Authorization': `Bearer ${driverToken}`
             },
             body: JSON.stringify({
-                device_id: `device_${simId}`,
+                device_id: `device_${simId.slice(-4)}`,
                 client_timestamp: Date.now(),
                 evaluations: [{
                     platform: 'UBERX',
@@ -467,7 +554,7 @@ async function triggerLiveDriverTraffic() {
                     estimated_cost: 11.40,
                     net_profit: 31.40,
                     score: 95,
-                    classification: 'EXCELENTE',
+                    classification: 'EXCELLENT',
                     was_accepted: true
                 }],
                 fuel_records: [{
@@ -482,7 +569,12 @@ async function triggerLiveDriverTraffic() {
             })
         });
 
-        const syncResult = syncResp.ok ? await syncResp.json() : null;
+        if (!syncResp.ok) {
+            const err = await syncResp.json().catch(() => ({}));
+            throw new Error(err.detail || 'Falha ao sincronizar corrida e abastecimento.');
+        }
+
+        const syncResult = await syncResp.json();
 
         // 4. Cria e confirma uma assinatura PRO via Pix para 50% dos motoristas simulados
         let pixUpgraded = false;
@@ -557,7 +649,11 @@ function debounceDriverSearch() {
 
 async function loadDriversTable(page = 1) {
     const tbody = document.getElementById('drivers-table-body');
-    tbody.innerHTML = '<tr><td colspan="7" class="table-loading">Carregando motoristas...</td></tr>';
+    tbody.innerHTML = `
+        <tr><td colspan="7" style="padding: 14px;"><div class="skeleton" style="height: 38px; width: 100%; border-radius: 8px;"></div></td></tr>
+        <tr><td colspan="7" style="padding: 14px;"><div class="skeleton" style="height: 38px; width: 100%; border-radius: 8px;"></div></td></tr>
+        <tr><td colspan="7" style="padding: 14px;"><div class="skeleton" style="height: 38px; width: 100%; border-radius: 8px;"></div></td></tr>
+    `;
 
     const search = document.getElementById('driver-search-input')?.value.trim() || '';
     const status = document.getElementById('driver-status-filter')?.value || 'ALL';
@@ -580,7 +676,16 @@ async function loadDriversTable(page = 1) {
             document.getElementById('btn-page-next').disabled = data.page >= data.total_pages;
 
             if (items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; color: #888;">Nenhum motorista encontrado com os filtros informados.</td></tr>';
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                            <div style="font-size: 2.2rem; margin-bottom: 8px;">🚗</div>
+                            <div style="font-size: 1.05rem; font-weight: 700; color: #fff;">Nenhum motorista encontrado</div>
+                            <div style="font-size: 0.82rem; margin-top: 4px; color: var(--text-secondary);">Não localizamos cadastros com os filtros informados.</div>
+                            <button class="btn-primary-action" style="margin-top: 14px; width: auto; padding: 8px 18px;" onclick="openDriverModal()">+ Cadastrar Motorista</button>
+                        </td>
+                    </tr>
+                `;
                 return;
             }
 
@@ -596,19 +701,19 @@ async function loadDriversTable(page = 1) {
                     : `<button class="btn-action btn-action-danger" onclick="openBlockDriverModal('${d.id}')">Bloquear</button>`;
 
                 tr.innerHTML = `
-                    <td>
+                    <td data-label="Motorista">
                         <strong>${escapeHtml(d.name)}</strong>
                         <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(d.id.substring(0, 10))}</div>
                     </td>
-                    <td>
+                    <td data-label="Contato">
                         <div>${escapeHtml(d.email)}</div>
                         <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(d.phone || '—')}</div>
                     </td>
-                    <td>${escapeHtml(d.city)} / ${escapeHtml(d.state)}</td>
-                    <td><span class="chip ${statusClass}">${d.status}</span></td>
-                    <td><span class="chip ${planClass}">${(d.plan_code || 'free').toUpperCase()}</span></td>
-                    <td>${createdAt}</td>
-                    <td>
+                    <td data-label="Cidade / UF">${escapeHtml(d.city)} / ${escapeHtml(d.state)}</td>
+                    <td data-label="Status"><span class="chip ${statusClass}">${d.status}</span></td>
+                    <td data-label="Plano"><span class="chip ${planClass}">${(d.plan_code || 'free').toUpperCase()}</span></td>
+                    <td data-label="Cadastro">${createdAt}</td>
+                    <td data-label="Ações">
                         <div class="table-actions">
                             <button class="btn-action" onclick="openDriverDetails('${d.id}')">Detalhes</button>
                             <button class="btn-action" onclick="openEditDriverModal('${d.id}')">Editar</button>
@@ -619,10 +724,10 @@ async function loadDriversTable(page = 1) {
                 tbody.appendChild(tr);
             });
         } else {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: #FF334B; padding: 20px;">Falha ao carregar motoristas (HTTP ${response.status})</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: #FF334B; padding: 25px;">Falha ao carregar motoristas (HTTP ${response.status})</td></tr>`;
         }
     } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: #FF334B; padding: 20px;">Erro de conexão ao carregar motoristas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: #FF334B; padding: 25px;">Erro de conexão ao carregar motoristas.</td></tr>';
     }
 }
 
@@ -954,8 +1059,14 @@ async function loadSubscriptionsAndPayments() {
     const subsTbody = document.getElementById('subscriptions-table-body');
     const payTbody = document.getElementById('payments-table-body');
 
-    subsTbody.innerHTML = '<tr><td colspan="6" class="table-loading">Carregando assinaturas...</td></tr>';
-    payTbody.innerHTML = '<tr><td colspan="5" class="table-loading">Carregando transações Pix...</td></tr>';
+    subsTbody.innerHTML = `
+        <tr><td colspan="6" style="padding: 12px;"><div class="skeleton" style="height: 36px; width: 100%; border-radius: 8px;"></div></td></tr>
+        <tr><td colspan="6" style="padding: 12px;"><div class="skeleton" style="height: 36px; width: 100%; border-radius: 8px;"></div></td></tr>
+    `;
+    payTbody.innerHTML = `
+        <tr><td colspan="5" style="padding: 12px;"><div class="skeleton" style="height: 36px; width: 100%; border-radius: 8px;"></div></td></tr>
+        <tr><td colspan="5" style="padding: 12px;"><div class="skeleton" style="height: 36px; width: 100%; border-radius: 8px;"></div></td></tr>
+    `;
 
     try {
         const [subsRes, payRes] = await Promise.all([
@@ -966,18 +1077,26 @@ async function loadSubscriptionsAndPayments() {
         if (subsRes.ok) {
             const subs = await subsRes.json();
             if (subs.length === 0) {
-                subsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #888;">Nenhuma assinatura registrada ainda.</td></tr>';
+                subsTbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding: 35px 20px; color: var(--text-muted);">
+                            <div style="font-size: 2rem; margin-bottom: 6px;">💳</div>
+                            <div style="font-size: 1rem; font-weight: 700; color: #fff;">Nenhuma assinatura ativa</div>
+                            <div style="font-size: 0.8rem; margin-top: 4px;">Assinaturas confirmadas de motoristas aparecerão aqui automaticamente.</div>
+                        </td>
+                    </tr>
+                `;
             } else {
                 subsTbody.innerHTML = '';
                 subs.forEach(s => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><code>${escapeHtml(s.id?.substring(0, 8))}...</code></td>
-                        <td><code>${escapeHtml(s.driver_id?.substring(0, 8))}...</code></td>
-                        <td><span class="chip chip-pro">${escapeHtml(s.plan_code || s.tier || 'PRO')}</span></td>
-                        <td><span class="chip ${s.status === 'ACTIVE' ? 'chip-active' : 'chip-inactive'}">${escapeHtml(s.status)}</span></td>
-                        <td>${escapeHtml(s.provider || 'PIX')}</td>
-                        <td>${s.expires_at ? new Date(s.expires_at).toLocaleDateString('pt-BR') : '—'}</td>
+                        <td data-label="ID Assinatura"><code>${escapeHtml(s.id?.substring(0, 8))}...</code></td>
+                        <td data-label="Motorista"><code>${escapeHtml(s.driver_id?.substring(0, 8))}...</code></td>
+                        <td data-label="Plano"><span class="chip chip-pro">${escapeHtml(s.plan_code || s.tier || 'PRO')}</span></td>
+                        <td data-label="Status"><span class="chip ${s.status === 'ACTIVE' ? 'chip-active' : 'chip-inactive'}">${escapeHtml(s.status)}</span></td>
+                        <td data-label="Forma">${escapeHtml(s.provider || 'PIX')}</td>
+                        <td data-label="Expira Em">${s.expires_at ? new Date(s.expires_at).toLocaleDateString('pt-BR') : '—'}</td>
                     `;
                     subsTbody.appendChild(tr);
                 });
@@ -987,18 +1106,26 @@ async function loadSubscriptionsAndPayments() {
         if (payRes.ok) {
             const payments = await payRes.json();
             if (payments.length === 0) {
-                payTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">Nenhuma transação Pix registrada ainda.</td></tr>';
+                payTbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding: 35px 20px; color: var(--text-muted);">
+                            <div style="font-size: 2rem; margin-bottom: 6px;">⚡</div>
+                            <div style="font-size: 1rem; font-weight: 700; color: #fff;">Nenhuma transação Pix registrada</div>
+                            <div style="font-size: 0.8rem; margin-top: 4px;">Pagamentos e pedidos Pix gerados no app serão listados aqui em tempo real.</div>
+                        </td>
+                    </tr>
+                `;
             } else {
                 payTbody.innerHTML = '';
                 payments.forEach(p => {
                     const tr = document.createElement('tr');
                     const amount = (p.amount_cents / 100.0).toFixed(2).replace('.', ',');
                     tr.innerHTML = `
-                        <td><code>${escapeHtml(p.order_id || p.tx_id || p.id?.substring(0, 8))}</code></td>
-                        <td><strong>R$ ${amount}</strong></td>
-                        <td>${escapeHtml(p.plan_code || '—')}</td>
-                        <td><span class="chip ${p.status === 'PAID' ? 'chip-active' : 'chip-inactive'}">${escapeHtml(p.status)}</span></td>
-                        <td>${p.created_at ? new Date(p.created_at).toLocaleString('pt-BR') : '—'}</td>
+                        <td data-label="Pedido ID"><code>${escapeHtml(p.order_id || p.tx_id || p.id?.substring(0, 8))}</code></td>
+                        <td data-label="Valor"><strong style="color: var(--green-accent);">R$ ${amount}</strong></td>
+                        <td data-label="Plano">${escapeHtml(p.plan_code || '—')}</td>
+                        <td data-label="Status"><span class="chip ${p.status === 'PAID' ? 'chip-active' : 'chip-inactive'}">${escapeHtml(p.status)}</span></td>
+                        <td data-label="Data Transação">${p.created_at ? new Date(p.created_at).toLocaleString('pt-BR') : '—'}</td>
                     `;
                     payTbody.appendChild(tr);
                 });
@@ -1205,7 +1332,10 @@ async function loadCampaignsTable(filterStatus = null) {
     if (!tbody) return;
 
     const status = filterStatus || currentCampaignsStatusFilter;
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">Consultando banco de dados...</td></tr>`;
+    tbody.innerHTML = `
+        <tr><td colspan="9" style="padding: 14px;"><div class="skeleton" style="height: 38px; width: 100%; border-radius: 8px;"></div></td></tr>
+        <tr><td colspan="9" style="padding: 14px;"><div class="skeleton" style="height: 38px; width: 100%; border-radius: 8px;"></div></td></tr>
+    `;
 
     try {
         let url = `${API_BASE_URL}/admin/campaigns`;
@@ -1220,7 +1350,16 @@ async function loadCampaignsTable(filterStatus = null) {
         const campaigns = data.campaigns || [];
 
         if (campaigns.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhuma campanha encontrada com o filtro selecionado.</td></tr>`;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <div style="font-size: 2.2rem; margin-bottom: 8px;">📣</div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: #fff;">Nenhuma campanha encontrada</div>
+                        <div style="font-size: 0.82rem; margin-top: 4px; color: var(--text-secondary);">Crie sua primeira campanha para disparar notificações push aos motoristas.</div>
+                        <button class="btn-primary-action" style="margin-top: 14px; width: auto; padding: 8px 18px;" onclick="openNewCampaignWizard()">+ Nova Campanha</button>
+                    </td>
+                </tr>
+            `;
             return;
         }
 
@@ -1276,23 +1415,23 @@ async function loadCampaignsTable(filterStatus = null) {
             actionsHtml += `</div>`;
 
             tr.innerHTML = `
-                <td>
+                <td data-label="Campanha">
                     <div style="font-weight: 600; color: #fff;">${escapeHtml(c.name)}</div>
                     <div style="font-size: 0.8rem; color: var(--text-secondary); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(c.title)}</div>
                 </td>
-                <td><span class="chip-type ${typeClass}">${typeLabel}</span></td>
-                <td><span style="font-size: 0.82rem; color: #eee;">${escapeHtml(formatAudienceName(c.audience_type))}</span></td>
-                <td>${statusBadge}</td>
-                <td style="font-size: 0.82rem; color: var(--text-secondary);">${formattedDate}</td>
-                <td style="font-weight: 600; color: #fff;">${recipients}</td>
-                <td style="font-size: 0.85rem;">${sentAndFailures}</td>
-                <td style="font-size: 0.85rem; color: var(--accent-blue);">${openings}</td>
-                <td style="text-align: right;">${actionsHtml}</td>
+                <td data-label="Tipo"><span class="chip-type ${typeClass}">${typeLabel}</span></td>
+                <td data-label="Público"><span style="font-size: 0.82rem; color: #eee;">${escapeHtml(formatAudienceName(c.audience_type))}</span></td>
+                <td data-label="Status">${statusBadge}</td>
+                <td data-label="Data">${formattedDate}</td>
+                <td data-label="Destinatários" style="font-weight: 600; color: #fff;">${recipients}</td>
+                <td data-label="Envios / Falhas" style="font-size: 0.85rem;">${sentAndFailures}</td>
+                <td data-label="Aberturas" style="font-size: 0.85rem; color: var(--blue-accent);">${openings}</td>
+                <td data-label="Ações" style="text-align: right;">${actionsHtml}</td>
             `;
             tbody.appendChild(tr);
         });
     } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #FF334B; padding: 20px;">Erro: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #FF334B; padding: 25px;">Erro: ${err.message}</td></tr>`;
     }
 }
 
@@ -1813,11 +1952,11 @@ async function openCampaignReport(id) {
             const tr = document.createElement('tr');
             const statusColor = d.status === 'SENT' ? '#00E676' : (d.status === 'FAILED' ? '#FF334B' : '#FFB300');
             tr.innerHTML = `
-                <td style="font-family: monospace;">${escapeHtml(d.device_token_id ? d.device_token_id.substring(0, 12) + '...' : 'Geral')}</td>
-                <td><span style="color: ${statusColor}; font-weight: 600;">${escapeHtml(d.status)}</span></td>
-                <td style="font-family: monospace; font-size: 0.75rem;">${escapeHtml(d.fcm_message_id || 'N/D')}</td>
-                <td style="color: #FF334B;">${escapeHtml(d.error_code || '-')}</td>
-                <td style="color: var(--text-muted);">${d.sent_at ? new Date(d.sent_at).toLocaleTimeString('pt-BR') : '-'}</td>
+                <td data-label="Dispositivo" style="font-family: monospace;">${escapeHtml(d.device_token_id ? d.device_token_id.substring(0, 12) + '...' : 'Geral')}</td>
+                <td data-label="Status"><span style="color: ${statusColor}; font-weight: 600;">${escapeHtml(d.status)}</span></td>
+                <td data-label="Msg FCM" style="font-family: monospace; font-size: 0.75rem;">${escapeHtml(d.fcm_message_id || 'N/D')}</td>
+                <td data-label="Erro" style="color: #FF334B;">${escapeHtml(d.error_code || '-')}</td>
+                <td data-label="Horário" style="color: var(--text-muted);">${d.sent_at ? new Date(d.sent_at).toLocaleTimeString('pt-BR') : '-'}</td>
             `;
             tbody.appendChild(tr);
         });

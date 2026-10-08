@@ -363,7 +363,19 @@ async def register(req: RegisterRequest):
         "phone": req.phone,
         "is_active": True
     }
-    user_record = supabase.insert_user(user_payload)
+    try:
+        user_record = supabase.insert_user(user_payload)
+    except Exception as exc:
+        err_str = str(exc)
+        if "users_phone_key" in err_str or "phone" in err_str:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este número de telefone já está cadastrado em outra conta."
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não foi possível concluir o cadastro com os dados informados."
+        )
     user_id = user_record.get("id")
 
     # Criar registro de motorista vinculado
@@ -1065,46 +1077,114 @@ async def get_financial_report(period: str = "daily", claims: Dict[str, Any] = D
 async def sync_push(payload: SyncPushRequest, claims: Dict[str, Any] = Depends(get_current_user_claims)):
     driver_id = claims.get("driver_id")
 
-    # Injetar driver_id para segurança
-    for f in payload.fuel_records: f["driver_id"] = driver_id
-    for m in payload.maintenance_records: m["driver_id"] = driver_id
-    for e in payload.expenses: e["driver_id"] = driver_id
+    valid_ev_cols = {
+        'id', 'driver_id', 'platform', 'gross_fare', 'distance_km', 'duration_minutes',
+        'pickup_distance_km', 'pickup_duration_minutes', 'category', 'stops_count',
+        'score', 'classification', 'estimated_cost', 'net_profit', 'profit_margin_percent',
+        'gross_rate_per_km', 'net_rate_per_km', 'gross_rate_per_hour', 'net_rate_per_hour',
+        'was_accepted', 'evaluated_at'
+    }
+
+    clean_evs = []
     for ev in payload.evaluations:
         ev["driver_id"] = driver_id
         gross = float(ev.get("gross_fare") or 0.0)
         net = float(ev.get("net_profit") or 0.0)
         dist = float(ev.get("distance_km") or 0.0)
         dur = float(ev.get("duration_minutes") or 0.0)
-        if "profit_margin_percent" not in ev or ev["profit_margin_percent"] is None:
-            ev["profit_margin_percent"] = round((net / gross * 100.0), 1) if gross > 0 else 0.0
-        if "gross_rate_per_km" not in ev or ev["gross_rate_per_km"] is None:
-            ev["gross_rate_per_km"] = round(gross / dist, 2) if dist > 0 else 0.0
-        if "net_rate_per_km" not in ev or ev["net_rate_per_km"] is None:
-            ev["net_rate_per_km"] = round(net / dist, 2) if dist > 0 else 0.0
-        if "gross_rate_per_hour" not in ev or ev["gross_rate_per_hour"] is None:
-            ev["gross_rate_per_hour"] = round(gross / (dur / 60.0), 2) if dur > 0 else 0.0
-        if "net_rate_per_hour" not in ev or ev["net_rate_per_hour"] is None:
-            ev["net_rate_per_hour"] = round(net / (dur / 60.0), 2) if dur > 0 else 0.0
-        if "reasons" not in ev or ev["reasons"] is None:
-            ev["reasons"] = []
-        if "alerts" not in ev or ev["alerts"] is None:
-            ev["alerts"] = []
-        if "evaluated_at" not in ev or ev["evaluated_at"] is None:
+
+        ev["gross_fare"] = gross
+        ev["net_profit"] = net
+        ev["distance_km"] = dist
+        ev["duration_minutes"] = dur
+        ev["pickup_distance_km"] = float(ev.get("pickup_distance_km") or 0.0)
+        ev["pickup_duration_minutes"] = float(ev.get("pickup_duration_minutes") or 0.0)
+        ev["category"] = str(ev.get("category") or "STANDARD")
+        ev["stops_count"] = int(ev.get("stops_count") or 0)
+        ev["score"] = int(ev.get("score") or 50)
+        ev["estimated_cost"] = float(ev.get("estimated_cost") or 0.0)
+        ev["profit_margin_percent"] = round((net / gross * 100.0), 1) if gross > 0 else 0.0
+        ev["gross_rate_per_km"] = round(gross / dist, 2) if dist > 0 else 0.0
+        ev["net_rate_per_km"] = round(net / dist, 2) if dist > 0 else 0.0
+        ev["gross_rate_per_hour"] = round(gross / (dur / 60.0), 2) if dur > 0 else 0.0
+        ev["net_rate_per_hour"] = round(net / (dur / 60.0), 2) if dur > 0 else 0.0
+        ev["was_accepted"] = bool(ev.get("was_accepted", True))
+
+        raw_class = str(ev.get("classification") or "GOOD").upper()
+        if raw_class in ["EXCELENTE", "EXCELLENT"]:
+            ev["classification"] = "EXCELLENT"
+        elif raw_class in ["RUIM", "BAD"]:
+            ev["classification"] = "BAD"
+        elif raw_class in ["MUITO_RUIM", "VERY_BAD"]:
+            ev["classification"] = "VERY_BAD"
+        elif raw_class in ["REGULAR"]:
+            ev["classification"] = "REGULAR"
+        else:
+            ev["classification"] = "GOOD"
+
+        if "evaluated_at" not in ev or not ev["evaluated_at"]:
             ev["evaluated_at"] = datetime.now(timezone.utc).isoformat()
 
-    # Sincronização atômica
-    ack_fuel = supabase.save_sync_fuel(payload.fuel_records)
-    ack_maint = supabase.save_sync_maintenance(payload.maintenance_records)
-    ack_exp = supabase.save_sync_expenses(payload.expenses)
-    ack_ev = supabase.save_sync_evaluations(payload.evaluations)
+        clean_ev = {k: v for k, v in ev.items() if k in valid_ev_cols}
+        clean_evs.append(clean_ev)
+
+    valid_fuel_cols = {
+        'id', 'driver_id', 'vehicle_id', 'date', 'odometer_km', 'liters', 'price_per_liter',
+        'total_paid', 'fuel_type', 'is_full_tank', 'calculated_km_per_liter', 'calculated_cost_per_km',
+        'notes', 'created_at'
+    }
+    clean_fuel = []
+    for f in payload.fuel_records:
+        f["driver_id"] = driver_id
+        clean_f = {k: v for k, v in f.items() if k in valid_fuel_cols}
+        clean_fuel.append(clean_f)
+
+    for m in payload.maintenance_records:
+        m["driver_id"] = driver_id
+    for e in payload.expenses:
+        e["driver_id"] = driver_id
+
+    # Sincronização persistente real com Supabase
+    ack_fuel_count = 0
+    ack_maint_count = 0
+    ack_exp_count = 0
+    ack_ev_count = 0
+
+    if clean_fuel:
+        try:
+            supabase.save_sync_fuel(clean_fuel)
+            ack_fuel_count = len(clean_fuel)
+        except Exception as err:
+            logger.warning(f"Erro ao persistir combustível: {err}")
+
+    if payload.maintenance_records:
+        try:
+            supabase.save_sync_maintenance(payload.maintenance_records)
+            ack_maint_count = len(payload.maintenance_records)
+        except Exception as err:
+            logger.warning(f"Erro ao persistir manutenção: {err}")
+
+    if payload.expenses:
+        try:
+            supabase.save_sync_expenses(payload.expenses)
+            ack_exp_count = len(payload.expenses)
+        except Exception as err:
+            logger.warning(f"Erro ao persistir despesas: {err}")
+
+    if clean_evs:
+        try:
+            supabase.save_sync_evaluations(clean_evs)
+            ack_ev_count = len(clean_evs)
+        except Exception as err:
+            logger.warning(f"Erro ao persistir avaliações de corrida: {err}")
 
     return SyncPushResponse(
         success=True,
         server_timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-        acknowledged_fuel_count=len(payload.fuel_records),
-        acknowledged_maintenance_count=len(payload.maintenance_records),
-        acknowledged_expense_count=len(payload.expenses),
-        acknowledged_evaluation_count=len(payload.evaluations),
+        acknowledged_fuel_count=ack_fuel_count,
+        acknowledged_maintenance_count=ack_maint_count,
+        acknowledged_expense_count=ack_exp_count,
+        acknowledged_evaluation_count=ack_ev_count,
         message=f"Sincronização persistida com sucesso no PostgreSQL para o motorista {driver_id}."
     )
 

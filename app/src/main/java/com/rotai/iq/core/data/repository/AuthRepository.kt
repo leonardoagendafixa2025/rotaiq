@@ -24,12 +24,17 @@ interface AuthRepository {
     fun isAuthenticated(): Boolean
     fun isOnboardingCompleted(): Boolean
     fun setOnboardingCompleted(completed: Boolean)
+    fun updateServerUrl(url: String)
 }
 
 class AuthRepositoryImpl(
     private val apiClient: AuthApiClient,
     private val sessionManager: AuthSessionManager
 ) : AuthRepository {
+
+    override fun updateServerUrl(url: String) {
+        apiClient.setBaseUrl(url)
+    }
 
     override suspend fun login(email: String, password: String): Result<AuthResponse> {
         val result = apiClient.login(email, password)

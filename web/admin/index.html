@@ -14,7 +14,7 @@
 <body>
     <div class="bg-glow-top"></div>
 
-    <!-- Tela de Login do Administrador -->
+    <!-- Tela de Login do Administrador (RBAC) -->
     <div id="admin-login-modal" class="login-overlay">
         <div class="login-card">
             <div class="login-brand">
@@ -50,11 +50,72 @@
 
     <!-- Interface Principal do Painel Administrativo -->
     <div id="admin-app" class="admin-wrapper" style="display: none;">
-        <!-- Top Bar -->
+        <!-- Backdrop do Drawer Mobile -->
+        <div id="drawer-backdrop" class="drawer-backdrop" onclick="toggleMobileDrawer(false)"></div>
+
+        <!-- Drawer de Navegação Mobile (Slide-in) -->
+        <aside id="admin-mobile-drawer" class="mobile-drawer" aria-label="Menu Mobile">
+            <div class="drawer-header">
+                <div class="header-left">
+                    <div class="brand-logo">IQ</div>
+                    <div class="brand-text-group">
+                        <div class="brand-title">ROTA IQ <span>ADMIN</span></div>
+                        <div class="brand-sub" style="display: block;">CENTRO DE CONTROLE</div>
+                    </div>
+                </div>
+                <button class="btn-close-drawer" onclick="toggleMobileDrawer(false)" aria-label="Fechar menu">&times;</button>
+            </div>
+            <div class="drawer-nav-list">
+                <div class="nav-group-title">Principal</div>
+                <button class="drawer-nav-item active" data-tab="overview" onclick="switchTab('overview')">
+                    <span>📊</span> Visão Geral
+                </button>
+
+                <div class="nav-group-title">Gestão</div>
+                <button class="drawer-nav-item" data-tab="drivers" onclick="switchTab('drivers')">
+                    <span>🚗</span> Motoristas
+                </button>
+
+                <div class="nav-group-title">Engajamento</div>
+                <button class="drawer-nav-item" data-tab="campaigns" onclick="switchTab('campaigns')">
+                    <span>📣</span> Campanhas Push
+                </button>
+
+                <div class="nav-group-title">Financeiro</div>
+                <button class="drawer-nav-item" data-tab="plans" onclick="switchTab('plans')">
+                    <span>💎</span> Planos & Preços
+                </button>
+                <button class="drawer-nav-item" data-tab="subs-payments" onclick="switchTab('subs-payments')">
+                    <span>💳</span> Assinaturas & Pix
+                </button>
+
+                <div class="nav-group-title">Sistema</div>
+                <button class="drawer-nav-item" data-tab="flags" onclick="switchTab('flags')">
+                    <span>⚡</span> Funcionalidades
+                </button>
+                <button class="drawer-nav-item" data-tab="settings" onclick="switchTab('settings')">
+                    <span>⚙️</span> Configurações
+                </button>
+            </div>
+            <div class="drawer-footer">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span class="user-role-badge" id="drawer-role-badge" style="display: inline-block;">SUPER_ADMIN</span>
+                    <span id="drawer-user-email" style="font-size: 0.8rem; color: var(--text-secondary);">admin@rotai.app</span>
+                </div>
+                <button class="btn-action-danger" style="width: 100%; border-radius: 8px;" onclick="handleAdminLogout()">
+                    SAIR DO SISTEMA
+                </button>
+            </div>
+        </aside>
+
+        <!-- Top Bar Compacto / Header Responsivo -->
         <header class="admin-header">
             <div class="header-left">
+                <button id="btn-mobile-menu" class="btn-mobile-menu" onclick="toggleMobileDrawer(true)" aria-label="Abrir Menu de Navegação">
+                    ☰
+                </button>
                 <div class="brand-logo">IQ</div>
-                <div>
+                <div class="brand-text-group">
                     <div class="brand-title">ROTA IQ <span>ADMIN</span></div>
                     <div class="brand-sub">CENTRO DE CONTROLE OPERACIONAL, FINANCEIRO & ESCALA</div>
                 </div>
@@ -73,371 +134,434 @@
             </div>
         </header>
 
-        <!-- Navegação Principal com Abas -->
-        <nav class="admin-nav">
-            <button class="nav-tab active" onclick="switchTab('overview')">📊 Visão Geral</button>
-            <button class="nav-tab" onclick="switchTab('drivers')">🚗 Motoristas</button>
-            <button class="nav-tab" onclick="switchTab('campaigns')">📣 Campanhas</button>
-            <button class="nav-tab" onclick="switchTab('plans')">💎 Planos & Preços</button>
-            <button class="nav-tab" onclick="switchTab('subs-payments')">💳 Assinaturas & Pix</button>
-            <button class="nav-tab" onclick="switchTab('flags')">⚡ Funcionalidades</button>
-            <button class="nav-tab" onclick="switchTab('settings')">⚙️ Configurações</button>
-        </nav>
+        <!-- Layout Central com Sidebar Desktop e Main Content -->
+        <div class="admin-body-layout">
+            <!-- Sidebar Desktop (>= 1024px) -->
+            <aside class="admin-sidebar" id="admin-desktop-sidebar" aria-label="Menu Desktop">
+                <div class="sidebar-nav-list">
+                    <div class="nav-group-title">Principal</div>
+                    <button class="sidebar-nav-item nav-tab active" data-tab="overview" onclick="switchTab('overview')">
+                        <span>📊</span> Visão Geral
+                    </button>
 
-        <main class="admin-content">
-            <!-- 1. Aba: Visão Geral -->
-            <section id="tab-overview" class="tab-panel active">
-                <div class="section-header">
-                    <div>
-                        <h2>Indicadores de Desempenho do Negócio</h2>
-                        <span class="live-tag">● OPERAÇÃO EM TEMPO REAL</span>
-                    </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <div class="live-sync-badge" id="live-sync-toggle-badge" onclick="toggleLiveSync()" title="Clique para pausar ou retomar a sincronização automática">
-                            <span class="pulse-indicator"></span>
-                            <span id="live-sync-text">SINCRONIA AO VIVO (3.5s)</span>
-                        </div>
-                        <button class="btn-simulate-live" onclick="triggerLiveDriverTraffic()" title="Gera motoristas reais avaliando corridas, sincronizando abastecimento e pagando Pix">
-                            ⚡ SIMULAR MOTORISTAS AO VIVO
-                        </button>
-                    </div>
+                    <div class="nav-group-title">Gestão</div>
+                    <button class="sidebar-nav-item nav-tab" data-tab="drivers" onclick="switchTab('drivers')">
+                        <span>🚗</span> Motoristas
+                    </button>
+
+                    <div class="nav-group-title">Engajamento</div>
+                    <button class="sidebar-nav-item nav-tab" data-tab="campaigns" onclick="switchTab('campaigns')">
+                        <span>📣</span> Campanhas Push
+                    </button>
+
+                    <div class="nav-group-title">Financeiro</div>
+                    <button class="sidebar-nav-item nav-tab" data-tab="plans" onclick="switchTab('plans')">
+                        <span>💎</span> Planos & Preços
+                    </button>
+                    <button class="sidebar-nav-item nav-tab" data-tab="subs-payments" onclick="switchTab('subs-payments')">
+                        <span>💳</span> Assinaturas & Pix
+                    </button>
+
+                    <div class="nav-group-title">Sistema</div>
+                    <button class="sidebar-nav-item nav-tab" data-tab="flags" onclick="switchTab('flags')">
+                        <span>⚡</span> Funcionalidades
+                    </button>
+                    <button class="sidebar-nav-item nav-tab" data-tab="settings" onclick="switchTab('settings')">
+                        <span>⚙️</span> Configurações
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Área de Conteúdo Principal -->
+            <main class="admin-content">
+                <!-- Barra de Breadcrumb -->
+                <div class="breadcrumb-bar" id="admin-breadcrumb">
+                    <span>ROTA IQ ADMIN</span>
+                    <span>/</span>
+                    <span id="breadcrumb-current-tab">Visão Geral</span>
                 </div>
 
-                <div class="kpi-grid">
-                    <div class="kpi-card highlight-orange" id="card-kpi-mrr">
-                        <div class="kpi-label">MRR APURADO (MENSAL)</div>
-                        <div class="kpi-value" id="kpi-mrr">R$ 0,00</div>
-                        <div class="kpi-sub">Faturamento recorrente mensal</div>
-                    </div>
-                    <div class="kpi-card highlight-orange" id="card-kpi-arr">
-                        <div class="kpi-label">ARR PROJETADO (ANUAL)</div>
-                        <div class="kpi-value" id="kpi-arr">R$ 0,00</div>
-                        <div class="kpi-sub">Receita recorrente anualizada</div>
-                    </div>
-                    <div class="kpi-card" id="card-kpi-users">
-                        <div class="kpi-label">TOTAL DE CONTAS</div>
-                        <div class="kpi-value" id="kpi-users">0</div>
-                        <div class="kpi-sub">Cadastros registrados no sistema</div>
-                    </div>
-                    <div class="kpi-card highlight-green" id="card-kpi-drivers">
-                        <div class="kpi-label">MOTORISTAS REGISTRADOS</div>
-                        <div class="kpi-value" id="kpi-drivers">0</div>
-                        <div class="kpi-sub">Ativos: <strong id="kpi-active-drivers">0</strong> | Bloqueados: <strong id="kpi-blocked-drivers">0</strong></div>
-                    </div>
-                    <div class="kpi-card highlight-green" id="card-kpi-subs">
-                        <div class="kpi-label">ASSINANTES PRO</div>
-                        <div class="kpi-value" id="kpi-subs">0</div>
-                        <div class="kpi-sub">Motoristas com plano pago ativo</div>
-                    </div>
-                    <div class="kpi-card" id="card-kpi-evals">
-                        <div class="kpi-label">CORRIDAS AVALIADAS</div>
-                        <div class="kpi-value" id="kpi-evals">0</div>
-                        <div class="kpi-sub">Análises realizadas no aplicativo</div>
-                    </div>
-                </div>
-
-                <div class="overview-grid">
-                    <div class="panel-card">
-                        <h3>Desempenho Comercial & Conversão</h3>
-                        <div class="info-row">
-                            <span>Taxa de Conversão Pro:</span>
-                            <strong id="kpi-conversion-rate">0%</strong>
+                <!-- 1. Aba: Visão Geral -->
+                <section id="tab-overview" class="tab-panel active">
+                    <div class="section-header">
+                        <div>
+                            <h2>Indicadores de Desempenho do Negócio</h2>
+                            <span class="live-tag">● OPERAÇÃO EM TEMPO REAL</span>
                         </div>
-                        <div class="info-row">
-                            <span>Ticket Médio por Assinante:</span>
-                            <strong id="kpi-avg-ticket">R$ 0,00</strong>
-                        </div>
-                        <div class="info-row">
-                            <span>Taxa de Ativação da Base:</span>
-                            <strong id="kpi-activation-rate">100%</strong>
-                        </div>
-                        <div class="info-row">
-                            <span>Status da Plataforma:</span>
-                            <span style="color: var(--green-accent); font-weight: 700;">🟢 Operação 100% Estável</span>
+                        <div class="section-actions">
+                            <div class="live-sync-badge" id="live-sync-toggle-badge" onclick="toggleLiveSync()" title="Clique para pausar ou retomar a sincronização automática">
+                                <span class="pulse-indicator"></span>
+                                <span id="live-sync-text">SINCRONIA AO VIVO (3.5s)</span>
+                            </div>
+                            <button class="btn-simulate-live" onclick="triggerLiveDriverTraffic()" title="Gera motoristas reais avaliando corridas, sincronizando abastecimento e pagando Pix">
+                                ⚡ SIMULAR MOTORISTAS AO VIVO
+                            </button>
                         </div>
                     </div>
 
-                    <div class="panel-card">
-                        <h3>Ações Rápidas de Gestão</h3>
-                        <div class="action-buttons-group">
-                            <button class="btn-secondary" onclick="fetchAdminDashboard(true)">🔄 Atualizar Agora</button>
-                            <button class="btn-secondary" onclick="openDriverModal()">+ Cadastrar Novo Motorista</button>
-                            <button class="btn-secondary" onclick="openPlanModal()">+ Criar Novo Plano Comercial</button>
-                            <button class="btn-secondary" onclick="switchTab('flags')">⚡ Gerenciar Funcionalidades</button>
+                    <div class="kpi-grid">
+                        <div class="kpi-card highlight-orange" id="card-kpi-mrr">
+                            <div class="kpi-label">MRR APURADO (MENSAL)</div>
+                            <div class="kpi-value" id="kpi-mrr">R$ 0,00</div>
+                            <div class="kpi-sub">Faturamento recorrente mensal</div>
+                        </div>
+                        <div class="kpi-card highlight-orange" id="card-kpi-arr">
+                            <div class="kpi-label">ARR PROJETADO (ANUAL)</div>
+                            <div class="kpi-value" id="kpi-arr">R$ 0,00</div>
+                            <div class="kpi-sub">Receita recorrente anualizada</div>
+                        </div>
+                        <div class="kpi-card" id="card-kpi-users">
+                            <div class="kpi-label">TOTAL DE CONTAS</div>
+                            <div class="kpi-value" id="kpi-users">0</div>
+                            <div class="kpi-sub">Cadastros registrados no sistema</div>
+                        </div>
+                        <div class="kpi-card highlight-green" id="card-kpi-drivers">
+                            <div class="kpi-label">MOTORISTAS REGISTRADOS</div>
+                            <div class="kpi-value" id="kpi-drivers">0</div>
+                            <div class="kpi-sub">Ativos: <strong id="kpi-active-drivers">0</strong> | Bloqueados: <strong id="kpi-blocked-drivers">0</strong></div>
+                        </div>
+                        <div class="kpi-card highlight-green" id="card-kpi-subs">
+                            <div class="kpi-label">ASSINANTES PRO</div>
+                            <div class="kpi-value" id="kpi-subs">0</div>
+                            <div class="kpi-sub">Motoristas com plano pago ativo</div>
+                        </div>
+                        <div class="kpi-card" id="card-kpi-evals">
+                            <div class="kpi-label">CORRIDAS AVALIADAS</div>
+                            <div class="kpi-value" id="kpi-evals">0</div>
+                            <div class="kpi-sub">Análises realizadas no aplicativo</div>
                         </div>
                     </div>
 
-                    <!-- Card de Telemetria e Feed de Atividades ao Vivo -->
-                    <div class="panel-card" style="grid-column: 1 / -1;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h3 style="margin-bottom: 0;">📡 Telemetria & Sincronia de Motoristas em Tempo Real</h3>
-                            <span style="font-size: 0.75rem; color: #00E676; font-weight: 700;" id="activity-feed-status">● CONECTADO AO POSTGRESQL</span>
+                    <div class="overview-grid">
+                        <div class="panel-card">
+                            <h3>Desempenho Comercial & Conversão</h3>
+                            <div class="info-row">
+                                <span>Taxa de Conversão Pro:</span>
+                                <strong id="kpi-conversion-rate">0%</strong>
+                            </div>
+                            <div class="info-row">
+                                <span>Ticket Médio por Assinante:</span>
+                                <strong id="kpi-avg-ticket">R$ 0,00</strong>
+                            </div>
+                            <div class="info-row">
+                                <span>Taxa de Ativação da Base:</span>
+                                <strong id="kpi-activation-rate">100%</strong>
+                            </div>
+                            <div class="info-row">
+                                <span>Status da Plataforma:</span>
+                                <span style="color: var(--green-accent); font-weight: 700;">🟢 Operação 100% Estável</span>
+                            </div>
                         </div>
-                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
-                            Fluxo ao vivo de requisições de motoristas pelo app Android: avaliações de corridas via HUD flutuante, abastecimentos, sincronizações offline-first e pagamentos Pix.
-                        </p>
-                        <div class="activity-feed-list" id="live-activity-feed">
-                            <div style="text-align: center; padding: 25px; color: var(--text-muted); font-size: 0.85rem;">
-                                Conectando ao fluxo de telemetria...
+
+                        <div class="panel-card">
+                            <h3>Ações Rápidas de Gestão</h3>
+                            <div class="action-buttons-group">
+                                <button class="btn-secondary" onclick="fetchAdminDashboard(true)">🔄 Atualizar Agora</button>
+                                <button class="btn-secondary" onclick="openDriverModal()">+ Cadastrar Novo Motorista</button>
+                                <button class="btn-secondary" onclick="openPlanModal()">+ Criar Novo Plano Comercial</button>
+                                <button class="btn-secondary" onclick="switchTab('flags')">⚡ Gerenciar Funcionalidades</button>
+                            </div>
+                        </div>
+
+                        <!-- Card de Telemetria e Feed de Atividades ao Vivo -->
+                        <div class="panel-card" style="grid-column: 1 / -1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <h3 style="margin-bottom: 0;">📡 Telemetria & Sincronia de Motoristas em Tempo Real</h3>
+                                <span style="font-size: 0.75rem; color: #00E676; font-weight: 700;" id="activity-feed-status">● CONECTADO AO POSTGRESQL</span>
+                            </div>
+                            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+                                Fluxo ao vivo de requisições de motoristas pelo app Android: avaliações de corridas via HUD flutuante, abastecimentos, sincronizações offline-first e pagamentos Pix.
+                            </p>
+                            <div class="activity-feed-list" id="live-activity-feed">
+                                <div style="text-align: center; padding: 25px; color: var(--text-muted); font-size: 0.85rem;">
+                                    Conectando ao fluxo de telemetria...
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <!-- 2. Aba: Motoristas -->
-            <section id="tab-drivers" class="tab-panel">
-                <div class="section-header">
-                    <h2>Gestão de Motoristas Cadastrados</h2>
-                    <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openDriverModal()">+ NOVO MOTORISTA</button>
-                </div>
+                <!-- 2. Aba: Motoristas -->
+                <section id="tab-drivers" class="tab-panel">
+                    <div class="section-header">
+                        <h2>Gestão de Motoristas Cadastrados</h2>
+                        <button class="btn-primary-action" onclick="openDriverModal()">+ NOVO MOTORISTA</button>
+                    </div>
 
-                <div class="filter-bar">
-                    <div class="filter-group">
-                        <div class="search-box">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="driver-search-input" placeholder="Buscar por cidade, ID ou nome..." oninput="debounceDriverSearch()">
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <div class="search-box">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="driver-search-input" placeholder="Buscar por cidade, ID ou nome..." oninput="debounceDriverSearch()">
+                            </div>
+                            <select class="filter-select" id="driver-status-filter" onchange="loadDriversTable(1)">
+                                <option value="ALL">Todos os Status</option>
+                                <option value="ACTIVE">Apenas Ativos</option>
+                                <option value="BLOCKED">Apenas Bloqueados</option>
+                                <option value="INACTIVE">Apenas Inativos</option>
+                            </select>
+                            <button type="button" class="btn-mobile-filters" onclick="openDriverFiltersSheet()">
+                                ⚙️ Filtros
+                            </button>
                         </div>
-                        <select class="filter-select" id="driver-status-filter" onchange="loadDriversTable(1)">
-                            <option value="ALL">Todos os Status</option>
-                            <option value="ACTIVE">Apenas Ativos</option>
-                            <option value="BLOCKED">Apenas Bloqueados</option>
-                            <option value="INACTIVE">Apenas Inativos</option>
-                        </select>
+                        <button class="btn-secondary" onclick="loadDriversTable(1)">🔄 Atualizar</button>
                     </div>
-                    <button class="btn-secondary" onclick="loadDriversTable(1)">🔄 Atualizar</button>
-                </div>
 
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Motorista / Nome</th>
-                                <th>Contato / E-mail</th>
-                                <th>Cidade / UF</th>
-                                <th>Status</th>
-                                <th>Plano</th>
-                                <th>Data Cadastro</th>
-                                <th>Ações Administrativas</th>
-                            </tr>
-                        </thead>
-                        <tbody id="drivers-table-body">
-                            <tr>
-                                <td colspan="7" class="table-loading">Carregando motoristas...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Barra de Paginação -->
-                <div class="pagination-bar">
-                    <div>Mostrando <span id="pagination-current-count">0</span> de <span id="pagination-total-count">0</span> motoristas</div>
-                    <div class="pagination-controls">
-                        <button class="btn-page" id="btn-page-prev" onclick="changeDriverPage(-1)" disabled>Anterior</button>
-                        <span id="pagination-page-label">Página 1</span>
-                        <button class="btn-page" id="btn-page-next" onclick="changeDriverPage(1)" disabled>Próxima</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 3. Aba: Planos & Preços -->
-            <section id="tab-plans" class="tab-panel">
-                <div class="section-header">
-                    <div>
-                        <h2>Catálogo de Planos Comerciais</h2>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Alterações de preço feitas aqui refletem imediatamente no aplicativo dos motoristas.</p>
-                    </div>
-                    <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openPlanModal()">+ NOVO PLANO</button>
-                </div>
-
-                <div class="plans-grid" id="plans-container">
-                    <!-- Cards carregados dinamicamente do banco de dados -->
-                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                        Carregando planos...
-                    </div>
-                </div>
-            </section>
-
-            <!-- 4. Aba: Assinaturas & Pagamentos Pix -->
-            <section id="tab-subs-payments" class="tab-panel">
-                <div class="section-header">
-                    <h2>Assinaturas Ativas & Transações Pix</h2>
-                    <button class="btn-secondary" onclick="loadSubscriptionsAndPayments()">🔄 Atualizar</button>
-                </div>
-
-                <div style="margin-bottom: 28px;">
-                    <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: var(--orange-primary);">Últimas Assinaturas Registradas</h3>
                     <div class="table-container">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>ID Assinatura</th>
-                                    <th>Motorista</th>
-                                    <th>Plano</th>
+                                    <th>Motorista / Nome</th>
+                                    <th>Contato / E-mail</th>
+                                    <th>Cidade / UF</th>
                                     <th>Status</th>
-                                    <th>Forma de Pagamento</th>
-                                    <th>Expira Em</th>
+                                    <th>Plano</th>
+                                    <th>Data Cadastro</th>
+                                    <th>Ações Administrativas</th>
                                 </tr>
                             </thead>
-                            <tbody id="subscriptions-table-body">
-                                <tr><td colspan="6" class="table-loading">Carregando assinaturas...</td></tr>
+                            <tbody id="drivers-table-body">
+                                <tr>
+                                    <td colspan="7" class="table-loading">Carregando motoristas...</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
-                </div>
 
-                <div>
-                    <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: var(--orange-primary);">Transações e Cobranças Pix</h3>
+                    <!-- Barra de Paginação -->
+                    <div class="pagination-bar">
+                        <div>Mostrando <span id="pagination-current-count">0</span> de <span id="pagination-total-count">0</span> motoristas</div>
+                        <div class="pagination-controls">
+                            <button class="btn-page" id="btn-page-prev" onclick="changeDriverPage(-1)" disabled>Anterior</button>
+                            <span id="pagination-page-label">Página 1</span>
+                            <button class="btn-page" id="btn-page-next" onclick="changeDriverPage(1)" disabled>Próxima</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Aba: Planos & Preços -->
+                <section id="tab-plans" class="tab-panel">
+                    <div class="section-header">
+                        <div>
+                            <h2>Catálogo de Planos Comerciais</h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Alterações de preço feitas aqui refletem imediatamente no aplicativo dos motoristas.</p>
+                        </div>
+                        <button class="btn-primary-action" onclick="openPlanModal()">+ NOVO PLANO</button>
+                    </div>
+
+                    <div class="plans-grid" id="plans-container">
+                        <!-- Cards carregados dinamicamente do banco de dados -->
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+                            Carregando planos...
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Aba: Assinaturas & Pagamentos Pix -->
+                <section id="tab-subs-payments" class="tab-panel">
+                    <div class="section-header">
+                        <h2>Assinaturas Ativas & Transações Pix</h2>
+                        <button class="btn-secondary" onclick="loadSubscriptionsAndPayments()">🔄 Atualizar</button>
+                    </div>
+
+                    <div style="margin-bottom: 28px;">
+                        <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: var(--orange-primary);">Últimas Assinaturas Registradas</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID Assinatura</th>
+                                        <th>Motorista</th>
+                                        <th>Plano</th>
+                                        <th>Status</th>
+                                        <th>Forma de Pagamento</th>
+                                        <th>Expira Em</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subscriptions-table-body">
+                                    <tr><td colspan="6" class="table-loading">Carregando assinaturas...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: var(--orange-primary);">Transações e Cobranças Pix</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pedido ID</th>
+                                        <th>Valor (R$)</th>
+                                        <th>Plano</th>
+                                        <th>Status</th>
+                                        <th>Data da Transação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payments-table-body">
+                                    <tr><td colspan="5" class="table-loading">Carregando transações Pix...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Aba: Funcionalidades (Flags) -->
+                <section id="tab-flags" class="tab-panel">
+                    <div class="section-header">
+                        <div>
+                            <h2>Controle de Funcionalidades do App</h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Ative ou desative recursos do app em tempo real para os motoristas.</p>
+                        </div>
+                        <button class="btn-primary-action" onclick="openFlagModal()">+ NOVA FUNCIONALIDADE</button>
+                    </div>
+
+                    <div class="panel-card" id="flags-container">
+                        <div style="text-align: center; padding: 30px; color: var(--text-muted);">Carregando funcionalidades...</div>
+                    </div>
+                </section>
+
+                <!-- 6. Aba: Configurações do Sistema -->
+                <section id="tab-settings" class="tab-panel">
+                    <div class="section-header">
+                        <div>
+                            <h2>Configurações Operacionais da Plataforma</h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Parâmetros globais que definem as regras do aplicativo.</p>
+                        </div>
+                        <button class="btn-secondary" onclick="loadSettings()">🔄 Recarregar</button>
+                    </div>
+
+                    <div class="settings-grid" id="settings-container">
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+                            Carregando configurações...
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. Aba: 📣 Campanhas & Push Notifications Real -->
+                <section id="tab-campaigns" class="tab-panel">
+                    <div class="section-header">
+                        <div>
+                            <h2>📣 Campanhas & Notificações Push (Firebase FCM)</h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Envie notificações nativas reais para os usuários Android do ROTA IQ via Firebase Cloud Messaging.</p>
+                        </div>
+                        <div class="section-actions">
+                            <button class="btn-secondary" onclick="loadCampaignsDashboard(); loadCampaignsTable();">🔄 Atualizar</button>
+                            <button class="btn-secondary" onclick="openTemplatesModal()">📋 Modelos</button>
+                            <button class="btn-primary-action" onclick="openNewCampaignWizard()">+ NOVA CAMPANHA</button>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards de Campanhas -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card highlight-orange">
+                            <div class="kpi-label">TOTAL DE CAMPANHAS</div>
+                            <div class="kpi-value" id="kpi-camp-total">0</div>
+                            <div class="kpi-sub">Campanhas cadastradas</div>
+                        </div>
+                        <div class="kpi-card highlight-orange">
+                            <div class="kpi-label">CAMPANHAS ENVIADAS</div>
+                            <div class="kpi-value" id="kpi-camp-sent">0</div>
+                            <div class="kpi-sub">Disparos concluídos</div>
+                        </div>
+                        <div class="kpi-card highlight-orange">
+                            <div class="kpi-label">CAMPANHAS AGENDADAS</div>
+                            <div class="kpi-value" id="kpi-camp-scheduled">0</div>
+                            <div class="kpi-sub">Aguardando horário</div>
+                        </div>
+                        <div class="kpi-card highlight-orange">
+                            <div class="kpi-label">RASCUNHOS</div>
+                            <div class="kpi-value" id="kpi-camp-drafts">0</div>
+                            <div class="kpi-sub">Em elaboração</div>
+                        </div>
+                        <div class="kpi-card highlight-orange">
+                            <div class="kpi-label">DISPOSITIVOS ELEGÍVEIS</div>
+                            <div class="kpi-value" id="kpi-camp-devices">0</div>
+                            <div class="kpi-sub">Tokens FCM ativos</div>
+                        </div>
+                        <div class="kpi-card highlight-orange">
+                            <div class="kpi-label">NOTIFICAÇÕES ENVIADAS</div>
+                            <div class="kpi-value" id="kpi-camp-total-sent">0</div>
+                            <div class="kpi-sub">Total acumulado</div>
+                        </div>
+                        <div class="kpi-card highlight-orange">
+                            <div class="kpi-label">FALHAS DE ENTREGA</div>
+                            <div class="kpi-value" id="kpi-camp-failures">0</div>
+                            <div class="kpi-sub">Erros ou tokens inválidos</div>
+                        </div>
+                        <div class="kpi-card highlight-orange">
+                            <div class="kpi-label">TAXA MÉDIA DE ABERTURA</div>
+                            <div class="kpi-value" id="kpi-camp-open-rate">N/D</div>
+                            <div class="kpi-sub">Aberturas rastreadas</div>
+                        </div>
+                    </div>
+
+                    <!-- Submenus de Filtro por Status -->
+                    <div class="status-filter-pills">
+                        <button class="pill-btn active" onclick="filterCampaignsByStatus('ALL', this)">Campanhas (Todas)</button>
+                        <button class="pill-btn" onclick="filterCampaignsByStatus('SENT', this)">Enviadas</button>
+                        <button class="pill-btn" onclick="filterCampaignsByStatus('SCHEDULED', this)">Agendadas</button>
+                        <button class="pill-btn" onclick="filterCampaignsByStatus('DRAFT', this)">Rascunhos</button>
+                        <button class="pill-btn" onclick="filterCampaignsByStatus('PROCESSING', this)">Em Processamento</button>
+                        <button class="pill-btn" onclick="filterCampaignsByStatus('CANCELLED', this)">Canceladas</button>
+                    </div>
+
+                    <!-- Tabela de Campanhas -->
                     <div class="table-container">
-                        <table class="data-table">
+                        <table class="admin-table">
                             <thead>
                                 <tr>
-                                    <th>Pedido ID</th>
-                                    <th>Valor (R$)</th>
-                                    <th>Plano</th>
+                                    <th>Campanha / Título</th>
+                                    <th>Tipo</th>
+                                    <th>Público Alvo</th>
                                     <th>Status</th>
-                                    <th>Data da Transação</th>
+                                    <th>Data / Agendamento</th>
+                                    <th>Destinatários</th>
+                                    <th>Enviadas / Falhas</th>
+                                    <th>Aberturas</th>
+                                    <th style="text-align: right;">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="payments-table-body">
-                                <tr><td colspan="5" class="table-loading">Carregando transações Pix...</td></tr>
+                            <tbody id="campaigns-table-body">
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                        Carregando campanhas do sistema...
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </section>
+                </section>
+            </main>
+        </div>
 
-            <!-- 5. Aba: Funcionalidades (Flags) -->
-            <section id="tab-flags" class="tab-panel">
-                <div class="section-header">
-                    <div>
-                        <h2>Controle de Funcionalidades do App</h2>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Ative ou desative recursos do app em tempo real para os motoristas.</p>
-                    </div>
-                    <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openFlagModal()">+ NOVA FUNCIONALIDADE</button>
-                </div>
-
-                <div class="panel-card" id="flags-container">
-                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">Carregando funcionalidades...</div>
-                </div>
-            </section>
-
-            <!-- 6. Aba: Configurações do Sistema -->
-            <section id="tab-settings" class="tab-panel">
-                <div class="section-header">
-                    <div>
-                        <h2>Configurações Operacionais da Plataforma</h2>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Parâmetros globais que definem as regras do aplicativo.</p>
-                    </div>
-                    <button class="btn-secondary" onclick="loadSettings()">🔄 Recarregar</button>
-                </div>
-
-                <div class="settings-grid" id="settings-container">
-                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                        Carregando configurações...
-                    </div>
-                </div>
-            </section>
-
-            <!-- 7. Aba: 📣 Campanhas & Push Notifications Real -->
-            <section id="tab-campaigns" class="tab-panel">
-                <div class="section-header">
-                    <div>
-                        <h2>📣 Campanhas & Notificações Push (Firebase FCM)</h2>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Envie notificações nativas reais para os usuários Android do ROTA IQ via Firebase Cloud Messaging.</p>
-                    </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <button class="btn-secondary" onclick="loadCampaignsDashboard(); loadCampaignsTable();">🔄 Atualizar</button>
-                        <button class="btn-secondary" onclick="openTemplatesModal()">📋 Modelos (Templates)</button>
-                        <button class="btn-primary-action" onclick="openNewCampaignWizard()">+ NOVA CAMPANHA</button>
-                    </div>
-                </div>
-
-                <!-- KPI Cards de Campanhas -->
-                <div class="kpi-grid">
-                    <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">TOTAL DE CAMPANHAS</div>
-                        <div class="kpi-value" id="kpi-camp-total">0</div>
-                        <div class="kpi-sub">Campanhas cadastradas</div>
-                    </div>
-                    <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">CAMPANHAS ENVIADAS</div>
-                        <div class="kpi-value" id="kpi-camp-sent">0</div>
-                        <div class="kpi-sub">Disparos concluídos</div>
-                    </div>
-                    <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">CAMPANHAS AGENDADAS</div>
-                        <div class="kpi-value" id="kpi-camp-scheduled">0</div>
-                        <div class="kpi-sub">Aguardando horário</div>
-                    </div>
-                    <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">RASCUNHOS</div>
-                        <div class="kpi-value" id="kpi-camp-drafts">0</div>
-                        <div class="kpi-sub">Em elaboração</div>
-                    </div>
-                    <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">DISPOSITIVOS ELEGÍVEIS</div>
-                        <div class="kpi-value" id="kpi-camp-devices">0</div>
-                        <div class="kpi-sub">Tokens FCM ativos</div>
-                    </div>
-                    <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">NOTIFICAÇÕES ENVIADAS</div>
-                        <div class="kpi-value" id="kpi-camp-total-sent">0</div>
-                        <div class="kpi-sub">Total acumulado</div>
-                    </div>
-                    <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">FALHAS DE ENTREGA</div>
-                        <div class="kpi-value" id="kpi-camp-failures">0</div>
-                        <div class="kpi-sub">Erros ou tokens inválidos</div>
-                    </div>
-                    <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">TAXA MÉDIA DE ABERTURA</div>
-                        <div class="kpi-value" id="kpi-camp-open-rate">N/D</div>
-                        <div class="kpi-sub">Aberturas rastreadas</div>
-                    </div>
-                </div>
-
-                <!-- Submenus de Filtro por Status -->
-                <div class="status-filter-pills" style="margin-bottom: 20px;">
-                    <button class="pill-btn active" onclick="filterCampaignsByStatus('ALL', this)">Campanhas (Todas)</button>
-                    <button class="pill-btn" onclick="filterCampaignsByStatus('SENT', this)">Enviadas</button>
-                    <button class="pill-btn" onclick="filterCampaignsByStatus('SCHEDULED', this)">Agendadas</button>
-                    <button class="pill-btn" onclick="filterCampaignsByStatus('DRAFT', this)">Rascunhos</button>
-                    <button class="pill-btn" onclick="filterCampaignsByStatus('PROCESSING', this)">Em Processamento</button>
-                    <button class="pill-btn" onclick="filterCampaignsByStatus('CANCELLED', this)">Canceladas</button>
-                </div>
-
-                <!-- Tabela de Campanhas -->
-                <div class="table-container">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Campanha / Título</th>
-                                <th>Tipo</th>
-                                <th>Público Alvo</th>
-                                <th>Status</th>
-                                <th>Data / Agendamento</th>
-                                <th>Destinatários</th>
-                                <th>Enviadas / Falhas</th>
-                                <th>Aberturas</th>
-                                <th style="text-align: right;">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="campaigns-table-body">
-                            <tr>
-                                <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                                    Carregando campanhas do sistema...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
+        <!-- Barra de Navegação Inferior para Mobile (< 768px) -->
+        <nav class="admin-bottom-nav" aria-label="Navegação rápida">
+            <button class="bottom-nav-item active" data-tab="overview" onclick="switchTab('overview')">
+                <span class="bottom-nav-icon">📊</span>
+                <span>Visão</span>
+            </button>
+            <button class="bottom-nav-item" data-tab="drivers" onclick="switchTab('drivers')">
+                <span class="bottom-nav-icon">🚗</span>
+                <span>Motoristas</span>
+            </button>
+            <button class="bottom-nav-item" data-tab="campaigns" onclick="switchTab('campaigns')">
+                <span class="bottom-nav-icon">📣</span>
+                <span>Campanhas</span>
+            </button>
+            <button class="bottom-nav-item" data-tab="plans" onclick="switchTab('plans')">
+                <span class="bottom-nav-icon">💎</span>
+                <span>Planos</span>
+            </button>
+            <button class="bottom-nav-item" onclick="toggleMobileDrawer(true)">
+                <span class="bottom-nav-icon">☰</span>
+                <span>Mais</span>
+            </button>
+        </nav>
     </div>
 
     <!-- ======================================================================
-         MODAIS ADMINISTRATIVOS INTERATIVOS
+         MODAIS ADMINISTRATIVOS INTERATIVOS & BOTTOM SHEETS
          ====================================================================== -->
 
     <!-- 1. Modal: Criar / Editar Motorista -->
@@ -641,10 +765,10 @@
 
             <!-- ETAPA 1: CONTEÚDO E PRÉVIA ANDROID NATIVA -->
             <div id="wizard-step-1" class="wizard-step-content active">
-                <div style="display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start;">
+                <div class="wizard-content-layout">
                     <div class="form-column">
                         <div class="form-group">
-                            <label for="camp-name">Nome Interno da Campanha <span style="color: var(--primary-orange);">*</span></label>
+                            <label for="camp-name">Nome Interno da Campanha <span style="color: var(--orange-primary);">*</span></label>
                             <input type="text" id="camp-name" placeholder="Ex: Promoção Pro - Alta Demanda Outubro" required>
                             <span class="field-hint">Uso exclusivo da equipe admin (não é exibido ao motorista).</span>
                         </div>
@@ -674,7 +798,7 @@
 
                         <div class="form-group">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label for="camp-title">Título da Notificação <span style="color: var(--primary-orange);">*</span></label>
+                                <label for="camp-title">Título da Notificação <span style="color: var(--orange-primary);">*</span></label>
                                 <span class="char-counter" id="char-count-title">0/60</span>
                             </div>
                             <input type="text" id="camp-title" maxlength="60" placeholder="🚗 Nova oportunidade no ROTA IQ!" oninput="updateLivePreview()" required>
@@ -682,7 +806,7 @@
 
                         <div class="form-group">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label for="camp-body">Mensagem da Notificação <span style="color: var(--primary-orange);">*</span></label>
+                                <label for="camp-body">Mensagem da Notificação <span style="color: var(--orange-primary);">*</span></label>
                                 <span class="char-counter" id="char-count-body">0/160</span>
                             </div>
                             <textarea id="camp-body" rows="3" maxlength="160" placeholder="Confira as novas corridas com alto ganho na sua região agora mesmo!" oninput="updateLivePreview()" required style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
@@ -709,7 +833,7 @@
 
                     <!-- Coluna de Prévia Android Nativa -->
                     <div class="preview-column">
-                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">
                             📱 Prévia Android Nativa
                         </div>
                         <div class="android-mockup-frame">
@@ -736,7 +860,7 @@
                             </div>
                         </div>
                         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center;">
-                            Visualização aproximada da notificação no painel de notificações do Android.
+                            Visualização aproximada no painel de notificações do Android.
                         </div>
                     </div>
                 </div>
@@ -756,8 +880,7 @@
                         <label class="audience-card">
                             <input type="radio" name="audience_target" value="ALL" checked onchange="handleAudienceTypeChange('ALL')">
                             <div class="audience-card-body">
-                                <div class="audience-icon">📢</div>
-                                <div class="audience-title">TODOS OS USUÁRIOS</div>
+                                <div class="audience-title">📢 TODOS OS USUÁRIOS</div>
                                 <div class="audience-desc">Todos os motoristas elegíveis com aplicativo Android instalado e notificações ativas.</div>
                             </div>
                         </label>
@@ -765,8 +888,7 @@
                         <label class="audience-card">
                             <input type="radio" name="audience_target" value="FREE" onchange="handleAudienceTypeChange('FREE')">
                             <div class="audience-card-body">
-                                <div class="audience-icon">🆓</div>
-                                <div class="audience-title">Apenas Usuários Free</div>
+                                <div class="audience-title">🆓 Apenas Usuários Free</div>
                                 <div class="audience-desc">Motoristas no plano gratuito (ideal para campanhas de upgrade para o Plano Pro).</div>
                             </div>
                         </label>
@@ -774,8 +896,7 @@
                         <label class="audience-card">
                             <input type="radio" name="audience_target" value="PRO" onchange="handleAudienceTypeChange('PRO')">
                             <div class="audience-card-body">
-                                <div class="audience-icon">💎</div>
-                                <div class="audience-title">Apenas Usuários Pro</div>
+                                <div class="audience-title">💎 Apenas Usuários Pro</div>
                                 <div class="audience-desc">Assinantes pagantes do ROTA IQ Pro (novas ferramentas, dicas exclusivas).</div>
                             </div>
                         </label>
@@ -783,8 +904,7 @@
                         <label class="audience-card">
                             <input type="radio" name="audience_target" value="ACTIVE" onchange="handleAudienceTypeChange('ACTIVE')">
                             <div class="audience-card-body">
-                                <div class="audience-icon">⚡</div>
-                                <div class="audience-title">Usuários Ativos</div>
+                                <div class="audience-title">⚡ Usuários Ativos</div>
                                 <div class="audience-desc">Motoristas com atividade recente e aplicativo online nos últimos 30 dias.</div>
                             </div>
                         </label>
@@ -792,8 +912,7 @@
                         <label class="audience-card">
                             <input type="radio" name="audience_target" value="INACTIVE" onchange="handleAudienceTypeChange('INACTIVE')">
                             <div class="audience-card-body">
-                                <div class="audience-icon">💤</div>
-                                <div class="audience-title">Usuários Inativos</div>
+                                <div class="audience-title">💤 Usuários Inativos</div>
                                 <div class="audience-desc">Campanha de reativação para quem não utiliza o app há mais de 15 dias.</div>
                             </div>
                         </label>
@@ -801,8 +920,7 @@
                         <label class="audience-card">
                             <input type="radio" name="audience_target" value="DRIVERS" onchange="handleAudienceTypeChange('DRIVERS')">
                             <div class="audience-card-body">
-                                <div class="audience-icon">🚗</div>
-                                <div class="audience-title">Todos os Motoristas</div>
+                                <div class="audience-title">🚗 Todos os Motoristas</div>
                                 <div class="audience-desc">Base geral de motoristas cadastrados na plataforma.</div>
                             </div>
                         </label>
@@ -810,8 +928,7 @@
                         <label class="audience-card">
                             <input type="radio" name="audience_target" value="CUSTOM_GEO" onchange="handleAudienceTypeChange('CUSTOM_GEO')">
                             <div class="audience-card-body">
-                                <div class="audience-icon">📍</div>
-                                <div class="audience-title">Por Cidade / Estado</div>
+                                <div class="audience-title">📍 Por Cidade / Estado</div>
                                 <div class="audience-desc">Segmentação geográfica personalizada para praças específicas.</div>
                             </div>
                         </label>
@@ -833,7 +950,7 @@
 
                     <!-- Caixa de Cálculo de Audiência Real -->
                     <div class="audience-preview-box" style="margin-top: 20px; padding: 16px; background: rgba(255, 122, 0, 0.05); border: 1px solid rgba(255, 122, 0, 0.2); border-radius: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                             <div>
                                 <span style="font-weight: 600; color: #fff; font-size: 0.95rem;">📊 Estimativa de Destinatários Reais</span>
                                 <div style="font-size: 0.78rem; color: var(--text-muted);">Calculado em tempo real direto da base de usuários e tokens FCM.</div>
@@ -841,22 +958,22 @@
                             <button type="button" class="btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="calculateAudiencePreview()">🔍 Calcular Audiência</button>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; text-align: center;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; text-align: center;">
                             <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">USUÁRIOS ENCONTRADOS</div>
-                                <div style="font-size: 1.3rem; font-weight: 700; color: #fff;" id="aud-count-users">-</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">USUÁRIOS ENCONTRADOS</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: #fff;" id="aud-count-users">-</div>
                             </div>
                             <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">DISPOSITIVOS ELEGÍVEIS</div>
-                                <div style="font-size: 1.3rem; font-weight: 700; color: var(--primary-orange);" id="aud-count-devices">-</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">DISPOSITIVOS ELEGÍVEIS</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: var(--orange-primary);" id="aud-count-devices">-</div>
                             </div>
                             <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">SEM NOTIFICAÇÃO/TOKEN</div>
-                                <div style="font-size: 1.3rem; font-weight: 700; color: #aaa;" id="aud-count-no-token">-</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">SEM NOTIFICAÇÃO/TOKEN</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: #aaa;" id="aud-count-no-token">-</div>
                             </div>
                             <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">SEGMENTAÇÃO</div>
-                                <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent-blue);" id="aud-segment-name">Geral</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">SEGMENTAÇÃO</div>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: var(--blue-accent);" id="aud-segment-name">Geral</div>
                             </div>
                         </div>
                     </div>
@@ -872,10 +989,10 @@
             <div id="wizard-step-3" class="wizard-step-content" style="display: none;">
                 <h4 style="color: #fff; margin-bottom: 12px;">Quando esta campanha deverá ser disparada?</h4>
 
-                <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
                     <label class="action-option-card">
                         <input type="radio" name="campaign_action_choice" value="SEND_NOW" checked onchange="handleActionChoiceChange('SEND_NOW')">
-                        <div style="margin-left: 10px;">
+                        <div>
                             <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">🚀 Disparar Agora (Envio Imediato)</div>
                             <div style="font-size: 0.82rem; color: var(--text-muted);">A campanha entrará em processamento imediato pelo worker e será enviada pelo Firebase FCM.</div>
                         </div>
@@ -883,7 +1000,7 @@
 
                     <label class="action-option-card">
                         <input type="radio" name="campaign_action_choice" value="SCHEDULE" onchange="handleActionChoiceChange('SCHEDULE')">
-                        <div style="margin-left: 10px;">
+                        <div>
                             <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">⏰ Agendar para uma Data e Hora Futura</div>
                             <div style="font-size: 0.82rem; color: var(--text-muted);">A campanha será salva como AGENDADA e enviada automaticamente no momento estipulado.</div>
                         </div>
@@ -891,7 +1008,7 @@
 
                     <label class="action-option-card">
                         <input type="radio" name="campaign_action_choice" value="DRAFT" onchange="handleActionChoiceChange('DRAFT')">
-                        <div style="margin-left: 10px;">
+                        <div>
                             <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">📝 Salvar apenas como Rascunho</div>
                             <div style="font-size: 0.82rem; color: var(--text-muted);">Salva a campanha para revisão e disparo posterior sem enviar notificações agora.</div>
                         </div>
@@ -900,7 +1017,7 @@
 
                 <!-- Formulário de Agendamento -->
                 <div id="schedule-fields-container" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
                         <div class="form-group">
                             <label for="sched-date">Data do Disparo</label>
                             <input type="date" id="sched-date">
@@ -931,35 +1048,35 @@
                 <h4 style="color: #fff; margin-bottom: 12px;">Revise todos os detalhes antes de confirmar</h4>
 
                 <div class="review-summary-card" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.9rem;">
                         <div>
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">NOME DA CAMPANHA:</span>
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">NOME DA CAMPANHA:</span>
                             <div style="font-weight: 600; color: #fff;" id="rev-name">-</div>
                         </div>
                         <div>
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">TIPO:</span>
-                            <div style="font-weight: 600; color: var(--primary-orange);" id="rev-type">-</div>
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">TIPO:</span>
+                            <div style="font-weight: 600; color: var(--orange-primary);" id="rev-type">-</div>
                         </div>
                         <div style="grid-column: 1/-1;">
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">MENSAGEM PUSH:</span>
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">MENSAGEM PUSH:</span>
                             <div style="font-weight: 600; color: #fff; margin-top: 2px;" id="rev-title">-</div>
                             <div style="color: var(--text-secondary); font-size: 0.85rem;" id="rev-body">-</div>
                         </div>
                         <div>
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">PÚBLICO ALVO:</span>
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">PÚBLICO ALVO:</span>
                             <div style="font-weight: 600; color: #fff;" id="rev-audience">-</div>
                         </div>
                         <div>
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">DISPOSITIVOS ELEGÍVEIS:</span>
-                            <div style="font-weight: 600; color: var(--primary-orange);" id="rev-devices">-</div>
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">DISPOSITIVOS ELEGÍVEIS:</span>
+                            <div style="font-weight: 600; color: var(--orange-primary);" id="rev-devices">-</div>
                         </div>
                         <div>
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">AÇÃO:</span>
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">AÇÃO:</span>
                             <div style="font-weight: 600; color: #fff;" id="rev-action">-</div>
                         </div>
                         <div>
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">DEEP LINK:</span>
-                            <div style="font-weight: 600; color: var(--accent-blue);" id="rev-deeplink">-</div>
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">DEEP LINK:</span>
+                            <div style="font-weight: 600; color: var(--blue-accent);" id="rev-deeplink">-</div>
                         </div>
                     </div>
                 </div>
@@ -994,7 +1111,7 @@
                     <h3 style="color: #fff;">Processando Envio da Campanha...</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">Comunicando com o Firebase Cloud Messaging e gravando logs de auditoria.</p>
                     <div style="width: 100%; max-width: 380px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin: 20px auto; overflow: hidden;">
-                        <div style="width: 100%; height: 100%; background: var(--primary-orange); animation: indeterminate 1.5s infinite linear;"></div>
+                        <div style="width: 100%; height: 100%; background: var(--orange-primary); animation: indeterminate 1.5s infinite linear;"></div>
                     </div>
                 </div>
 
@@ -1003,18 +1120,18 @@
                     <h3 style="color: #fff;" id="wizard-result-title">Campanha Enviada com Sucesso!</h3>
                     <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 6px;" id="wizard-result-desc">A notificação foi entregue ao servidor do Firebase FCM.</p>
 
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; text-align: center;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 20px 0; text-align: center;">
                         <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">DISPARADAS COM SUCESSO</div>
-                            <div style="font-size: 1.4rem; font-weight: 700; color: #00E676;" id="res-sent-count">0</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">DISPARADAS COM SUCESSO</div>
+                            <div style="font-size: 1.35rem; font-weight: 700; color: #00E676;" id="res-sent-count">0</div>
                         </div>
                         <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">FALHAS DE ENTREGA</div>
-                            <div style="font-size: 1.4rem; font-weight: 700; color: #FF334B;" id="res-failure-count">0</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">FALHAS DE ENTREGA</div>
+                            <div style="font-size: 1.35rem; font-weight: 700; color: #FF334B;" id="res-failure-count">0</div>
                         </div>
                         <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">TOKENS INVÁLIDOS</div>
-                            <div style="font-size: 1.4rem; font-weight: 700; color: #FFB300;" id="res-invalid-count">0</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">TOKENS INVÁLIDOS</div>
+                            <div style="font-size: 1.35rem; font-weight: 700; color: #FFB300;" id="res-invalid-count">0</div>
                         </div>
                     </div>
 
@@ -1039,7 +1156,7 @@
 
             <!-- Dados da Campanha -->
             <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle); margin-bottom: 20px;">
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; font-size: 0.88rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.88rem;">
                     <div>
                         <span style="color: var(--text-muted); font-size: 0.78rem;">TÍTULO & MENSAGEM:</span>
                         <div style="font-weight: 600; color: #fff;" id="rep-notif-title">-</div>
@@ -1053,23 +1170,23 @@
                 </div>
             </div>
 
-            <!-- Métricas Reais (Sem Invenção de Dados) -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+            <!-- Métricas Reais -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px;">
                 <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle); text-align: center;">
                     <div style="font-size: 0.72rem; color: var(--text-muted);">DISPOSITIVOS ELEGÍVEIS</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #fff;" id="rep-devices-count">0</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: #fff;" id="rep-devices-count">0</div>
                 </div>
                 <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle); text-align: center;">
                     <div style="font-size: 0.72rem; color: var(--text-muted);">DISPARADAS</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #00E676;" id="rep-sent-count">0</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: #00E676;" id="rep-sent-count">0</div>
                 </div>
                 <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle); text-align: center;">
                     <div style="font-size: 0.72rem; color: var(--text-muted);">FALHAS</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #FF334B;" id="rep-failed-count">0</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: #FF334B;" id="rep-failed-count">0</div>
                 </div>
                 <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle); text-align: center;">
                     <div style="font-size: 0.72rem; color: var(--text-muted);">TAXA DE ABERTURA</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--accent-blue);" id="rep-open-rate">N/D</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--blue-accent);" id="rep-open-rate">N/D</div>
                 </div>
             </div>
 
@@ -1123,6 +1240,29 @@
 
             <div class="modal-footer" style="margin-top: 20px;">
                 <button type="button" class="btn-secondary" onclick="closeModal('modal-campaign-templates')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. Modal / Bottom Sheet: Filtros Mobile de Motoristas -->
+    <div id="sheet-driver-filters" class="admin-modal-overlay">
+        <div class="admin-modal" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3>Filtrar <span>Motoristas</span></h3>
+                <button class="btn-close-modal" onclick="closeModal('sheet-driver-filters')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="mobile-driver-status-filter">Status do Motorista</label>
+                <select id="mobile-driver-status-filter" class="filter-select" style="width: 100%;">
+                    <option value="ALL">Todos os Status</option>
+                    <option value="ACTIVE">Apenas Ativos</option>
+                    <option value="BLOCKED">Apenas Bloqueados</option>
+                    <option value="INACTIVE">Apenas Inativos</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="resetDriverFiltersMobile()">Limpar</button>
+                <button type="button" class="btn-primary-action" onclick="applyDriverFiltersMobile()">Aplicar Filtros</button>
             </div>
         </div>
     </div>

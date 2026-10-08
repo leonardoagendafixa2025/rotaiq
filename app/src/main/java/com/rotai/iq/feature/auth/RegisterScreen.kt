@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Checkbox
@@ -39,10 +40,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -79,6 +85,8 @@ fun RegisterScreen(
 ) {
     val state by viewModel.registerState.collectAsState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    var showServerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.navEvents.collectLatest { event ->
@@ -112,24 +120,38 @@ fun RegisterScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botão Voltar
+            // Barra Superior: Voltar + Configurar Servidor
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = onNavigateBackToLogin) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = RotaTextPrimary
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onNavigateBackToLogin() }
+                ) {
+                    IconButton(onClick = onNavigateBackToLogin) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = RotaTextPrimary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Voltar ao Login",
+                        color = RotaTextSecondary,
+                        fontSize = 14.sp
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Voltar ao Login",
-                    color = RotaTextSecondary,
-                    fontSize = 14.sp
-                )
+
+                IconButton(onClick = { showServerDialog = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Configurar Servidor",
+                        tint = RotaOrangePrimary
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -152,7 +174,32 @@ fun RegisterScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Chip do Servidor Conectado
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0x18FFFFFF))
+                    .clickable { showServerDialog = true }
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                    tint = RotaOrangePrimary,
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Servidor: ${viewModel.getCurrentServerUrl(context).removePrefix("http://")}",
+                    color = RotaTextSecondary,
+                    fontSize = 11.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
 
             // Card Formulário
             RotaCard(
@@ -384,6 +431,16 @@ fun RegisterScreen(
             }
 
             Spacer(modifier = Modifier.height(36.dp))
+        }
+
+        if (showServerDialog) {
+            ServerConfigDialog(
+                currentUrl = viewModel.getCurrentServerUrl(context),
+                onDismiss = { showServerDialog = false },
+                onSaveUrl = { newUrl ->
+                    viewModel.updateServerUrl(context, newUrl)
+                }
+            )
         }
     }
 }

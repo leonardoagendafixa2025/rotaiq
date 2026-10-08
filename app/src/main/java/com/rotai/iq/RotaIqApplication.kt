@@ -79,7 +79,7 @@ class RotaIqApplication : Application() {
         telemetryManager = TelemetryManager()
         featureFlagManager = FeatureFlagManager()
         secureStorage = AndroidSecureStorage(this)
-        authApiClient = com.rotai.iq.core.network.AuthApiClient()
+        authApiClient = com.rotai.iq.core.network.AuthApiClient(com.rotai.iq.core.network.NetworkConfig.getBaseUrl(this))
         authSessionManager = com.rotai.iq.core.security.AuthSessionManager(secureStorage)
         authRepository = com.rotai.iq.core.data.repository.AuthRepositoryImpl(authApiClient, authSessionManager)
 

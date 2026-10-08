@@ -66,6 +66,15 @@ class AuthViewModel(
     private val _navEvents = MutableSharedFlow<AuthNavEvent>()
     val navEvents: SharedFlow<AuthNavEvent> = _navEvents.asSharedFlow()
 
+    fun getCurrentServerUrl(context: android.content.Context? = null): String {
+        return com.rotai.iq.core.network.NetworkConfig.getBaseUrl(context)
+    }
+
+    fun updateServerUrl(context: android.content.Context, newUrl: String) {
+        com.rotai.iq.core.network.NetworkConfig.setCustomBaseUrl(context, newUrl)
+        authRepository.updateServerUrl(newUrl)
+    }
+
     // -------------------------------------------------------------
     // LOGIN
     // -------------------------------------------------------------

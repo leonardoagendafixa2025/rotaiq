@@ -38,8 +38,10 @@ data class UserSessionProfile(
 )
 
 class AuthApiClient(
-    private var baseUrl: String = "http://10.0.2.2:8000/api/v1"
+    private var baseUrl: String = NetworkConfig.getBaseUrl()
 ) {
+
+    fun getBaseUrl(): String = baseUrl
 
     fun setBaseUrl(newUrl: String) {
         baseUrl = newUrl.trimEnd('/')
@@ -62,7 +64,7 @@ class AuthApiClient(
                 put("terms_version", termsVersion)
                 put("privacy_version", privacyVersion)
             }
-            val (code, responseBody) = sendPostRequest("$baseUrl/auth/register", payload.toString(), null)
+            val (code, responseBody) = sendPostRequest("/auth/register", payload.toString(), null)
             if (code in 200..299) {
                 val json = JSONObject(responseBody)
                 Result.success(
@@ -92,7 +94,7 @@ class AuthApiClient(
                 put("email", email.trim().lowercase())
                 put("password", password)
             }
-            val (code, responseBody) = sendPostRequest("$baseUrl/auth/login", payload.toString(), null)
+            val (code, responseBody) = sendPostRequest("/auth/login", payload.toString(), null)
             if (code in 200..299) {
                 val json = JSONObject(responseBody)
                 Result.success(
@@ -121,7 +123,7 @@ class AuthApiClient(
             val payload = JSONObject().apply {
                 put("refresh_token", refreshToken)
             }
-            val (code, responseBody) = sendPostRequest("$baseUrl/auth/refresh", payload.toString(), null)
+            val (code, responseBody) = sendPostRequest("/auth/refresh", payload.toString(), null)
             if (code in 200..299) {
                 val json = JSONObject(responseBody)
                 Result.success(json.getString("access_token"))
@@ -138,7 +140,7 @@ class AuthApiClient(
             val payload = JSONObject().apply {
                 put("email", email.trim().lowercase())
             }
-            val (code, responseBody) = sendPostRequest("$baseUrl/auth/forgot-password", payload.toString(), null)
+            val (code, responseBody) = sendPostRequest("/auth/forgot-password", payload.toString(), null)
             if (code in 200..299) {
                 val json = JSONObject(responseBody)
                 Result.success(json.optString("message", "Instruções enviadas com sucesso."))
@@ -156,7 +158,7 @@ class AuthApiClient(
                 put("token", token.trim())
                 put("new_password", newPassword)
             }
-            val (code, responseBody) = sendPostRequest("$baseUrl/auth/reset-password", payload.toString(), null)
+            val (code, responseBody) = sendPostRequest("/auth/reset-password", payload.toString(), null)
             if (code in 200..299) {
                 val json = JSONObject(responseBody)
                 Result.success(json.optString("message", "Senha alterada com sucesso!"))
@@ -177,7 +179,7 @@ class AuthApiClient(
                     put("token", tokenOrEmail.trim())
                 }
             }
-            val (code, responseBody) = sendPostRequest("$baseUrl/auth/verify-email", payload.toString(), null)
+            val (code, responseBody) = sendPostRequest("/auth/verify-email", payload.toString(), null)
             if (code in 200..299) {
                 Result.success("E-mail confirmado com sucesso.")
             } else {
@@ -193,7 +195,7 @@ class AuthApiClient(
             val payload = JSONObject().apply {
                 if (refreshToken != null) put("refresh_token", refreshToken)
             }
-            sendPostRequest("$baseUrl/auth/logout", payload.toString(), accessToken)
+            sendPostRequest("/auth/logout", payload.toString(), accessToken)
             Result.success(Unit)
         } catch (_: Exception) {
             Result.success(Unit)
@@ -202,17 +204,7 @@ class AuthApiClient(
 
     suspend fun getProfile(accessToken: String): Result<UserSessionProfile> = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$baseUrl/auth/me")
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                setRequestProperty("Authorization", "Bearer $accessToken")
-                connectTimeout = 8000
-                readTimeout = 8000
-            }
-            val code = conn.responseCode
-            val responseBody = readStream(if (code in 200..299) conn.inputStream else conn.errorStream)
-            conn.disconnect()
-
+            val (code, responseBody) = executeRequest("GET", "/auth/me", null, accessToken)
             if (code in 200..299) {
                 val json = JSONObject(responseBody)
                 Result.success(
@@ -236,24 +228,63 @@ class AuthApiClient(
         }
     }
 
-    private fun sendPostRequest(urlString: String, jsonBody: String, authToken: String?): Pair<Int, String> {
-        val url = URL(urlString)
-        val conn = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            if (authToken != null) {
-                setRequestProperty("Authorization", "Bearer $authToken")
-            }
-            connectTimeout = 8000
-            readTimeout = 8000
-            doOutput = true
+    private fun sendPostRequest(path: String, jsonBody: String, authToken: String?): Pair<Int, String> {
+        return executeRequest("POST", path, jsonBody, authToken)
+    }
+
+    private fun executeRequest(
+        method: String,
+        path: String,
+        jsonBody: String?,
+        authToken: String?
+    ): Pair<Int, String> {
+        val candidates = NetworkConfig.getCandidateUrls()
+        val orderedUrls = mutableListOf<String>()
+        if (baseUrl.isNotBlank()) orderedUrls.add(baseUrl)
+        for (c in candidates) {
+            if (!orderedUrls.contains(c)) orderedUrls.add(c)
         }
 
-        OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(jsonBody) }
-        val code = conn.responseCode
-        val responseBody = readStream(if (code in 200..299) conn.inputStream else conn.errorStream)
-        conn.disconnect()
-        return Pair(code, responseBody)
+        var lastException: Exception? = null
+
+        for (urlCandidate in orderedUrls) {
+            val cleanCandidate = urlCandidate.trimEnd('/')
+            val cleanPath = if (path.startsWith("/")) path else "/$path"
+            val fullUrl = "$cleanCandidate$cleanPath"
+
+            try {
+                val url = URL(fullUrl)
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = method
+                    setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    if (authToken != null) {
+                        setRequestProperty("Authorization", "Bearer $authToken")
+                    }
+                    connectTimeout = 4000
+                    readTimeout = 8000
+                    if (jsonBody != null) {
+                        doOutput = true
+                    }
+                }
+
+                if (jsonBody != null) {
+                    OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(jsonBody) }
+                }
+
+                val code = conn.responseCode
+                val responseBody = readStream(if (code in 200..299) conn.inputStream else conn.errorStream)
+                conn.disconnect()
+
+                // Atualiza baseUrl para a URL funcional
+                if (baseUrl != urlCandidate) {
+                    baseUrl = urlCandidate
+                }
+                return Pair(code, responseBody)
+            } catch (e: Exception) {
+                lastException = e
+            }
+        }
+        throw lastException ?: Exception("Falha ao comunicar com o servidor ROTA IQ.")
     }
 
     private fun readStream(stream: java.io.InputStream?): String {
@@ -277,10 +308,15 @@ class AuthApiClient(
     private fun formatNetworkException(e: Exception): String {
         val msg = e.message ?: ""
         return when {
-            msg.contains("failed to connect", ignoreCase = true) || msg.contains("Connection refused", ignoreCase = true) ->
-                "Servidor ROTA IQ temporariamente indisponível. Verifique sua conexão."
+            msg.contains("Cleartext", ignoreCase = true) ->
+                "Tráfego HTTP não permitido. O app foi atualizado para permitir a conexão local."
+            msg.contains("failed to connect", ignoreCase = true) ||
+            msg.contains("Connection refused", ignoreCase = true) ||
+            msg.contains("ENETUNREACH", ignoreCase = true) ||
+            msg.contains("No route to host", ignoreCase = true) ->
+                "Não foi possível conectar ao servidor ROTA IQ ($baseUrl). Verifique se o seu celular está no mesmo Wi-Fi do computador (IP: ${NetworkConfig.LAN_DEFAULT_HOST}:8000)."
             msg.contains("timeout", ignoreCase = true) ->
-                "Tempo limite de resposta esgotado. Tente novamente."
+                "Tempo limite de conexão esgotado ao tentar contatar $baseUrl. Verifique se o firewall do computador permite a porta 8000."
             else -> msg.ifBlank { "Erro de conexão com o servidor." }
         }
     }
