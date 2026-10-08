@@ -15,6 +15,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
 import uuid
 import hashlib
+import os
 
 from app.supabase_client import supabase
 from app.auth import (
@@ -900,7 +901,28 @@ async def sync_push(payload: SyncPushRequest, claims: Dict[str, Any] = Depends(g
     for f in payload.fuel_records: f["driver_id"] = driver_id
     for m in payload.maintenance_records: m["driver_id"] = driver_id
     for e in payload.expenses: e["driver_id"] = driver_id
-    for ev in payload.evaluations: ev["driver_id"] = driver_id
+    for ev in payload.evaluations:
+        ev["driver_id"] = driver_id
+        gross = float(ev.get("gross_fare") or 0.0)
+        net = float(ev.get("net_profit") or 0.0)
+        dist = float(ev.get("distance_km") or 0.0)
+        dur = float(ev.get("duration_minutes") or 0.0)
+        if "profit_margin_percent" not in ev or ev["profit_margin_percent"] is None:
+            ev["profit_margin_percent"] = round((net / gross * 100.0), 1) if gross > 0 else 0.0
+        if "gross_rate_per_km" not in ev or ev["gross_rate_per_km"] is None:
+            ev["gross_rate_per_km"] = round(gross / dist, 2) if dist > 0 else 0.0
+        if "net_rate_per_km" not in ev or ev["net_rate_per_km"] is None:
+            ev["net_rate_per_km"] = round(net / dist, 2) if dist > 0 else 0.0
+        if "gross_rate_per_hour" not in ev or ev["gross_rate_per_hour"] is None:
+            ev["gross_rate_per_hour"] = round(gross / (dur / 60.0), 2) if dur > 0 else 0.0
+        if "net_rate_per_hour" not in ev or ev["net_rate_per_hour"] is None:
+            ev["net_rate_per_hour"] = round(net / (dur / 60.0), 2) if dur > 0 else 0.0
+        if "reasons" not in ev or ev["reasons"] is None:
+            ev["reasons"] = []
+        if "alerts" not in ev or ev["alerts"] is None:
+            ev["alerts"] = []
+        if "evaluated_at" not in ev or ev["evaluated_at"] is None:
+            ev["evaluated_at"] = datetime.now(timezone.utc).isoformat()
 
     # Sincronização atômica
     ack_fuel = supabase.save_sync_fuel(payload.fuel_records)

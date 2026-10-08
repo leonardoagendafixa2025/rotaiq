@@ -88,37 +88,48 @@
             <!-- 1. Aba: Visão Geral -->
             <section id="tab-overview" class="tab-panel active">
                 <div class="section-header">
-                    <h2>Indicadores de Desempenho do Negócio</h2>
-                    <span class="live-tag">● OPERAÇÃO EM TEMPO REAL</span>
+                    <div>
+                        <h2>Indicadores de Desempenho do Negócio</h2>
+                        <span class="live-tag">● OPERAÇÃO EM TEMPO REAL</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="live-sync-badge" id="live-sync-toggle-badge" onclick="toggleLiveSync()" title="Clique para pausar ou retomar a sincronização automática">
+                            <span class="pulse-indicator"></span>
+                            <span id="live-sync-text">SINCRONIA AO VIVO (3.5s)</span>
+                        </div>
+                        <button class="btn-simulate-live" onclick="triggerLiveDriverTraffic()" title="Gera motoristas reais avaliando corridas, sincronizando abastecimento e pagando Pix">
+                            ⚡ SIMULAR MOTORISTAS AO VIVO
+                        </button>
+                    </div>
                 </div>
 
                 <div class="kpi-grid">
-                    <div class="kpi-card highlight-orange">
+                    <div class="kpi-card highlight-orange" id="card-kpi-mrr">
                         <div class="kpi-label">MRR APURADO (MENSAL)</div>
                         <div class="kpi-value" id="kpi-mrr">R$ 0,00</div>
                         <div class="kpi-sub">Faturamento recorrente mensal</div>
                     </div>
-                    <div class="kpi-card highlight-orange">
+                    <div class="kpi-card highlight-orange" id="card-kpi-arr">
                         <div class="kpi-label">ARR PROJETADO (ANUAL)</div>
                         <div class="kpi-value" id="kpi-arr">R$ 0,00</div>
                         <div class="kpi-sub">Receita recorrente anualizada</div>
                     </div>
-                    <div class="kpi-card">
+                    <div class="kpi-card" id="card-kpi-users">
                         <div class="kpi-label">TOTAL DE CONTAS</div>
                         <div class="kpi-value" id="kpi-users">0</div>
                         <div class="kpi-sub">Cadastros registrados no sistema</div>
                     </div>
-                    <div class="kpi-card highlight-green">
+                    <div class="kpi-card highlight-green" id="card-kpi-drivers">
                         <div class="kpi-label">MOTORISTAS REGISTRADOS</div>
                         <div class="kpi-value" id="kpi-drivers">0</div>
                         <div class="kpi-sub">Ativos: <strong id="kpi-active-drivers">0</strong> | Bloqueados: <strong id="kpi-blocked-drivers">0</strong></div>
                     </div>
-                    <div class="kpi-card highlight-green">
+                    <div class="kpi-card highlight-green" id="card-kpi-subs">
                         <div class="kpi-label">ASSINANTES PRO</div>
                         <div class="kpi-value" id="kpi-subs">0</div>
                         <div class="kpi-sub">Motoristas com plano pago ativo</div>
                     </div>
-                    <div class="kpi-card">
+                    <div class="kpi-card" id="card-kpi-evals">
                         <div class="kpi-label">CORRIDAS AVALIADAS</div>
                         <div class="kpi-value" id="kpi-evals">0</div>
                         <div class="kpi-sub">Análises realizadas no aplicativo</div>
@@ -149,10 +160,26 @@
                     <div class="panel-card">
                         <h3>Ações Rápidas de Gestão</h3>
                         <div class="action-buttons-group">
-                            <button class="btn-secondary" onclick="fetchAdminDashboard()">🔄 Atualizar Indicadores</button>
+                            <button class="btn-secondary" onclick="fetchAdminDashboard(true)">🔄 Atualizar Agora</button>
                             <button class="btn-secondary" onclick="openDriverModal()">+ Cadastrar Novo Motorista</button>
                             <button class="btn-secondary" onclick="openPlanModal()">+ Criar Novo Plano Comercial</button>
                             <button class="btn-secondary" onclick="switchTab('flags')">⚡ Gerenciar Funcionalidades</button>
+                        </div>
+                    </div>
+
+                    <!-- Card de Telemetria e Feed de Atividades ao Vivo -->
+                    <div class="panel-card" style="grid-column: 1 / -1;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 style="margin-bottom: 0;">📡 Telemetria & Sincronia de Motoristas em Tempo Real</h3>
+                            <span style="font-size: 0.75rem; color: #00E676; font-weight: 700;" id="activity-feed-status">● CONECTADO AO POSTGRESQL</span>
+                        </div>
+                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+                            Fluxo ao vivo de requisições de motoristas pelo app Android: avaliações de corridas via HUD flutuante, abastecimentos, sincronizações offline-first e pagamentos Pix.
+                        </p>
+                        <div class="activity-feed-list" id="live-activity-feed">
+                            <div style="text-align: center; padding: 25px; color: var(--text-muted); font-size: 0.85rem;">
+                                Conectando ao fluxo de telemetria...
+                            </div>
                         </div>
                     </div>
                 </div>

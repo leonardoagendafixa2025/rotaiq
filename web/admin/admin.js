@@ -122,6 +122,19 @@ async function handleAdminLogin(event) {
     }
 }
 
+// ==========================================================================
+// ESTADO DA SINCRONIA EM TEMPO REAL & TELEMETRIA AO VIVO
+// ==========================================================================
+
+let liveSyncState = {
+    isEnabled: true,
+    intervalMs: 3500,
+    intervalId: null,
+    previousValues: {},
+    activityLog: [],
+    activeTab: 'overview'
+};
+
 function showAdminDashboard() {
     document.getElementById('admin-login-modal').style.display = 'none';
     document.getElementById('admin-app').style.display = 'block';
@@ -129,15 +142,77 @@ function showAdminDashboard() {
     document.getElementById('current-user-email').innerText = currentSession.email;
     document.getElementById('current-role-badge').innerText = currentSession.role;
 
-    // Carrega dados iniciais da visão geral
+    // Carrega dados iniciais da visão geral e inicia sincronia contínua
     fetchAdminDashboard();
+    startLiveSync();
 }
 
 function handleAdminLogout() {
+    stopLiveSync();
     sessionStorage.removeItem('rota_iq_admin_session');
     currentSession = { token: null, email: null, role: 'ADMIN' };
     document.getElementById('admin-app').style.display = 'none';
     document.getElementById('admin-login-modal').style.display = 'flex';
+}
+
+function startLiveSync() {
+    if (liveSyncState.intervalId) clearInterval(liveSyncState.intervalId);
+    liveSyncState.isEnabled = true;
+    updateLiveSyncBadgeUI();
+    liveSyncState.intervalId = setInterval(() => {
+        if (!liveSyncState.isEnabled || !currentSession.token) return;
+        
+        // Se estiver na aba de Visão Geral, atualiza métricas e feed
+        if (liveSyncState.activeTab === 'overview') {
+            fetchAdminDashboard(false);
+        } else if (liveSyncState.activeTab === 'campaigns') {
+            loadCampaignsDashboard();
+        }
+    }, liveSyncState.intervalMs);
+}
+
+function stopLiveSync() {
+    if (liveSyncState.intervalId) {
+        clearInterval(liveSyncState.intervalId);
+        liveSyncState.intervalId = null;
+    }
+    liveSyncState.isEnabled = false;
+    updateLiveSyncBadgeUI();
+}
+
+function toggleLiveSync() {
+    if (liveSyncState.isEnabled) {
+        stopLiveSync();
+        showToast('Sincronia automática pausada.', 'info');
+    } else {
+        startLiveSync();
+        showToast('Sincronia automática em tempo real reativada (3.5s)!', 'success');
+        fetchAdminDashboard(true);
+    }
+}
+
+function updateLiveSyncBadgeUI() {
+    const badge = document.getElementById('live-sync-toggle-badge');
+    const text = document.getElementById('live-sync-text');
+    if (!badge || !text) return;
+
+    if (liveSyncState.isEnabled) {
+        badge.classList.remove('paused');
+        text.innerText = 'SINCRONIA AO VIVO (3.5s)';
+    } else {
+        badge.classList.add('paused');
+        text.innerText = 'SINCRONIA PAUSADA';
+    }
+}
+
+function triggerCardGlow(cardId) {
+    const el = document.getElementById(cardId);
+    if (!el) return;
+    el.classList.remove('kpi-updated');
+    // Force reflow
+    void el.offsetWidth;
+    el.classList.add('kpi-updated');
+    setTimeout(() => el.classList.remove('kpi-updated'), 900);
 }
 
 // ==========================================================================
@@ -145,6 +220,7 @@ function handleAdminLogout() {
 // ==========================================================================
 
 function switchTab(tabName) {
+    liveSyncState.activeTab = tabName;
     const tabs = document.querySelectorAll('.nav-tab');
     tabs.forEach(t => t.classList.remove('active'));
 
@@ -158,7 +234,7 @@ function switchTab(tabName) {
     if (activePanel) activePanel.classList.add('active');
 
     if (tabName === 'overview') {
-        fetchAdminDashboard();
+        fetchAdminDashboard(true);
     } else if (tabName === 'drivers') {
         loadDriversTable(1);
     } else if (tabName === 'campaigns') {
@@ -176,10 +252,10 @@ function switchTab(tabName) {
 }
 
 // ==========================================================================
-// 4. VISÃO GERAL (DASHBOARD REAL)
+// 4. VISÃO GERAL (DASHBOARD REAL & LIVE FEED)
 // ==========================================================================
 
-async function fetchAdminDashboard() {
+async function fetchAdminDashboard(isManual = false) {
     try {
         const response = await fetch(`${API_BASE_URL}/admin/dashboard`, {
             headers: getAuthHeaders()
@@ -190,9 +266,25 @@ async function fetchAdminDashboard() {
             const kpis = data.kpis || {};
 
             const mrr = kpis.mrr_reais || 0;
+            const arr = kpis.arr_reais || 0;
+            const totalUsers = kpis.total_users || 0;
             const totalDrivers = kpis.total_drivers || 0;
             const activeDrivers = kpis.active_drivers || 0;
             const activeSubs = kpis.active_pro_subscribers || 0;
+            const evals = kpis.total_evaluations_recorded || 0;
+
+            const prev = liveSyncState.previousValues;
+
+            // Animação de glow quando os valores mudam
+            if (prev.mrr !== undefined && prev.mrr !== mrr) triggerCardGlow('card-kpi-mrr');
+            if (prev.arr !== undefined && prev.arr !== arr) triggerCardGlow('card-kpi-arr');
+            if (prev.totalUsers !== undefined && prev.totalUsers !== totalUsers) triggerCardGlow('card-kpi-users');
+            if (prev.totalDrivers !== undefined && prev.totalDrivers !== totalDrivers) triggerCardGlow('card-kpi-drivers');
+            if (prev.activeSubs !== undefined && prev.activeSubs !== activeSubs) triggerCardGlow('card-kpi-subs');
+            if (prev.evals !== undefined && prev.evals !== evals) triggerCardGlow('card-kpi-evals');
+
+            // Armazena valores atuais
+            liveSyncState.previousValues = { mrr, arr, totalUsers, totalDrivers, activeSubs, evals };
 
             document.getElementById('kpi-mrr').innerText = new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
@@ -202,14 +294,14 @@ async function fetchAdminDashboard() {
             document.getElementById('kpi-arr').innerText = new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL'
-            }).format(kpis.arr_reais || 0);
+            }).format(arr);
 
-            document.getElementById('kpi-users').innerText = kpis.total_users || 0;
+            document.getElementById('kpi-users').innerText = totalUsers;
             document.getElementById('kpi-drivers').innerText = totalDrivers;
             document.getElementById('kpi-active-drivers').innerText = activeDrivers;
             document.getElementById('kpi-blocked-drivers').innerText = kpis.blocked_drivers || 0;
             document.getElementById('kpi-subs').innerText = activeSubs;
-            document.getElementById('kpi-evals').innerText = kpis.total_evaluations_recorded || 0;
+            document.getElementById('kpi-evals').innerText = evals;
 
             // Métricas Comerciais e de Conversão
             const convRate = totalDrivers > 0 ? ((activeSubs / totalDrivers) * 100).toFixed(1) + '%' : '0%';
@@ -227,11 +319,228 @@ async function fetchAdminDashboard() {
             const actEl = document.getElementById('kpi-activation-rate');
             if (actEl) actEl.innerText = actRate;
 
+            // Atualiza Feed de Atividades ao Vivo
+            renderLiveActivityFeed(data.recent_activity || []);
+
+            if (isManual) {
+                showToast('Indicadores atualizados com sucesso!', 'success');
+            }
         } else if (response.status === 401 || response.status === 403) {
             handleAdminLogout();
         }
     } catch (err) {
-        console.warn('Erro ao carregar dashboard:', err);
+        console.warn('Erro ao carregar dashboard em tempo real:', err);
+    }
+}
+
+function renderLiveActivityFeed(recentDrivers) {
+    const feedContainer = document.getElementById('live-activity-feed');
+    if (!feedContainer) return;
+
+    // Combina eventos de motoristas reais do banco com eventos de simulação da sessão
+    const events = [];
+
+    // Adiciona motoristas recentes do PostgreSQL
+    recentDrivers.forEach(d => {
+        const timeFormatted = d.created_at ? new Date(d.created_at).toLocaleTimeString('pt-BR') : 'recente';
+        events.push({
+            type: 'DRIVER',
+            title: `Motorista ${d.city ? `(${d.city}/${d.state})` : 'cadastrado'}`,
+            detail: `ID: ${d.id.substring(0, 8)}... • Status: ${d.status}`,
+            tag: '🚗 MOTORISTA',
+            tagBg: 'rgba(0, 229, 255, 0.15)',
+            tagColor: '#00E5FF',
+            time: timeFormatted
+        });
+    });
+
+    // Se temos itens manuais no activityLog
+    liveSyncState.activityLog.slice(0, 10).forEach(logItem => {
+        events.unshift(logItem);
+    });
+
+    if (events.length === 0) {
+        feedContainer.innerHTML = `
+            <div style="text-align: center; padding: 25px; color: var(--text-muted); font-size: 0.85rem;">
+                Aguardando novas operações de motoristas em tempo real...
+            </div>
+        `;
+        return;
+    }
+
+    feedContainer.innerHTML = '';
+    events.slice(0, 8).forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'activity-feed-item';
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="activity-feed-tag" style="background: ${item.tagBg}; color: ${item.tagColor};">
+                    ${item.tag}
+                </span>
+                <div>
+                    <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">${escapeHtml(item.title)}</div>
+                    <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(item.detail)}</div>
+                </div>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">
+                ${item.time}
+            </div>
+        `;
+        feedContainer.appendChild(row);
+    });
+}
+
+/**
+ * ==========================================================================
+ * SIMULADOR DE DISPARO DE USUÁRIOS AO VIVO (TESTE REAL MULTI-USUÁRIO)
+ * ==========================================================================
+ */
+
+let simulationCounter = 1;
+
+async function triggerLiveDriverTraffic() {
+    const btn = document.querySelector('.btn-simulate-live');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = '⚡ PROCESSANDO...';
+    }
+
+    try {
+        const simId = Date.now().toString().slice(-4);
+        const driverName = `Motorista Teste #${simulationCounter++} (${simId})`;
+        const driverEmail = `motorista_${simId}@rotai.app`;
+        const city = ['São Paulo', 'Campinas', 'Rio de Janeiro', 'Curitiba', 'Belo Horizonte'][Math.floor(Math.random() * 5)];
+        const state = city === 'Rio de Janeiro' ? 'RJ' : (city === 'Curitiba' ? 'PR' : (city === 'Belo Horizonte' ? 'MG' : 'SP'));
+
+        // 1. Cadastra o motorista no banco real
+        const regResp = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: driverEmail,
+                password: 'SenhaForte@2026',
+                full_name: driverName,
+                phone: '11988887777'
+            })
+        });
+
+        if (!regResp.ok) {
+            const err = await regResp.json().catch(() => ({}));
+            throw new Error(err.detail || 'Falha ao registrar motorista na simulação.');
+        }
+
+        const regData = await regResp.json();
+        const driverToken = regData.access_token;
+        const driverId = regData.driver_id || regData.user_id;
+
+        // 2. Registra o Token FCM do aparelho Android do motorista
+        const fcmToken = `fcm_device_token_${simId}_${Math.random().toString(36).substring(7)}`;
+        await fetch(`${API_BASE_URL}/devices/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: driverId,
+                fcm_token: fcmToken,
+                platform: 'android',
+                device_id: `samsung_galaxy_s24_${simId}`,
+                app_version: '1.0.0',
+                os_version: 'Android 14 (API 34)',
+                notifications_enabled: true
+            })
+        });
+
+        // 3. Sincroniza uma corrida e um abastecimento via /api/v1/sync/push
+        const syncResp = await fetch(`${API_BASE_URL}/sync/push`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${driverToken}`
+            },
+            body: JSON.stringify({
+                device_id: `device_${simId}`,
+                client_timestamp: Date.now(),
+                evaluations: [{
+                    platform: 'UBERX',
+                    gross_fare: 42.80,
+                    distance_km: 12.5,
+                    duration_minutes: 27.0,
+                    estimated_cost: 11.40,
+                    net_profit: 31.40,
+                    score: 95,
+                    classification: 'EXCELENTE',
+                    was_accepted: true
+                }],
+                fuel_records: [{
+                    date: new Date().toISOString().split('T')[0],
+                    odometer_km: 74200,
+                    liters: 35.0,
+                    price_per_liter: 5.69,
+                    total_paid: 199.15,
+                    fuel_type: 'GASOLINE',
+                    is_full_tank: true
+                }]
+            })
+        });
+
+        const syncResult = syncResp.ok ? await syncResp.json() : null;
+
+        // 4. Cria e confirma uma assinatura PRO via Pix para 50% dos motoristas simulados
+        let pixUpgraded = false;
+        if (Math.random() > 0.3) {
+            const pixResp = await fetch(`${API_BASE_URL}/subscription/pix-create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${driverToken}`
+                },
+                body: JSON.stringify({ plan_code: 'pro_monthly' })
+            });
+
+            if (pixResp.ok) {
+                const pixData = await pixResp.json();
+                // Confirma o Pix instantaneamente simulando o webhook do Banco Central
+                await fetch(`${API_BASE_URL}/subscription/pix-confirm/${pixData.order_id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${driverToken}`
+                    }
+                });
+                pixUpgraded = true;
+            }
+        }
+
+        // Adiciona evento ao Feed de Atividades
+        const now = new Date().toLocaleTimeString('pt-BR');
+        liveSyncState.activityLog.unshift({
+            type: 'LIVE_SIM',
+            title: `${driverName} (${city})`,
+            detail: pixUpgraded 
+                ? `⚡ Avaliou corrida R$ 42,80 • Sincronizou tanque • Assinou PRO via Pix (R$ 29,90)!` 
+                : `⚡ Avaliou corrida R$ 42,80 • Sincronizou tanque via Sync/Push`,
+            tag: pixUpgraded ? '💎 ASSINANTE PRO' : '⚡ AVALIAÇÃO + SYNC',
+            tagBg: pixUpgraded ? 'rgba(255, 122, 0, 0.2)' : 'rgba(0, 230, 118, 0.15)',
+            tagColor: pixUpgraded ? '#FF7A00' : '#00E676',
+            time: now
+        });
+
+        showToast(
+            pixUpgraded 
+                ? `✓ ${driverName} avaliou corrida e virou PRO (+R$ 29,90 no MRR)!`
+                : `✓ ${driverName} avaliou corrida e sincronizou com sucesso!`,
+            'success'
+        );
+
+        // Atualiza imediatamente o painel com animação de glow
+        await fetchAdminDashboard(false);
+
+    } catch (err) {
+        showToast(`Erro na simulação: ${err.message}`, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = '⚡ SIMULAR MOTORISTAS AO VIVO';
+        }
     }
 }
 
