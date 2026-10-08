@@ -11,6 +11,26 @@
     {
       "source": "/health",
       "destination": "/api/index.py"
+    },
+    {
+      "source": "/admin",
+      "destination": "/web/admin/index.html"
+    },
+    {
+      "source": "/admin/",
+      "destination": "/web/admin/index.html"
+    },
+    {
+      "source": "/admin/:match*",
+      "destination": "/web/admin/:match*"
+    },
+    {
+      "source": "/",
+      "destination": "/web/index.html"
+    },
+    {
+      "source": "/:match*",
+      "destination": "/web/:match*"
     }
   ]
 }
