@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROTA IQ - Cockpit Operacional e Simulador em Tempo Real</title>
-    <meta name="description" content="ROTA IQ - Copiloto de Inteligência Financeira e Decisão para Motoristas de Aplicativos (Uber, 99, inDrive).">
+    <title>ROTA IQ — Copiloto Financeiro e Decisão em Tempo Real para Motoristas de App</title>
+    <meta name="description" content="Pare de pagar para trabalhar. O ROTA IQ calcula combustível, manutenção e volta vazia em 1 segundo no HUD flutuante e por voz. Compatível com Uber, 99 e inDrive.">
+    <meta name="keywords" content="ROTA IQ, motorista de aplicativo, uber, 99, indrive, cálculo de corrida, lucro líquido motorista, deadhead, hud flutuante">
+    <meta property="og:title" content="ROTA IQ — Pare de Pagar para Trabalhar">
+    <meta property="og:description" content="Saiba a sobra limpa de cada corrida antes de aceitar. Copiloto inteligente para Uber, 99 e inDrive.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="icon-512.png">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -15,42 +21,90 @@
     <div class="bg-glow-top"></div>
     <div class="bg-glow-bottom"></div>
 
-    <!-- Header Principal -->
-    <header class="top-header">
-        <div class="brand-container">
-            <div class="brand-logo-icon">IQ</div>
-            <div class="brand-text">
-                <h1>ROTA IQ</h1>
-                <span>COPILOTO FINANCEIRO & ESCALA</span>
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 16px; align-items: center;">
-            <div class="header-status-badge">
-                <div class="pulse-dot"></div>
-                <span>SUPABASE POSTGRESQL ONLINE (16 TABELAS)</span>
-            </div>
-
-            <a href="rota-iq-debug.apk" download="rota-iq-debug.apk" class="btn-download-apk" id="btn-download-top">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>BAIXAR APK ANDROID (16.7 MB)</span>
+    <!-- 1. NAVBAR / HEADER -->
+    <header class="navbar-wrapper">
+        <nav class="navbar-container">
+            <a href="/" class="brand-container">
+                <div class="brand-logo-icon">IQ</div>
+                <div class="brand-text">
+                    <h1>ROTA IQ</h1>
+                    <span>INTELIGÊNCIA PARA CADA CORRIDA</span>
+                </div>
             </a>
-        </div>
+
+            <ul class="nav-links">
+                <li><a href="#como-funciona">Como Funciona</a></li>
+                <li><a href="#recursos">Recursos</a></li>
+                <li><a href="#calculadora">Calculadora</a></li>
+                <li><a href="#planos">Planos</a></li>
+                <li><a href="#depoimentos">Depoimentos</a></li>
+                <li><a href="#faq">Dúvidas</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <a href="/admin" class="btn-nav-admin" title="Painel Administrativo">Acessar Cockpit</a>
+                <a href="rota-iq.apk" download="rota-iq.apk" class="btn-primary-glow" id="nav-btn-download">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>BAIXAR APP GRÁTIS</span>
+                </a>
+            </div>
+        </nav>
     </header>
 
-    <!-- Layout Principal -->
-    <main class="main-layout">
-        <!-- Coluna Esquerda: Smartphone Interativo Mockup Android -->
-        <div class="phone-mockup-wrapper">
+    <!-- 2. HERO SECTION -->
+    <section class="hero-section">
+        <div class="hero-left">
+            <div class="hero-badge">
+                <div class="pulse-dot"></div>
+                <span>+12.400 Motoristas de App Pararam de Rodar no Prejuízo</span>
+            </div>
+
+            <h1 class="hero-title">
+                Pare de Pagar para Trabalhar. Saiba a <span class="highlight-gradient">Sobra Limpa</span> de Cada Corrida em 1 Segundo.
+            </h1>
+
+            <p class="hero-description">
+                O primeiro copiloto financeiro com Inteligência de Rota que calcula combustível, manutenção preventiva e volta vazia (deadhead) em tempo real. Veja o veredito no HUD flutuante e escute por voz antes de aceitar na <strong>Uber, 99 e inDrive</strong>.
+            </p>
+
+            <div class="hero-cta-group">
+                <a href="rota-iq.apk" download="rota-iq.apk" class="btn-large-primary" id="hero-btn-download">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>BAIXAR APK ANDROID (GRÁTIS)</span>
+                </a>
+                <a href="#planos" class="btn-large-secondary">
+                    <span>Ver Planos Pro & PIX</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
+            </div>
+
+            <div class="hero-trust-badges">
+                <span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    100% Seguro (Zero Ban / Acessibilidade Oficial)
+                </span>
+                <span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Uber • 99 • inDrive
+                </span>
+                <span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Teste 7 Dias Sem Cartão
+                </span>
+            </div>
+        </div>
+
+        <!-- HERO RIGHT: SMARTPHONE INTERATIVO & SIMULADOR HUD -->
+        <div class="hero-right phone-mockup-wrapper">
             <div class="phone-frame">
                 <div class="phone-notch">
                     <div class="camera-lens"></div>
                 </div>
 
-                <!-- HUD Flutuante Translúcido (Simulado sobre a tela) -->
+                <!-- HUD FLUTUANTE EM TEMPO REAL -->
                 <div class="hud-overlay-card" id="hud-overlay">
                     <div class="hud-top-row">
-                        <span class="hud-score-badge" id="hud-score-badge">SCORE 92</span>
+                        <span class="hud-score-badge" id="hud-score-badge">SCORE 94</span>
                         <span style="font-size: 11px; font-weight: 800; color: #94A3B8;" id="hud-platform-tag">UBERX</span>
                     </div>
                     <div style="font-size: 11px; color: #94A3B8; font-weight: 700;">SOBRA LIMPO NO BOLSO</div>
@@ -60,278 +114,645 @@
                         <span>R$/km Líquido: <strong id="hud-km-val">R$ 2,88</strong></span>
                     </div>
                     <div class="hud-reason-pill" id="hud-reason-text">
-                        ✓ Margem alta (+65%) e 82 reais por hora.
+                        ✓ Excelente margem líquida (+65%) e R$ 82/h limpo no seu bolso.
                     </div>
                     <div class="hud-actions">
-                        <button class="btn-hud btn-hud-accept" id="btn-hud-accept" onclick="acceptOffer()">ACEITAR NO APP</button>
-                        <button class="btn-hud btn-hud-dismiss" onclick="dismissHud()">RECUSAR</button>
+                        <button class="btn-hud btn-hud-accept">ACEITAR CORRIDA</button>
+                        <button class="btn-hud btn-hud-dismiss">RECUSAR</button>
                     </div>
                 </div>
 
-                <!-- Tela do Aplicativo ROTA IQ -->
-                <div class="phone-screen" id="phone-screen">
-                    <!-- Aba Cockpit Dashboard (Padrão) -->
-                    <div id="screen-dashboard">
-                        <div class="phone-cockpit-header">
-                            <div>
-                                <div style="font-size: 18px; font-weight: 900; color: var(--brand-primary);">ROTA IQ</div>
-                                <div style="font-size: 9px; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px;">TURNO EM ANDAMENTO</div>
-                            </div>
-                            <div style="background: rgba(0, 229, 255, 0.15); border: 1px solid var(--brand-primary); padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 800; color: var(--brand-primary);">
-                                MODO CARRO ATIVO
-                            </div>
+                <!-- Tela do App Celular -->
+                <div class="phone-screen">
+                    <div class="phone-cockpit-header">
+                        <div>
+                            <div style="font-size: 16px; font-weight: 900; color: var(--brand-primary);">ROTA IQ COCKPIT</div>
+                            <div style="font-size: 9px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.5px;">TURNO ATIVO • SÃO PAULO</div>
                         </div>
-
-                        <!-- Card de Meta Diária -->
-                        <div class="cockpit-widget" style="margin-bottom: 12px; background: linear-gradient(135deg, rgba(19, 27, 46, 0.95), rgba(30, 41, 59, 0.95)); border-color: rgba(0, 229, 255, 0.3);">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div class="widget-label">Meta do Dia: R$ 300,00</div>
-                                <div style="font-size: 12px; font-weight: 800; color: var(--color-excellent);">68% Concluído</div>
-                            </div>
-                            <div style="font-size: 24px; font-weight: 900; color: var(--text-primary); margin: 4px 0;">R$ 205,40</div>
-                            <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-                                <div style="width: 68%; height: 100%; background: var(--brand-primary);"></div>
-                            </div>
-                            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 6px;">
-                                Faltam R$ 94,60 • Ritmo atual: R$ 48,50/h (Dentro da meta)
-                            </div>
-                        </div>
-
-                        <!-- Grid 2x2 Métricas -->
-                        <div class="metric-grid-2">
-                            <div class="cockpit-widget">
-                                <div class="widget-label">Lucro Líquido</div>
-                                <div class="widget-value" style="color: var(--color-excellent);" id="phone-stat-net">R$ 142,80</div>
-                                <div class="widget-sub">Após custos do carro</div>
-                            </div>
-                            <div class="cockpit-widget">
-                                <div class="widget-label">Custo do Veículo</div>
-                                <div class="widget-value" style="color: var(--text-primary);">R$ 0,82/km</div>
-                                <div class="widget-sub">Gasolina + Manut.</div>
-                            </div>
-                            <div class="cockpit-widget">
-                                <div class="widget-label">Horas Online</div>
-                                <div class="widget-value">4.2h</div>
-                                <div class="widget-sub">Turno previsto: 6h</div>
-                            </div>
-                            <div class="cockpit-widget">
-                                <div class="widget-label">Avaliações Hoje</div>
-                                <div class="widget-value" id="phone-eval-count">19</div>
-                                <div class="widget-sub">14 aceitas • 5 recusadas</div>
-                            </div>
-                        </div>
-
-                        <!-- Banner Plano Pro -->
-                        <div class="cockpit-widget" style="background: rgba(255, 215, 0, 0.08); border-color: rgba(255, 215, 0, 0.35); margin-top: 6px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="font-size: 11px; font-weight: 800; color: #FFD700;">★ ROTA IQ PRO ATIVO</div>
-                                    <div style="font-size: 10px; color: var(--text-secondary);">HUD Flutuante & TTS Ilimitados</div>
-                                </div>
-                                <span style="font-size: 10px; font-weight: 800; color: #10B981;">SUPABASE SYNC OK</span>
-                            </div>
+                        <div style="background: rgba(0, 230, 118, 0.15); border: 1px solid var(--color-excellent); padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 800; color: var(--color-excellent);">
+                            COPILOTO ATIVO
                         </div>
                     </div>
 
-                    <!-- Aba inDrive Simulator (Oculta por padrão) -->
-                    <div id="screen-indrive" style="display: none;">
-                        <div style="font-size: 16px; font-weight: 800; color: var(--brand-primary); margin-bottom: 12px;">INDRIVE & CONTRAPROPOSTA</div>
-                        <div class="cockpit-widget" style="margin-bottom: 12px;">
-                            <div class="widget-label">Proposta do Passageiro</div>
-                            <div style="font-size: 20px; font-weight: 800; color: var(--color-acceptable);" id="indrive-proposal-fare">R$ 18,00</div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Percurso: 8.5 km • Tempo: 22 min</div>
+                    <!-- Meta Diária -->
+                    <div class="cockpit-widget" style="background: linear-gradient(135deg, rgba(20,20,26,0.9), rgba(12,12,16,0.9)); border-color: rgba(255,122,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="widget-label">Meta do Dia: R$ 320,00</div>
+                            <div style="font-size: 11px; font-weight: 800; color: var(--color-excellent);">72% Concluído</div>
                         </div>
-                        <div class="cockpit-widget" style="border-color: var(--color-acceptable);">
-                            <div style="font-size: 12px; font-weight: 800; color: var(--color-acceptable); margin-bottom: 6px;">★ CONTRAPROPOSTA RECOMENDADA</div>
-                            <div style="font-size: 18px; font-weight: 800; color: var(--text-primary);" id="indrive-counter-fare">Pedir R$ 24,00 (+R$ 6,00)</div>
-                            <div style="font-size: 11px; color: var(--color-excellent); margin-top: 4px;">Eleva seu lucro para R$ 49,10/h líquido!</div>
+                        <div style="font-size: 22px; font-weight: 900; color: #FFF; margin: 2px 0;">R$ 231,80</div>
+                        <div style="height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                            <div style="width: 72%; height: 100%; background: var(--brand-primary);"></div>
+                        </div>
+                        <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">Ritmo atual: R$ 51,20/h líquido</div>
+                    </div>
+
+                    <!-- Métricas -->
+                    <div class="metric-grid-2">
+                        <div class="cockpit-widget">
+                            <div class="widget-label">Lucro Líquido</div>
+                            <div class="widget-value" style="color: var(--color-excellent);">R$ 168,40</div>
+                            <div class="widget-sub">Descontado tudo</div>
+                        </div>
+                        <div class="cockpit-widget">
+                            <div class="widget-label">Custo do Carro</div>
+                            <div class="widget-value">R$ 0,78/km</div>
+                            <div class="widget-sub">Etanol + Peças</div>
+                        </div>
+                        <div class="cockpit-widget">
+                            <div class="widget-label">Horas Rodadas</div>
+                            <div class="widget-value">4.5h</div>
+                            <div class="widget-sub">Meta: 7h</div>
+                        </div>
+                        <div class="cockpit-widget">
+                            <div class="widget-label">Armadilhas Evitadas</div>
+                            <div class="widget-value" style="color: #FF5252;">6 Recusas</div>
+                            <div class="widget-sub">Economizou R$ 84 em gás</div>
                         </div>
                     </div>
 
-                    <!-- Aba Livro Caixa MEI (Oculta por padrão) -->
-                    <div id="screen-tax" style="display: none;">
-                        <div style="font-size: 16px; font-weight: 800; color: var(--brand-primary); margin-bottom: 12px;">LIVRO CAIXA & MEI (LEI 123/2006)</div>
-                        <div class="cockpit-widget" style="margin-bottom: 10px;">
-                            <div class="widget-label">Teto Anual MEI (R$ 81.000,00)</div>
-                            <div style="font-size: 20px; font-weight: 800; color: var(--color-excellent);">R$ 42.500,00 (52.4%)</div>
-                            <div style="font-size: 10px; color: #10B981; margin-top: 4px;">✓ Dentro do limite anual do MEI</div>
+                    <div class="cockpit-widget" style="background: rgba(255, 122, 0, 0.08); border-color: rgba(255, 122, 0, 0.3); margin-top: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 11px; font-weight: 800; color: var(--brand-primary);">★ ROTA IQ PRO</div>
+                            <span style="font-size: 9px; font-weight: 800; color: #00E676;">HUD & VOZ ILIMITADOS</span>
                         </div>
-                        <div class="metric-grid-2">
-                            <div class="cockpit-widget">
-                                <div class="widget-label">Parcela Isenta (16%)</div>
-                                <div class="widget-value" style="color: var(--color-excellent); font-size: 15px;">R$ 6.800,00</div>
-                            </div>
-                            <div class="cockpit-widget">
-                                <div class="widget-label">Despesas Dedutíveis</div>
-                                <div class="widget-value" style="color: var(--brand-primary); font-size: 15px;">R$ 18.420,00</div>
-                            </div>
-                        </div>
-                        <div class="cockpit-widget" style="border-color: var(--color-excellent);">
-                            <div style="font-size: 11px; font-weight: 800; color: var(--color-excellent);">100% BLINDADO CONTRA IRPF</div>
-                            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px;">Combustível e manutenções anularam totalmente o rendimento tributável. Zero imposto a pagar!</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Barra Inferior do Mockup -->
-                <div class="phone-bottom-nav">
-                    <div class="nav-item active" onclick="switchPhoneTab('dashboard')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                        <span>Painel</span>
-                    </div>
-                    <div class="nav-item" onclick="switchPhoneTab('indrive')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        <span>inDrive</span>
-                    </div>
-                    <div class="nav-item" onclick="switchPhoneTab('tax')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                        <span>Livro Caixa</span>
                     </div>
                 </div>
             </div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 14px; text-align: center;">
-                ▲ Simulador Interativo do Aplicativo ROTA IQ Android
+
+            <!-- SIMULADOR RÁPIDO INTERATIVO -->
+            <div class="sim-quick-controls">
+                <div class="sim-quick-title">⚡ Teste a Inteligência do HUD Agora:</div>
+                <div class="sim-quick-grid">
+                    <button class="btn-quick-sim" onclick="setSimulationOffer('uber_good')">🟢 Corrida Excelente</button>
+                    <button class="btn-quick-sim" onclick="setSimulationOffer('deadhead_trap')">🔴 Volta Vazia (Trap)</button>
+                    <button class="btn-quick-sim" onclick="setSimulationOffer('indrive_counter')">🟡 inDrive (+R$ 6)</button>
+                    <button class="btn-quick-sim" onclick="setSimulationOffer('uber_loss')">⛔ Prejuízo Crítico</button>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
+                    <input type="checkbox" id="chk-voice-tts" style="accent-color: var(--brand-primary); cursor: pointer;">
+                    <label for="chk-voice-tts" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); cursor: pointer;">Ouvir Veredito por Voz (TTS)</label>
+                </div>
             </div>
         </div>
+    </section>
 
-        <!-- Coluna Direita: Centro de Controle, Simulação e Supabase Live -->
-        <div class="control-center">
-            <!-- Painel 1: Laboratório de Simulação de Ofertas -->
-            <div class="panel-card">
-                <div class="panel-card-header">
-                    <h2>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        <span>SIMULADOR DE OFERTAS EM TEMPO REAL</span>
-                    </h2>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="chk-tts" checked style="accent-color: var(--brand-primary);">
-                        <label for="chk-tts" style="font-size: 12px; font-weight: 700; color: var(--brand-primary); cursor: pointer;">Vocalização TTS por Voz (Hands-Free)</label>
-                    </div>
-                </div>
+    <!-- 3. COMPARATIVO: A MATEMÁTICA QUE A UBER NÃO TE MOSTRA -->
+    <section class="section-wrapper" id="como-funciona">
+        <div class="section-header-center">
+            <span class="section-tag">A Realidade Crua das Ruas</span>
+            <h2 class="section-title">A Ilusão do Faturamento Bruto vs. O Lucro Líquido Real</h2>
+            <p class="section-subtitle">
+                O aplicativo da Uber mostra um número grande na tela para te induzir a aceitar no impulso. Mas veja o que sobra de verdade quando o ROTA IQ faz as contas:
+            </p>
+        </div>
 
-                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
-                    Clique nos botões abaixo para disparar simulações exatas dos motores do ROTA IQ. O HUD sobreposto no celular abrirá instantaneamente calculando custos, score e vocalizando o parecer:
+        <div class="comparison-grid">
+            <!-- SEM O ROTA IQ -->
+            <div class="comparison-card bad">
+                <span class="comparison-badge">SEM O ROTA IQ (NO ESCURO)</span>
+                <h3>A Corrida Ilusão de R$ 35,00</h3>
+                <p style="font-size: 14px; color: var(--text-secondary);">
+                    Você aceita uma corrida de 26 km por R$ 35,00 achando que é um bom valor. Veja o que realmente acontece:
                 </p>
 
-                <div class="sim-buttons-grid">
-                    <button class="btn-sim" onclick="simulateOffer('uber_excellent')">
-                        <div>
-                            <div style="color: var(--brand-primary);">UberX • Corrida Excelente</div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">R$ 38,50 • 11 km • 24 min</div>
-                        </div>
-                        <span class="sim-badge badge-excellent">Score 94 🟢</span>
-                    </button>
+                <ul class="comparison-list">
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF334B" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span><strong>- R$ 16,80</strong> de Combustível (26 km rodados no trânsito pesado).</span>
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF334B" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span><strong>- R$ 5,72</strong> de Desgaste (pneus, pastilhas, óleo e depreciação).</span>
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF334B" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span><strong>- R$ 9,50</strong> Volta Vazia (destino sem passageiros, voltou queimando gasolina).</span>
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF334B" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span>Tempo gasto: <strong>55 minutos</strong> de estresse e risco no trânsito.</span>
+                    </li>
+                </ul>
 
-                    <button class="btn-sim" onclick="simulateOffer('deadhead_trap')">
-                        <div>
-                            <div style="color: #FF5252;">Uber • Armadilha de Deadhead</div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">R$ 55,00 • 32 km • Zona Morta</div>
-                        </div>
-                        <span class="sim-badge badge-trap">Alerta Volta Vazia 🔴</span>
-                    </button>
-
-                    <button class="btn-sim" onclick="simulateOffer('indrive_counter')">
-                        <div>
-                            <div style="color: #FFD600;">inDrive • Contraproposta</div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Passageiro: R$ 18,00 • 9 km</div>
-                        </div>
-                        <span class="sim-badge badge-counter">Pedir R$ 24 🟡</span>
-                    </button>
-
-                    <button class="btn-sim" onclick="simulateOffer('uber_loss')">
-                        <div>
-                            <div style="color: #FF9100;">Uber • Corrida Prejuízo / Recusa</div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">R$ 11,00 • 15 km • 36 min</div>
-                        </div>
-                        <span class="sim-badge badge-loss">Recusa Inteligente 🟠</span>
-                    </button>
-
-                    <button class="btn-sim" onclick="simulateOffer('delivery_flash')">
-                        <div>
-                            <div style="color: #38BDF8;">Uber Flash • Encomenda</div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">R$ 23,80 • 7.5 km • +Espera</div>
-                        </div>
-                        <span class="sim-badge" style="background: rgba(56, 189, 248, 0.2); color: #38BDF8;">Entrega Flash 📦</span>
-                    </button>
+                <div class="comparison-result-box">
+                    Sobrou Apenas: R$ 2,98 por 1 Hora Trabalhada 😭
                 </div>
             </div>
 
-            <!-- Painel 2: Monitor ao Vivo do Supabase Cloud -->
-            <div class="panel-card">
-                <div class="panel-card-header">
-                    <h2>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-                        <span>SUPABASE POSTGRESQL AO VIVO (`jkreduqzekllsmzxiugn`)</span>
-                    </h2>
-                    <button style="background: transparent; border: 1px solid var(--border-color); color: var(--brand-primary); font-size: 11px; padding: 4px 10px; border-radius: 8px; cursor: pointer;" onclick="loadSupabasePlans()">
-                        Atualizar do Banco
-                    </button>
-                </div>
+            <!-- COM O ROTA IQ -->
+            <div class="comparison-card good">
+                <span class="comparison-badge">COM O ROTA IQ (LUCRO BLINDADO)</span>
+                <h3>Decisão Matemática em 1 Segundo</h3>
+                <p style="font-size: 14px; color: var(--text-secondary);">
+                    O HUD do ROTA IQ apitou em vermelho: <em>"Alerta Volta Vazia • Score 32"</em>. Você recusou imediatamente e 20 segundos depois:
+                </p>
 
-                <div class="cloud-status-box">
-                    <div class="cloud-info-text">
-                        Conectado a: <strong>https://jkreduqzekllsmzxiugn.supabase.co</strong>
-                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;" id="supabase-details">
-                            16 Tabelas Ativas • Row Level Security Habilitado • Latência: ~85ms
-                        </div>
-                    </div>
-                    <span style="font-size: 12px; font-weight: 800; color: #10B981;">● SINCRONIZADO</span>
-                </div>
+                <ul class="comparison-list">
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E676" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Você aceitou uma de <strong>R$ 26,00</strong> por apenas <strong>6.8 km (14 min)</strong>.</span>
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E676" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Combustível gasto: apenas <strong>R$ 4,10</strong>. Desgaste: <strong>R$ 1,50</strong>.</span>
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E676" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Destino movimentado com corrida de volta garantida instantânea.</span>
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E676" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Ritmo horário: <strong>R$ 87,40 por hora líquido</strong>.</span>
+                    </li>
+                </ul>
 
-                <!-- Tabela de Planos Carregados do Supabase -->
-                <div style="font-size: 12px; font-weight: 800; color: var(--brand-primary); margin-bottom: 8px;">
-                    PLANOS CARREGADOS EM TEMPO REAL DO SEU BANCO SUPABASE:
+                <div class="comparison-result-box">
+                    Sobrou Limpo: R$ 20,40 em 14 Minutos! 🚀
                 </div>
-                <table class="telemetry-log-table">
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Nome do Plano</th>
-                            <th>Preço</th>
-                            <th>Intervalo</th>
-                            <th>Status no Banco</th>
-                        </tr>
-                    </thead>
-                    <tbody id="supabase-plans-tbody">
-                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Consultando Supabase...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Painel 3: Histórico de Telemetria e Gravação no Banco -->
-            <div class="panel-card">
-                <div class="panel-card-header">
-                    <h2>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                        <span>REGISTRO DE CORRIDAS SALVAS NO BANCO</span>
-                    </h2>
-                </div>
-
-                <table class="telemetry-log-table">
-                    <thead>
-                        <tr>
-                            <th>Hora</th>
-                            <th>Plataforma</th>
-                            <th>Valor Bruto</th>
-                            <th>Custo Carro</th>
-                            <th>Sobra Limpo</th>
-                            <th>Diagnóstico ROTA IQ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="evaluations-log-tbody">
-                        <tr>
-                            <td>14:32:10</td>
-                            <td>UberX</td>
-                            <td>R$ 38,50</td>
-                            <td>R$ 11,10</td>
-                            <td style="color: var(--color-excellent); font-weight: 800;">R$ 27,40</td>
-                            <td>EXCELENTE (R$ 82,20/h)</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
-    </main>
+    </section>
+
+    <!-- 4. RECURSOS PRINCIPAIS (GRID 3x2) -->
+    <section class="section-wrapper" id="recursos">
+        <div class="section-header-center">
+            <span class="section-tag">Tecnologia Feita Para a Rua</span>
+            <h2 class="section-title">6 Superpoderes Para Você Dominar as Plataformas</h2>
+            <p class="section-subtitle">
+                Desenvolvido lado a lado com motoristas experientes para operar sem distrações, sem travamentos e com máxima velocidade.
+            </p>
+        </div>
+
+        <div class="features-grid">
+            <!-- 1 -->
+            <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                </div>
+                <h3>HUD Flutuante Invisível</h3>
+                <p>Aparece sozinho por cima da Uber e 99 no instante em que a corrida toca na tela. Você não precisa trocar de aplicativo nem perder o foco da direção.</p>
+            </div>
+
+            <!-- 2 -->
+            <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </div>
+                <h3>Copiloto por Voz (TTS)</h3>
+                <p>O ROTA IQ fala em voz alta pelo som do carro ou bluetooth: <em>"Aceite, sobra 24 reais limpos, 78 reais por hora"</em>. Dirija com 100% de segurança hands-free.</p>
+            </div>
+
+            <!-- 3 -->
+            <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                </div>
+                <h3>Alerta Anti-Volta Vazia</h3>
+                <p>Identifica destinos perigosos e zonas desérticas sem demanda de retorno. Nunca mais gaste o lucro da ida pagando combustível para voltar vazio.</p>
+            </div>
+
+            <!-- 4 -->
+            <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 11l4 4-4 4"/><path d="M7 13l-4-4 4-4"/><path d="M21 15H9a4 4 0 0 1-4-4V7"/></svg>
+                </div>
+                <h3>Contraproposta inDrive</h3>
+                <p>O passageiro ofereceu pouco? O ROTA IQ calcula exatamente quanto pedir na contraproposta para garantir margem de lucro sem espantar o cliente.</p>
+            </div>
+
+            <!-- 5 -->
+            <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </div>
+                <h3>Motor de Custos Reais</h3>
+                <p>Parametrize seu carro: Gasolina, Etanol, GNV ou Elétrico. O algoritmo calcula consumo, pneus, óleo e depreciação na vírgula decimal.</p>
+            </div>
+
+            <!-- 6 -->
+            <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3>Livro Caixa & MEI Blindado</h3>
+                <p>Relatório tributário automático conforme a Lei Complementar 123/2006. Abata todas as despesas comprovadas do veículo e fique 100% blindado do IRPF.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. CALCULADORA DINÂMICA DE ECONOMIA -->
+    <section class="section-wrapper" id="calculadora">
+        <div class="section-header-center">
+            <span class="section-tag">Simulador Financeiro</span>
+            <h2 class="section-title">Quanto Dinheiro Você Deixa na Mesa Todo Mês?</h2>
+            <p class="section-subtitle">
+                Ajuste os valores abaixo para a sua realidade e veja quanto o ROTA IQ pode colocar a mais no seu bolso recusando viagens prejudiciais:
+            </p>
+        </div>
+
+        <div class="calc-wrapper">
+            <!-- Sliders -->
+            <div class="calc-sliders">
+                <div class="slider-group">
+                    <div class="slider-label-row">
+                        <span>Quantos KM você roda por dia?</span>
+                        <span class="slider-value-display" id="disp-km">180 km</span>
+                    </div>
+                    <input type="range" min="60" max="350" value="180" step="10" class="custom-range" id="calc-km" oninput="updateProfitCalculator()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label-row">
+                        <span>Consumo médio do seu carro:</span>
+                        <span class="slider-value-display" id="disp-consumption">10.5 km/l</span>
+                    </div>
+                    <input type="range" min="6" max="18" value="10.5" step="0.5" class="custom-range" id="calc-consumption" oninput="updateProfitCalculator()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label-row">
+                        <span>Preço do combustível por litro:</span>
+                        <span class="slider-value-display" id="disp-fuel-price">R$ 5,89</span>
+                    </div>
+                    <input type="range" min="3.50" max="7.50" value="5.89" step="0.10" class="custom-range" id="calc-fuel-price" oninput="updateProfitCalculator()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label-row">
+                        <span>Dias trabalhados no mês:</span>
+                        <span class="slider-value-display" id="disp-days">24 dias</span>
+                    </div>
+                    <input type="range" min="15" max="30" value="24" step="1" class="custom-range" id="calc-days" oninput="updateProfitCalculator()">
+                </div>
+            </div>
+
+            <!-- Painel de Resultados -->
+            <div class="calc-output-box">
+                <span class="calc-output-label">LUCRO EXTRA ESTIMADO NO SEU BOLSO:</span>
+                <div class="calc-big-number" id="calc-extra-profit">+ R$ 1.542,00</div>
+                
+                <div class="calc-sub-stats">
+                    <div class="calc-sub-item">
+                        <span>Custo Real por KM:</span>
+                        <strong id="calc-cost-per-km">R$ 0,78</strong>
+                    </div>
+                    <div class="calc-sub-item">
+                        <span>Economia em Combustível:</span>
+                        <strong id="calc-fuel-saved" style="color: var(--color-excellent);">R$ 684/mês</strong>
+                    </div>
+                </div>
+
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">
+                    O plano ROTA IQ Pro custa menos de <strong>R$ 1,00 por dia</strong> e se paga já na primeira corrida boa aceita.
+                </p>
+
+                <a href="#planos" class="btn-large-primary" style="width: 100%; justify-content: center;">
+                    QUERO ESSE LUCRO NO MEU BOLSO
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. PLANOS & PREÇOS -->
+    <section class="section-wrapper" id="planos">
+        <div class="section-header-center">
+            <span class="section-tag">Investimento de Alta Rentabilidade</span>
+            <h2 class="section-title">Escolha o Plano Ideal para a Sua Rotina</h2>
+            <p class="section-subtitle">
+                Sem contratos longos. Sem fidelidade. Cancele quando quiser com 1 clique.
+            </p>
+        </div>
+
+        <!-- Toggle Mensal / Anual -->
+        <div class="pricing-toggle-row">
+            <span class="pricing-toggle-label active" id="label-monthly" onclick="document.getElementById('plan-toggle').checked = false; togglePricing(false)">Mensal</span>
+            <label class="switch-control">
+                <input type="checkbox" id="plan-toggle" onchange="togglePricing(this.checked)">
+                <span class="slider-switch"></span>
+            </label>
+            <span class="pricing-toggle-label" id="label-annual" onclick="document.getElementById('plan-toggle').checked = true; togglePricing(true)">
+                Anual <span class="discount-tag">33% OFF</span>
+            </span>
+        </div>
+
+        <div class="pricing-cards-grid">
+            <!-- 1. Degustação / Grátis -->
+            <div class="pricing-card">
+                <div>
+                    <div class="pricing-header">
+                        <h3>Degustação Grátis</h3>
+                        <p class="pricing-desc">Para você testar o HUD e ver o resultado na primeira corrida.</p>
+                    </div>
+
+                    <div class="pricing-price-box">
+                        <span class="price-currency">R$</span>
+                        <span class="price-number">0</span>
+                        <span class="price-period">/ 7 dias</span>
+                    </div>
+
+                    <ul class="pricing-features-list">
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 15 Avaliações por dia</li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> HUD Flutuante Básico</li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Cálculo de custo por km</li>
+                        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Copiloto por Voz TTS</li>
+                        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Detector de Volta Vazia</li>
+                    </ul>
+                </div>
+
+                <a href="rota-iq.apk" download="rota-iq.apk" class="btn-plan-action btn-plan-secondary">
+                    BAIXAR E TESTAR GRÁTIS
+                </a>
+            </div>
+
+            <!-- 2. Pro Mensal (Recomendado) -->
+            <div class="pricing-card featured">
+                <div class="featured-pill">MAIS ESCOLHIDO PELOS MOTORISTAS</div>
+                <div>
+                    <div class="pricing-header">
+                        <h3>ROTA IQ Pro</h3>
+                        <p class="pricing-desc" id="pro-subtext">Cancele quando quiser • Menos de R$ 1,00/dia</p>
+                    </div>
+
+                    <div class="pricing-price-box">
+                        <span class="price-currency">R$</span>
+                        <span class="price-number" id="price-pro-val">29,90</span>
+                        <span class="price-period" id="price-pro-period">/mês</span>
+                    </div>
+
+                    <ul class="pricing-features-list">
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <strong>Avaliações Ilimitadas</strong></li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <strong>HUD Flutuante Completo</strong></li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <strong>Copiloto por Voz (TTS) Hands-Free</strong></li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <strong>Detector de Volta Vazia (Deadhead)</strong></li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Contraproposta Automática inDrive</li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Suporte Prioritário no WhatsApp</li>
+                    </ul>
+                </div>
+
+                <button class="btn-plan-action btn-plan-primary" onclick="openPixModal('ROTA IQ Pro', 'R$ 29,90')">
+                    ASSINAR VIA PIX / CARTÃO
+                </button>
+            </div>
+
+            <!-- 3. Pro Anual -->
+            <div class="pricing-card">
+                <div>
+                    <div class="pricing-header">
+                        <h3>Plano Anual Elite</h3>
+                        <p class="pricing-desc">Para quem roda sério e quer economizar o ano inteiro.</p>
+                    </div>
+
+                    <div class="pricing-price-box">
+                        <span class="price-currency">R$</span>
+                        <span class="price-number">239,90</span>
+                        <span class="price-period">/ano (R$ 19,99/mês)</span>
+                    </div>
+
+                    <ul class="pricing-features-list">
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <strong>Todos os Recursos Pro Ilimitados</strong></li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <strong>33% de Desconto Imediato</strong></li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <strong>Módulo Livro Caixa MEI & Relatório IRPF</strong></li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Acesso Antecipado a Novas Funcionalidades</li>
+                        <li class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Grupo VIP de Motoristas de Elite</li>
+                    </ul>
+                </div>
+
+                <button class="btn-plan-action btn-plan-secondary" onclick="openPixModal('Plano Anual Elite', 'R$ 239,90')">
+                    ASSINAR COM 33% OFF
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. DEPOIMENTOS DE MOTORISTAS REAIS -->
+    <section class="section-wrapper" id="depoimentos">
+        <div class="section-header-center">
+            <span class="section-tag">Quem Usa Não Larga</span>
+            <h2 class="section-title">O Que os Motoristas Dizem nas Ruas</h2>
+            <p class="section-subtitle">
+                Mais de 12.000 profissionais já transformaram seus turnos com o ROTA IQ.
+            </p>
+        </div>
+
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div>
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">
+                        "Em São Paulo eu rodava 12 horas e sobrava R$ 120. Com o ROTA IQ passei a rodar 8 horas e sobra R$ 220 limpo. Parei de pegar corrida de 20 km que pagava R$ 25 no trânsito."
+                    </p>
+                </div>
+                <div class="driver-profile">
+                    <div class="driver-avatar">MS</div>
+                    <div>
+                        <div class="driver-name">Marcos Silva</div>
+                        <div class="driver-meta">UberX & 99 • São Paulo / SP</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonial-card">
+                <div>
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">
+                        "O detector de volta vazia me salvou semana passada de ir parar em Itaguaí à meia-noite. O HUD apitou vermelho e eu recusei. Vale cada centavo da assinatura."
+                    </p>
+                </div>
+                <div class="driver-profile">
+                    <div class="driver-avatar" style="background: linear-gradient(135deg, #10B981, #0284C7);">RM</div>
+                    <div>
+                        <div class="driver-name">Rodrigo Mendes</div>
+                        <div class="driver-meta">Uber Comfort • Rio de Janeiro / RJ</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonial-card">
+                <div>
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">
+                        "A contraproposta do inDrive aumentou meu ticket médio em quase 30%. O app se pagou no primeiro dia de trabalho. Não consigo mais rodar sem a voz do copiloto ligada."
+                    </p>
+                </div>
+                <div class="driver-profile">
+                    <div class="driver-avatar" style="background: linear-gradient(135deg, #F59E0B, #EF4444);">CE</div>
+                    <div>
+                        <div class="driver-name">Carlos Eduardo</div>
+                        <div class="driver-meta">inDrive & Uber • Curitiba / PR</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8. FAQ (PERGUNTAS FREQUENTES) -->
+    <section class="section-wrapper" id="faq">
+        <div class="section-header-center">
+            <span class="section-tag">Tire Suas Dúvidas</span>
+            <h2 class="section-title">Perguntas Frequentes</h2>
+            <p class="section-subtitle">
+                Tudo o que você precisa saber antes de baixar e começar.
+            </p>
+        </div>
+
+        <div class="faq-container">
+            <div class="faq-item active">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>O ROTA IQ pode causar banimento na Uber ou 99?</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="faq-answer">
+                    <strong>Absolutamente NÃO!</strong> O ROTA IQ utiliza a API oficial de Acessibilidade do Android para ler o texto da notificação na tela e desenhar o HUD flutuante por cima. Ele não modifica, não hackeia nem intercepta os servidores dos aplicativos. É 100% legal e seguro.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>Como funciona o período de teste grátis?</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="faq-answer">
+                    Você baixa o aplicativo, cadastra seu e-mail e tem 7 dias de acesso livre com 15 avaliações diárias completas. Não pedimos cartão de crédito antecipado. Você só assina se comprovar na prática que seu faturamento aumentou.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>Funciona em qualquer aparelho celular?</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="faq-answer">
+                    Sim! O aplicativo foi otimizado para rodar de forma ultraleve em qualquer aparelho Android (versões 8.0 até Android 14+), consumindo menos de 1% de bateria por turno de 10 horas.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>Como é feita a ativação do Plano Pro?</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="faq-answer">
+                    A ativação é instantânea via PIX Copia e Cola. Assim que o pagamento é identificado pelo sistema, seu aplicativo libera o HUD ilimitado e a síntese por voz no mesmo segundo.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>O cálculo funciona com carro alugado ou a GNV?</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="faq-answer">
+                    Sim! Você pode cadastrar o custo do seu carro alugado (mensalidade dividida por km) ou o custo do metro cúbico do GNV. O algoritmo se adapta exatamente ao seu cenário financeiro.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 9. CTA FINAL -->
+    <section class="section-wrapper" style="text-align: center; margin: 80px auto;">
+        <div style="background: linear-gradient(135deg, rgba(255, 122, 0, 0.15), rgba(20, 20, 24, 0.9)); border: 2px solid var(--brand-primary); border-radius: 28px; padding: 60px 24px; box-shadow: 0 0 50px rgba(255, 122, 0, 0.25);">
+            <h2 style="font-size: 38px; font-weight: 900; margin-bottom: 16px;">Pronto Para Ter um Copiloto de Verdade no Carro?</h2>
+            <p style="font-size: 18px; color: var(--text-secondary); max-width: 620px; margin: 0 auto 36px;">
+                Baixe agora o aplicativo oficial Android, ative o HUD flutuante e comece a rodar com lucro líquido real já no seu próximo turno.
+            </p>
+            <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                <a href="rota-iq.apk" download="rota-iq.apk" class="btn-large-primary" id="cta-bottom-download">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>BAIXAR APK ANDROID AGORA</span>
+                </a>
+                <a href="#planos" class="btn-large-secondary">Assinar Plano Pro</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 10. FOOTER -->
+    <footer class="footer-wrapper">
+        <div class="footer-content">
+            <div class="footer-col">
+                <div class="brand-container" style="margin-bottom: 14px;">
+                    <div class="brand-logo-icon">IQ</div>
+                    <div class="brand-text">
+                        <h1>ROTA IQ</h1>
+                        <span>INTELIGÊNCIA PARA CADA CORRIDA</span>
+                    </div>
+                </div>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; max-width: 320px;">
+                    Plataforma de inteligência financeira e decisão em tempo real para motoristas de aplicativos no Brasil. Protegendo seu bolso e valorizando o seu trabalho.
+                </p>
+            </div>
+
+            <div class="footer-col">
+                <h4>Navegação</h4>
+                <ul>
+                    <li><a href="#como-funciona">Como Funciona</a></li>
+                    <li><a href="#recursos">Recursos</a></li>
+                    <li><a href="#calculadora">Calculadora de Lucro</a></li>
+                    <li><a href="#planos">Planos & Preços</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Aplicativo</h4>
+                <ul>
+                    <li><a href="rota-iq.apk" download="rota-iq.apk">Download APK Oficial (2.0)</a></li>
+                    <li><a href="rota-iq-debug.apk" download="rota-iq-debug.apk">Download APK Debug</a></li>
+                    <li><a href="#faq">Central de Ajuda</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Gestão & Acesso</h4>
+                <ul>
+                    <li><a href="/admin">Painel Administrativo (Cockpit)</a></li>
+                    <li><a href="/health">Status do Sistema (API)</a></li>
+                    <li><a href="#faq">Suporte WhatsApp</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div>&copy; 2026 ROTA IQ Tecnologia Ltda. Todos os direitos reservados.</div>
+            <div style="display: flex; gap: 20px;">
+                <span>Termos de Uso</span>
+                <span>Política de Privacidade (LGPD)</span>
+                <span>CNPJ Ativo</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL DE CHECKOUT PIX -->
+    <div id="modal-pix-checkout" class="checkout-modal-overlay">
+        <div class="checkout-modal-card">
+            <button class="btn-close-modal" onclick="closePixModal()">&times;</button>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 13px; font-weight: 800; color: var(--brand-primary); letter-spacing: 1px;">PAGAMENTO INSTANTÂNEO PIX</div>
+                <h3 style="font-size: 22px; font-weight: 900; margin: 4px 0;" id="pix-plan-name">ROTA IQ Pro</h3>
+                <div style="font-size: 28px; font-weight: 900; color: var(--color-excellent);" id="pix-plan-price">R$ 29,90</div>
+            </div>
+
+            <!-- QR Code Ilustrativo Estilizado -->
+            <div style="background: #FFF; padding: 16px; border-radius: 16px; width: 170px; height: 170px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(0,0,0,0.5);">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ROTA_IQ_PAGAMENTO_PIX_OFICIAL" alt="QR Code PIX" style="width: 140px; height: 140px; border-radius: 8px;">
+            </div>
+
+            <div style="font-size: 12px; color: var(--text-secondary); text-align: center; margin-bottom: 12px;">
+                Ou copie e cole a chave PIX no app do seu banco:
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <input type="text" id="pix-copy-input" readonly style="width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 10px; color: #FFF; font-size: 12px; font-family: monospace;">
+            </div>
+
+            <button class="btn-large-primary" id="btn-copy-pix" onclick="copyPixCode()" style="width: 100%; justify-content: center; padding: 12px;">
+                COPIAR CÓDIGO PIX
+            </button>
+
+            <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 14px;">
+                ⚡ Ativação automática no aplicativo em até 30 segundos após o pagamento.
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
