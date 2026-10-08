@@ -28,4 +28,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Subscription : Screen("subscription", "Plano Pro", Icons.Default.Star)
     object Privacy : Screen("privacy", "Privacidade", Icons.Default.Security)
     object AdvancedTools : Screen("advanced", "Avançado", Icons.Default.DirectionsCar)
+    object Splash : Screen("splash", "Splash", Icons.Default.Speed)
+    object Login : Screen("login", "Login", Icons.Default.Security)
+    object Register : Screen("register", "Criar Conta", Icons.Default.Security)
+    object ForgotPassword : Screen("forgot_password", "Recuperar Senha", Icons.Default.Security)
 }

@@ -124,6 +124,10 @@ class SupabaseClient:
         rows = self._request("users", method="POST", data=user_data, prefer="return=representation")
         return rows[0] if rows else user_data
 
+    def update_user(self, user_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        rows = self._request(f"users?id=eq.{user_id}", method="PATCH", data=updates, prefer="return=representation")
+        return rows[0] if rows else None
+
     def get_driver_by_user_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         rows = self._request(f"drivers?user_id=eq.{user_id}&limit=1")
         return rows[0] if rows else None

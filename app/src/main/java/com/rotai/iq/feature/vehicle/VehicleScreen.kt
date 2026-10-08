@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
@@ -62,6 +63,7 @@ import com.rotai.iq.core.ui.designsystem.RotaDialog
 import com.rotai.iq.core.ui.designsystem.RotaMetric
 import com.rotai.iq.core.ui.theme.CardShapeDefault
 import com.rotai.iq.core.ui.theme.CardShapeElevated
+import com.rotai.iq.core.ui.theme.RotaAvoid
 import com.rotai.iq.core.ui.theme.RotaBlack
 import com.rotai.iq.core.ui.theme.RotaBorderSubtle
 import com.rotai.iq.core.ui.theme.RotaCardBackground
@@ -87,12 +89,14 @@ fun VehicleScreen(
     onNavigateToZones: () -> Unit = {},
     onNavigateToAutomation: () -> Unit = {},
     onNavigateToPrivacy: () -> Unit = {},
-    onNavigateToSubscription: () -> Unit = {}
+    onNavigateToSubscription: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     var showEditDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
+    var showLogoutConfirmDialog by remember { mutableStateOf(false) }
 
     var soundAlertsEnabled by remember { mutableStateOf(true) }
     var goalAlertsEnabled by remember { mutableStateOf(true) }
@@ -360,9 +364,35 @@ fun VehicleScreen(
                 subtitle = "Gerenciar plano e desbloqueio ilimitado",
                 onClick = onNavigateToSubscription
             )
+            HorizontalDivider(color = RotaBorderSubtle, thickness = 0.5.dp)
+            ProfileMenuRow(
+                icon = Icons.AutoMirrored.Filled.ExitToApp,
+                title = "Sair da Conta",
+                subtitle = "Encerrar sessão com segurança",
+                onClick = { showLogoutConfirmDialog = true }
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    // Modal de Confirmação de Logout Real
+    if (showLogoutConfirmDialog) {
+        RotaDialog(
+            title = "Encerrar Sessão",
+            onDismissRequest = { showLogoutConfirmDialog = false },
+            confirmButtonText = "Sair",
+            onConfirm = {
+                showLogoutConfirmDialog = false
+                onLogout()
+            }
+        ) {
+            Text(
+                text = "Deseja realmente sair da sua conta? Para voltar a acessar o ROTA IQ, será necessário efetuar login novamente.",
+                color = RotaTextPrimary,
+                fontSize = 14.sp
+            )
+        }
     }
 
     // Modal de Edição de Veículo

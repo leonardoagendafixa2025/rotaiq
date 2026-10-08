@@ -16,6 +16,8 @@ import com.rotai.iq.feature.rides.HistoryViewModel
 import com.rotai.iq.feature.rides.RideSimulatorViewModel
 import com.rotai.iq.feature.subscription.SubscriptionPaywallViewModel
 import com.rotai.iq.feature.vehicle.VehicleViewModel
+import com.rotai.iq.feature.auth.AuthViewModel
+import com.rotai.iq.feature.splash.SplashViewModel
 
 class RotaIqViewModelFactory(
     private val repository: RotaIqRepository,
@@ -83,6 +85,20 @@ class RotaIqViewModelFactory(
                         repository = repository,
                         carModeManager = app.carModeManager
                     ) as T
+                } else {
+                    throw IllegalStateException("Application must be RotaIqApplication")
+                }
+            }
+            modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
+                if (app != null) {
+                    AuthViewModel(app.authRepository) as T
+                } else {
+                    throw IllegalStateException("Application must be RotaIqApplication")
+                }
+            }
+            modelClass.isAssignableFrom(SplashViewModel::class.java) -> {
+                if (app != null) {
+                    SplashViewModel(app.authRepository) as T
                 } else {
                     throw IllegalStateException("Application must be RotaIqApplication")
                 }

@@ -66,10 +66,18 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
     return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 def decode_token(token: str) -> Dict[str, Any]:
-    """Decodifica e valida assinatura e expiração do JWT."""
+    """Decodifica e valida assinatura, expiração e status de revogação do JWT."""
     try:
+        from app.auth_service import auth_service
+        if auth_service.is_token_revoked(token):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Sessão encerrada ou token revogado. Efetue login novamente."
+            )
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return payload
+    except HTTPException:
+        raise
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

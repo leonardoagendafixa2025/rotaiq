@@ -46,6 +46,12 @@ import com.rotai.iq.feature.subscription.SubscriptionPaywallScreen
 import com.rotai.iq.feature.subscription.SubscriptionPaywallViewModel
 import com.rotai.iq.feature.vehicle.VehicleScreen
 import com.rotai.iq.feature.vehicle.VehicleViewModel
+import com.rotai.iq.feature.auth.AuthViewModel
+import com.rotai.iq.feature.auth.ForgotPasswordScreen
+import com.rotai.iq.feature.auth.LoginScreen
+import com.rotai.iq.feature.auth.RegisterScreen
+import com.rotai.iq.feature.splash.SplashScreen
+import com.rotai.iq.feature.splash.SplashViewModel
 
 @Composable
 fun RotaIqApp(
@@ -55,6 +61,28 @@ fun RotaIqApp(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // Rotas públicas (não exigem autenticação e não exibem a barra de navegação)
+    val authRoutes = setOf(
+        Screen.Splash.route,
+        Screen.Login.route,
+        Screen.Register.route,
+        Screen.ForgotPassword.route
+    )
+    val shouldShowBottomBar = currentRoute !in authRoutes
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val app = context.applicationContext as? com.rotai.iq.RotaIqApplication
+    val isAuthenticated = app?.authRepository?.isAuthenticated() ?: false
+
+    // Proteção Obrigatória de Rotas: Redireciona usuário não autenticado para o Login
+    if (currentRoute != null && currentRoute !in authRoutes && !isAuthenticated) {
+        androidx.compose.runtime.LaunchedEffect(currentRoute) {
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     // Barra de navegação inspirada 1:1 na referência visual:
     // Início, Corridas, Botão Central '+' de Ação Rápida (Simulador), Financeiro, Perfil
@@ -91,26 +119,28 @@ fun RotaIqApp(
         modifier = modifier,
         containerColor = RotaBlack,
         bottomBar = {
-            RotaBottomBar(
-                items = navItems,
-                currentRoute = currentRoute,
-                onItemSelected = { route ->
-                    if (currentRoute != route) {
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+            if (shouldShowBottomBar) {
+                RotaBottomBar(
+                    items = navItems,
+                    currentRoute = currentRoute,
+                    onItemSelected = { route ->
+                        if (currentRoute != route) {
+                            navController.navigate(route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
                         }
                     }
-                }
-            )
+                )
+            }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Dashboard.route,
+            startDestination = Screen.Splash.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
@@ -166,6 +196,7 @@ fun RotaIqApp(
             }
             composable(Screen.Vehicle.route) {
                 val vm: VehicleViewModel = viewModel(factory = viewModelFactory)
+                val authVm: AuthViewModel = viewModel(factory = viewModelFactory)
                 VehicleScreen(
                     viewModel = vm,
                     onNavigateToGoals = {
@@ -188,6 +219,12 @@ fun RotaIqApp(
                     },
                     onNavigateToSubscription = {
                         navController.navigate(Screen.Subscription.route)
+                    },
+                    onLogout = {
+                        authVm.executeLogout()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -228,6 +265,57 @@ fun RotaIqApp(
                 AdvancedToolsScreen(
                     viewModel = vm,
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Splash.route) {
+                val vm: SplashViewModel = viewModel(factory = viewModelFactory)
+                SplashScreen(
+                    viewModel = vm,
+                    onNavigate = { destination ->
+                        navController.navigate(destination) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(Screen.Login.route) {
+                val vm: AuthViewModel = viewModel(factory = viewModelFactory)
+                LoginScreen(
+                    viewModel = vm,
+                    onNavigateToHome = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToRegister = {
+                        navController.navigate(Screen.Register.route)
+                    },
+                    onNavigateToForgotPassword = {
+                        navController.navigate(Screen.ForgotPassword.route)
+                    }
+                )
+            }
+            composable(Screen.Register.route) {
+                val vm: AuthViewModel = viewModel(factory = viewModelFactory)
+                RegisterScreen(
+                    viewModel = vm,
+                    onNavigateToHome = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateBackToLogin = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(Screen.ForgotPassword.route) {
+                val vm: AuthViewModel = viewModel(factory = viewModelFactory)
+                ForgotPasswordScreen(
+                    viewModel = vm,
+                    onNavigateBackToLogin = {
+                        navController.popBackStack()
+                    }
                 )
             }
         }

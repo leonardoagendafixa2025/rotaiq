@@ -8,7 +8,7 @@ REGRA ABSOLUTA: ZERO MOCKS NA PRODUÇÃO.
 Todos os dados retornados e persistidos são reais no PostgreSQL/Supabase.
 """
 
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, HTTPException, status, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any
@@ -28,8 +28,11 @@ from app.auth import (
     require_admin_claims,
     require_super_admin_claims,
     require_campaign_send_permission,
-    require_campaign_manage_permission
+    require_campaign_manage_permission,
+    security
 )
+from app.auth_service import auth_service
+from fastapi.security import HTTPAuthorizationCredentials
 from app.admin_service import AdminService, admin_store
 from app.campaign_service import campaign_service
 from app.push_service import push_service
@@ -57,11 +60,15 @@ app.add_middleware(
 # --- Autenticação ---
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=6)
-    full_name: str
+    password: str = Field(min_length=8)
+    name: Optional[str] = None
+    full_name: Optional[str] = None
     phone: Optional[str] = None
     city: str = "São Paulo"
     state: str = "SP"
+    terms_accepted: bool = True
+    terms_version: str = "1.0"
+    privacy_version: str = "1.0"
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -75,6 +82,7 @@ class AuthResponse(BaseModel):
     user_id: str
     full_name: str
     email: str
+    email_verified: bool = False
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
@@ -92,6 +100,24 @@ class UserProfileResponse(BaseModel):
     city: str
     state: str
     status: str
+    email_verified: bool = False
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
+
+class VerifyEmailRequest(BaseModel):
+    token: Optional[str] = None
+    email: Optional[str] = None
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
 
 # --- Veículos & Custos ---
 class VehicleCreateRequest(BaseModel):
@@ -300,8 +326,28 @@ async def supabase_status():
 
 @app.post("/api/v1/auth/register", response_model=AuthResponse)
 async def register(req: RegisterRequest):
+    clean_email = req.email.strip().lower()
+    name = (req.name or req.full_name or "").strip()
+    if not name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O nome completo é obrigatório."
+        )
+
+    if not req.terms_accepted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="É obrigatório concordar com os Termos de Uso e Política de Privacidade."
+        )
+
+    if len(req.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve possuir no mínimo 8 caracteres."
+        )
+
     # Verificar se usuário já existe
-    existing = supabase.get_user_by_email(req.email)
+    existing = supabase.get_user_by_email(clean_email)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -311,9 +357,9 @@ async def register(req: RegisterRequest):
     # Hash seguro com PBKDF2
     p_hash = hash_password(req.password)
     user_payload = {
-        "email": req.email,
+        "email": clean_email,
         "password_hash": p_hash,
-        "full_name": req.full_name,
+        "full_name": name,
         "phone": req.phone,
         "is_active": True
     }
@@ -330,12 +376,23 @@ async def register(req: RegisterRequest):
     driver_record = supabase.insert_driver(driver_payload)
     driver_id = driver_record.get("id")
 
+    # Auditoria de aceite de Termos e LGPD
+    auth_service.record_terms_acceptance(
+        user_id=user_id,
+        email=clean_email,
+        terms_version=req.terms_version,
+        privacy_version=req.privacy_version
+    )
+
+    # Registro de Verificação de E-mail
+    auth_service.register_email_verification(clean_email)
+
     # Gerar Tokens JWT
     claims = {
         "sub": user_id,
         "driver_id": driver_id,
-        "email": req.email,
-        "name": req.full_name
+        "email": clean_email,
+        "name": name
     }
     access_token = create_access_token(claims)
     refresh_token = create_refresh_token(claims)
@@ -345,13 +402,15 @@ async def register(req: RegisterRequest):
         refresh_token=refresh_token,
         driver_id=driver_id,
         user_id=user_id,
-        full_name=req.full_name,
-        email=req.email
+        full_name=name,
+        email=clean_email,
+        email_verified=False
     )
 
 @app.post("/api/v1/auth/login", response_model=AuthResponse)
 async def login(req: LoginRequest):
-    user = supabase.get_user_by_email(req.email)
+    clean_email = req.email.strip().lower()
+    user = supabase.get_user_by_email(clean_email)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -366,26 +425,32 @@ async def login(req: LoginRequest):
         )
 
     user_id = user.get("id")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    supabase.update_user(user_id, {"updated_at": now_iso})
+
     driver = supabase.get_driver_by_user_id(user_id)
     if not driver:
-        # Criar perfil de motorista caso inexista
         driver = supabase.insert_driver({"user_id": user_id, "city": "São Paulo", "state": "SP", "status": "ACTIVE"})
 
     driver_id = driver.get("id")
+    user_name = user.get("full_name", "Motorista")
     claims = {
         "sub": user_id,
         "driver_id": driver_id,
         "email": user.get("email"),
-        "name": user.get("full_name")
+        "name": user_name
     }
+
+    is_verified = auth_service.is_email_verified(clean_email)
 
     return AuthResponse(
         access_token=create_access_token(claims),
         refresh_token=create_refresh_token(claims),
         driver_id=driver_id,
         user_id=user_id,
-        full_name=user.get("full_name", "Motorista"),
-        email=user.get("email")
+        full_name=user_name,
+        email=user.get("email"),
+        email_verified=is_verified
     )
 
 @app.post("/api/v1/auth/refresh", response_model=RefreshTokenResponse)
@@ -405,6 +470,106 @@ async def refresh_token_endpoint(req: RefreshTokenRequest):
     }
     return RefreshTokenResponse(access_token=create_access_token(new_claims))
 
+@app.post("/api/v1/auth/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    clean_email = req.email.strip().lower()
+    user = supabase.get_user_by_email(clean_email)
+    if not user:
+        # Prevenção contra enumeração de e-mails
+        return {
+            "success": True,
+            "message": "Se o e-mail estiver cadastrado, as instruções de recuperação foram enviadas."
+        }
+
+    reset_token = auth_service.create_password_reset_token(clean_email)
+    print(f"[AUTH PASSWORD RESET] Token gerado para {clean_email}: {reset_token}")
+    return {
+        "success": True,
+        "message": "Enviamos as instruções de recuperação para seu e-mail.",
+        "reset_token": reset_token
+    }
+
+@app.post("/api/v1/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    if len(req.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A nova senha deve possuir no mínimo 8 caracteres."
+        )
+
+    email = auth_service.validate_password_reset_token(req.token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token de recuperação inválido ou expirado."
+        )
+
+    user = supabase.get_user_by_email(email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário vinculado não encontrado."
+        )
+
+    new_hash = hash_password(req.new_password)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    supabase.update_user(user["id"], {
+        "password_hash": new_hash,
+        "updated_at": now_iso
+    })
+    auth_service.mark_password_reset_used(req.token)
+
+    return {
+        "success": True,
+        "message": "Senha atualizada com sucesso! Você já pode efetuar login."
+    }
+
+@app.post("/api/v1/auth/verify-email")
+async def verify_email(req: VerifyEmailRequest):
+    target = req.token or (req.email.strip().lower() if req.email else None)
+    if not target:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token ou e-mail deve ser informado."
+        )
+    success = auth_service.verify_email(target)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token de verificação inválido ou inexistente."
+        )
+    return {"success": True, "message": "E-mail verificado com sucesso!"}
+
+@app.post("/api/v1/auth/resend-verification")
+async def resend_verification(req: ResendVerificationRequest):
+    clean_email = req.email.strip().lower()
+    user = supabase.get_user_by_email(clean_email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado."
+        )
+    token = auth_service.register_email_verification(clean_email)
+    return {
+        "success": True,
+        "message": "Link de confirmação reenviado para seu e-mail.",
+        "verification_token": token
+    }
+
+@app.post("/api/v1/auth/logout")
+async def logout(
+    req: Optional[LogoutRequest] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security)
+):
+    if credentials:
+        auth_service.revoke_token(credentials.credentials)
+    if req and req.refresh_token:
+        auth_service.revoke_token(req.refresh_token)
+    return {
+        "success": True,
+        "message": "Sessão finalizada com sucesso."
+    }
+
 @app.get("/api/v1/auth/me", response_model=UserProfileResponse)
 async def get_my_profile(claims: Dict[str, Any] = Depends(get_current_user_claims)):
     user_id = claims.get("sub")
@@ -415,6 +580,8 @@ async def get_my_profile(claims: Dict[str, Any] = Depends(get_current_user_claim
     if not user or not driver:
         raise HTTPException(status_code=404, detail="Perfil não encontrado.")
 
+    is_verified = auth_service.is_email_verified(user.get("email", ""))
+
     return UserProfileResponse(
         user_id=user_id,
         driver_id=driver_id,
@@ -423,7 +590,8 @@ async def get_my_profile(claims: Dict[str, Any] = Depends(get_current_user_claim
         phone=user.get("phone"),
         city=driver.get("city", "São Paulo"),
         state=driver.get("state", "SP"),
-        status=driver.get("status", "ACTIVE")
+        status=driver.get("status", "ACTIVE"),
+        email_verified=is_verified
     )
 
 # ======================================================================

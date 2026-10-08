@@ -50,6 +50,15 @@ class RotaIqApplication : Application() {
     lateinit var secureStorage: SecureStorage
         private set
 
+    lateinit var authApiClient: com.rotai.iq.core.network.AuthApiClient
+        private set
+
+    lateinit var authSessionManager: com.rotai.iq.core.security.AuthSessionManager
+        private set
+
+    lateinit var authRepository: com.rotai.iq.core.data.repository.AuthRepository
+        private set
+
     lateinit var carModeManager: CarModeManager
         private set
 
@@ -70,6 +79,9 @@ class RotaIqApplication : Application() {
         telemetryManager = TelemetryManager()
         featureFlagManager = FeatureFlagManager()
         secureStorage = AndroidSecureStorage(this)
+        authApiClient = com.rotai.iq.core.network.AuthApiClient()
+        authSessionManager = com.rotai.iq.core.security.AuthSessionManager(secureStorage)
+        authRepository = com.rotai.iq.core.data.repository.AuthRepositoryImpl(authApiClient, authSessionManager)
 
         // Inicializa Canais de Notificação Android (Geral, Marketing, Sistema, Corridas)
         com.rotai.iq.core.notifications.NotificationChannels.createChannels(this)
