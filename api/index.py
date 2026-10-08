@@ -1,17 +1,16 @@
 import os
 import sys
 
-# Garante que a pasta api e o app embutido estejam no sys.path do runtime do Vercel
+# Garante que as pastas backend e raiz do projeto estejam no sys.path do runtime do Vercel
 current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
 root_dir = os.path.abspath(os.path.join(current_dir, ".."))
 backend_dir = os.path.join(root_dir, "backend")
-if backend_dir not in sys.path:
-    sys.path.insert(0, backend_dir)
 
-# Configuração e leitura do ambiente Supabase
+for p in [backend_dir, root_dir, current_dir]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+# Configuração padrão do ambiente se não definidos
 if not os.environ.get("SUPABASE_URL"):
     os.environ["SUPABASE_URL"] = "https://jkreduqzekllsmzxiugn.supabase.co"
 if not os.environ.get("ENVIRONMENT"):
@@ -21,7 +20,7 @@ try:
     from app.main import app
 except Exception as err:
     try:
-        from api.app.main import app
+        from backend.app.main import app
     except Exception as err2:
         from fastapi import FastAPI
         from fastapi.responses import JSONResponse

@@ -18,9 +18,17 @@ from app.supabase_client import supabase
 from app.auth import hash_password, verify_password, create_access_token
 
 # Caminho do banco local persistente para tabelas complementares (sobrevive a restarts e reboots)
-LOCAL_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-os.makedirs(LOCAL_DB_DIR, exist_ok=True)
-LOCAL_DB_PATH = os.path.join(LOCAL_DB_DIR, "admin_store.db")
+def get_admin_db_path() -> str:
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return os.path.join("/tmp", "admin_store.db")
+    local_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+    try:
+        os.makedirs(local_dir, exist_ok=True)
+        return os.path.join(local_dir, "admin_store.db")
+    except (OSError, PermissionError):
+        return os.path.join(os.environ.get("TEMP", "/tmp"), "admin_store.db")
+
+LOCAL_DB_PATH = get_admin_db_path()
 
 
 class AdminStore:
@@ -29,8 +37,12 @@ class AdminStore:
     Garante integridade e sobrevivência a reinicializações.
     """
 
-    def __init__(self, db_path: str = LOCAL_DB_PATH):
-        self.db_path = db_path
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or get_admin_db_path()
+        try:
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        except (OSError, PermissionError):
+            pass
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:

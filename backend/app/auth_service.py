@@ -10,12 +10,25 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "rota_iq_auth.db")
+def get_auth_db_path() -> str:
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return os.path.join("/tmp", "rota_iq_auth.db")
+    local_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+    try:
+        os.makedirs(local_dir, exist_ok=True)
+        return os.path.join(local_dir, "rota_iq_auth.db")
+    except (OSError, PermissionError):
+        return os.path.join(os.environ.get("TEMP", "/tmp"), "rota_iq_auth.db")
+
+DB_PATH = get_auth_db_path()
 
 class AuthService:
-    def __init__(self, db_path: str = DB_PATH):
-        self.db_path = db_path
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or get_auth_db_path()
+        try:
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        except (OSError, PermissionError):
+            pass
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:

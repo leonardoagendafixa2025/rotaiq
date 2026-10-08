@@ -9,6 +9,7 @@ Todos os dados retornados e persistidos são reais no PostgreSQL/Supabase.
 """
 
 from fastapi import FastAPI, HTTPException, status, Depends, Security
+from fastapi.responses import HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any
@@ -16,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 import uuid
 import hashlib
 import os
+import mimetypes
 
 from app.supabase_client import supabase
 from app.auth import (
@@ -285,14 +287,68 @@ class AdminMetricsResponse(BaseModel):
 # 1. HEALTH E STATUS
 # ======================================================================
 
-@app.get("/")
+def find_static_file(rel_path: str) -> Optional[str]:
+    rel_path = rel_path.lstrip("/").replace("\\", "/")
+    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(app_root)
+    cwd = os.getcwd()
+
+    base_dirs = [
+        os.path.join(cwd, "public"),
+        cwd,
+        os.path.join(cwd, "web"),
+        os.path.join(repo_root, "public"),
+        repo_root,
+        os.path.join(repo_root, "web"),
+        app_root
+    ]
+    for b in base_dirs:
+        candidate = os.path.normpath(os.path.join(b, rel_path))
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+def serve_static_file(file_path: str) -> Response:
+    mime, _ = mimetypes.guess_type(file_path)
+    if not mime:
+        if file_path.endswith(".apk"):
+            mime = "application/vnd.android.package-archive"
+        elif file_path.endswith(".css"):
+            mime = "text/css"
+        elif file_path.endswith(".js"):
+            mime = "application/javascript"
+        elif file_path.endswith(".html"):
+            mime = "text/html; charset=utf-8"
+        else:
+            mime = "application/octet-stream"
+    try:
+        with open(file_path, "rb") as f:
+            content = f.read()
+        return Response(content=content, media_type=mime)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/", response_class=HTMLResponse)
 async def root_index():
-    return {
-        "status": "online",
-        "service": "ROTA IQ Backend API",
-        "version": "2.0.0",
-        "database": "Supabase PostgreSQL"
-    }
+    p = find_static_file("index.html")
+    if p:
+        return serve_static_file(p)
+    return HTMLResponse("<h1>ROTA IQ Backend Online</h1>")
+
+@app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin/", response_class=HTMLResponse)
+async def serve_admin_dashboard():
+    p = find_static_file("admin/index.html")
+    if p:
+        return serve_static_file(p)
+    return HTMLResponse("<h1>ROTA IQ Admin Dashboard</h1><p>index.html do admin não encontrado.</p>", status_code=404)
+
+@app.get("/admin/{asset_path:path}")
+async def serve_admin_assets(asset_path: str):
+    p = find_static_file(f"admin/{asset_path}")
+    if p:
+        return serve_static_file(p)
+    raise HTTPException(status_code=404, detail="Asset admin não encontrado")
 
 @app.get("/health")
 async def root_health():
@@ -2110,5 +2166,13 @@ async def delete_campaign_template_endpoint(
     if not ok:
         raise HTTPException(status_code=404, detail="Template não encontrado.")
     return {"success": True, "message": "Template excluído com sucesso."}
+
+@app.get("/{static_file:path}")
+async def serve_public_root_file(static_file: str):
+    if "." in static_file and not static_file.startswith("api/"):
+        p = find_static_file(static_file)
+        if p:
+            return serve_static_file(p)
+    raise HTTPException(status_code=404, detail="Arquivo não encontrado")
 
 

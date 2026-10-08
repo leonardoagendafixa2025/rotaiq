@@ -1,0 +1,13 @@
+.gradle/
+.pytest_cache/
+gradle/
+gradlew
+gradlew.bat
+build.gradle.kts
+settings.gradle.kts
+local.properties
+app/
+tools/
+*.db
+*.sqlite3
+__pycache__/
