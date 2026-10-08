@@ -1,10 +1,4 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/index.py": {
-      "includeFiles": "backend/**,public/**,admin/**,index.html,style.css,app.js,favicon.png"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/v1/:match*",
