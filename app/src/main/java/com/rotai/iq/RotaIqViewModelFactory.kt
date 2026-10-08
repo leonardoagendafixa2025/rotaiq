@@ -35,7 +35,7 @@ class RotaIqViewModelFactory(
                 RideSimulatorViewModel(repository) as T
             }
             modelClass.isAssignableFrom(VehicleViewModel::class.java) -> {
-                VehicleViewModel(repository) as T
+                VehicleViewModel(repository, app?.commercialRepository) as T
             }
             modelClass.isAssignableFrom(GoalsViewModel::class.java) -> {
                 GoalsViewModel(repository) as T

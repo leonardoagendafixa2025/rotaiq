@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,11 +24,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -35,7 +39,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -49,12 +53,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rotai.iq.core.domain.model.SubscriptionInfo
+import com.rotai.iq.core.domain.model.SubscriptionPlan
 import com.rotai.iq.core.domain.model.SubscriptionTier
 
 @Composable
@@ -90,7 +96,7 @@ fun SubscriptionPaywallScreen(
                     Text("← Voltar", color = Color(0xFF90A4AE), fontSize = 14.sp)
                 }
                 TextButton(onClick = { viewModel.restorePurchases() }) {
-                    Text("Restaurar Compras", color = Color(0xFF00E5FF), fontSize = 13.sp)
+                    Text("Restaurar Compras", color = Color(0xFFFF7A00), fontSize = 13.sp)
                 }
             }
 
@@ -103,7 +109,7 @@ fun SubscriptionPaywallScreen(
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
-                            listOf(Color(0xFFFFD700), Color(0xFFFF9100))
+                            listOf(Color(0xFFFF9533), Color(0xFFFF7A00))
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -123,7 +129,7 @@ fun SubscriptionPaywallScreen(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.5.sp,
-                color = Color(0xFFFFD700)
+                color = Color(0xFFFF7A00)
             )
 
             Text(
@@ -174,65 +180,46 @@ fun SubscriptionPaywallScreen(
 
             uiState.errorMessage?.let { err ->
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFB71C1C)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF4A1212)),
                     shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFFFF334B).copy(alpha = 0.5f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
                 ) {
                     Text(
                         text = err,
-                        color = Color.White,
+                        color = Color(0xFFFF8A80),
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(12.dp),
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            // Botões de Ação de Pagamento
+            // Botão Principal: Não atualiza diretamente no clique; direciona para escolher o plano de pagamento
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = { viewModel.initiateGooglePlayPurchase() },
+                onClick = { viewModel.openPaymentSelection() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(54.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7A00)),
                 enabled = !uiState.isProcessing
             ) {
                 if (uiState.isProcessing) {
                     CircularProgressIndicator(color = Color(0xFF0A0E17), modifier = Modifier.size(24.dp))
                 } else {
                     Text(
-                        text = "ASSINAR COM GOOGLE PLAY",
+                        text = "ESCOLHER FORMA DE PAGAMENTO →",
                         color = Color(0xFF0A0E17),
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Black,
                         fontSize = 15.sp
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            OutlinedButton(
-                onClick = { viewModel.generatePixOrder() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    brush = Brush.horizontalGradient(listOf(Color(0xFF00E5FF), Color(0xFF00B0FF)))
-                ),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00E5FF))
-            ) {
-                Text(
-                    text = "PAGAR COM PIX INSTANTÂNEO",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -244,7 +231,7 @@ fun SubscriptionPaywallScreen(
 
             // Termos e Segurança
             Text(
-                text = "Cobrança segura intermediada por Google Play ou Banco Central (PIX). Cancele a qualquer momento nas configurações da sua conta Google Play sem multas.",
+                text = "Pagamento intermediado com segurança pelo Banco Central do Brasil (PIX) e gateways oficiais. Cancele quando quiser sem multas.",
                 fontSize = 11.sp,
                 color = Color(0xFF546E7A),
                 textAlign = TextAlign.Center,
@@ -254,13 +241,88 @@ fun SubscriptionPaywallScreen(
             Spacer(modifier = Modifier.height(30.dp))
         }
 
-        // Modal PIX Copia e Cola
+        // ======================================================================
+        // MODAL 1: SELEÇÃO DA FORMA DE PAGAMENTO (OBRIGATÓRIO ESCOLHER O PAGAMENTO)
+        // ======================================================================
+        if (uiState.showPaymentMethodSelector) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissPaymentSelection() },
+                containerColor = Color(0xFF141418),
+                title = {
+                    Column {
+                        Text(
+                            text = "Forma de Pagamento",
+                            color = Color(0xFFFF7A00),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Plano selecionado: ${uiState.selectedTier.displayName} • R$ ${String.format(java.util.Locale.US, "%.2f", uiState.selectedTier.fullPrice)}",
+                            color = Color(0xFFB0BEC5),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                },
+                text = {
+                    Column {
+                        // Opção 1: PIX Instantâneo Oficial
+                        PaymentMethodItem(
+                            icon = Icons.Default.CheckCircle,
+                            iconColor = Color(0xFF00E676),
+                            title = "PIX Instantâneo Oficial",
+                            subtitle = "QR Code & Copia e Cola • Liberação automática",
+                            badge = "RECOMENDADO",
+                            badgeColor = Color(0xFF00E676),
+                            onClick = { viewModel.choosePixPayment() }
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Opção 2: Cartão de Crédito
+                        PaymentMethodItem(
+                            icon = Icons.Default.Lock,
+                            iconColor = Color(0xFF29B6F6),
+                            title = "Cartão de Crédito / Google Play",
+                            subtitle = "Assinatura recorrente mensal ou anual",
+                            badge = null,
+                            badgeColor = Color.Transparent,
+                            onClick = { viewModel.chooseCardPayment() }
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Opção 3: Boleto Bancário
+                        PaymentMethodItem(
+                            icon = Icons.Default.AccountBalanceWallet,
+                            iconColor = Color(0xFFFFB300),
+                            title = "Boleto Bancário",
+                            subtitle = "Compensação em até 2 dias úteis",
+                            badge = null,
+                            badgeColor = Color.Transparent,
+                            onClick = { viewModel.chooseBoletoPayment() }
+                        )
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { viewModel.dismissPaymentSelection() }) {
+                        Text("Fechar", color = Color(0xFF90A4AE))
+                    }
+                }
+            )
+        }
+
+        // ======================================================================
+        // MODAL 2: CHECKOUT PIX (CHAVE REAL + VERIFICAÇÃO NO BANCO)
+        // ======================================================================
         uiState.activePixOrder?.let { order ->
             AlertDialog(
                 onDismissRequest = { viewModel.dismissPixOrder() },
-                containerColor = Color(0xFF121826),
+                containerColor = Color(0xFF141418),
                 title = {
-                    Text("Pagamento PIX Oficial", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                    Text("Pagamento PIX Oficial", color = Color(0xFFFF7A00), fontWeight = FontWeight.Bold)
                 },
                 text = {
                     Column {
@@ -273,8 +335,8 @@ fun SubscriptionPaywallScreen(
                         Text(
                             text = "Valor: R$ ${String.format(java.util.Locale.US, "%.2f", order.amountReais)}",
                             color = Color(0xFF00E676),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
                         Text(
@@ -287,6 +349,7 @@ fun SubscriptionPaywallScreen(
                         Surface(
                             color = Color(0xFF0A0E17),
                             shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(0xFF263238)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 6.dp)
@@ -308,33 +371,98 @@ fun SubscriptionPaywallScreen(
                                 Toast.makeText(context, "Código PIX copiado para a área de transferência!", Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7A00))
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color(0xFF0A0E17))
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.Black)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("COPIAR CÓDIGO PIX", color = Color(0xFF0A0E17), fontWeight = FontWeight.Bold)
+                            Text("COPIAR CÓDIGO PIX", color = Color.Black, fontWeight = FontWeight.Bold)
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        Button(
-                            onClick = { viewModel.confirmPixPayment() },
+                        OutlinedButton(
+                            onClick = { viewModel.checkPixPaymentStatus() },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
-                            shape = RoundedCornerShape(10.dp)
+                            border = BorderStroke(1.dp, Color(0xFF00E676)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00E676)),
+                            shape = RoundedCornerShape(10.dp),
+                            enabled = !uiState.isCheckingPayment
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("JÁ PAGUEI NO MEU BANCO — ATIVAR PRO", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                            if (uiState.isCheckingPayment) {
+                                CircularProgressIndicator(color = Color(0xFF00E676), modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("VERIFICANDO COM O BANCO...", color = Color(0xFF00E676), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("VERIFICAR STATUS DO PAGAMENTO", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
                         }
                     }
                 },
-                confirmButton = {
+                confirmButton = {},
+                dismissButton = {
                     TextButton(onClick = { viewModel.dismissPixOrder() }) {
                         Text("Fechar", color = Color(0xFF90A4AE))
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun PaymentMethodItem(
+    icon: ImageVector,
+    iconColor: Color,
+    title: String,
+    subtitle: String,
+    badge: String?,
+    badgeColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E24)),
+        border = BorderStroke(1.dp, Color(0xFF2E2E38))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(iconColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    if (badge != null) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(badgeColor.copy(alpha = 0.2f))
+                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                        ) {
+                            Text(badge, color = badgeColor, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+                Text(subtitle, color = Color(0xFF9E9E9E), fontSize = 11.sp)
+            }
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = Color(0xFF757575), modifier = Modifier.size(14.dp))
         }
     }
 }
@@ -348,7 +476,6 @@ private fun CurrentSubscriptionStatusCard(subscription: SubscriptionInfo) {
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
             .border(
                 1.dp,
                 if (subscription.isProActive) Color(0xFF00E676) else Color(0xFF263238),
@@ -365,16 +492,25 @@ private fun CurrentSubscriptionStatusCard(subscription: SubscriptionInfo) {
             Column {
                 Text(
                     text = "SEU PLANO ATUAL",
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF78909C)
+                    color = Color(0xFF90A4AE),
+                    letterSpacing = 1.sp
                 )
                 Text(
-                    text = subscription.tier.displayName.uppercase(),
+                    text = if (subscription.isProActive) subscription.tier.displayName else "Plano Gratuito",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (subscription.isProActive) Color(0xFF00E676) else Color.White
+                    color = if (subscription.isProActive) Color(0xFF00E676) else Color(0xFFECEFF1)
                 )
+                subscription.expiresAtEpochMs?.let { exp ->
+                    val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                    Text(
+                        text = "Válido até ${sdf.format(java.util.Date(exp))}",
+                        fontSize = 11.sp,
+                        color = Color(0xFF78909C)
+                    )
+                }
             }
 
             Box(
@@ -384,10 +520,10 @@ private fun CurrentSubscriptionStatusCard(subscription: SubscriptionInfo) {
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = if (subscription.isProActive) "ATIVO" else "BÁSICO",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (subscription.isProActive) Color(0xFF0A0E17) else Color(0xFFB0BEC5)
+                    text = if (subscription.isProActive) "ATIVO" else "LIMITADO",
+                    color = if (subscription.isProActive) Color(0xFF0A0E17) else Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black
                 )
             }
         }
@@ -396,34 +532,52 @@ private fun CurrentSubscriptionStatusCard(subscription: SubscriptionInfo) {
 
 @Composable
 private fun PlanOptionCard(
-    plan: com.rotai.iq.core.domain.model.SubscriptionPlan,
+    plan: SubscriptionPlan,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val borderColor = if (isSelected) Color(0xFFFFD700) else Color(0xFF263238)
-    val containerColor = if (isSelected) Color(0xFF1A1F2C) else Color(0xFF121826)
+    val borderColor = if (isSelected) Color(0xFFFF7A00) else Color(0xFF1E2838)
+    val bgColor = if (isSelected) Color(0xFF141924) else Color(0xFF0E131E)
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        shape = RoundedCornerShape(14.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(if (isSelected) 2.dp else 1.dp, borderColor, RoundedCornerShape(14.dp))
-            .clickable { onClick() }
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        border = BorderStroke(if (isSelected) 2.dp else 1.dp, borderColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Column {
-                    Text(
-                        text = plan.title,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = plan.title,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
+                        )
+                        plan.savingsBadge?.let { badge ->
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color(0xFFFF7A00))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = badge,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF0A0E17)
+                                )
+                            }
+                        }
+                    }
                     Text(
                         text = plan.headline,
                         fontSize = 12.sp,
@@ -431,18 +585,21 @@ private fun PlanOptionCard(
                     )
                 }
 
-                plan.savingsBadge?.let { badge ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFFE65100))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = badge,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
+                // Radio Indicator
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, if (isSelected) Color(0xFFFF7A00) else Color(0xFF546E7A), CircleShape)
+                        .background(if (isSelected) Color(0xFFFF7A00) else Color.Transparent),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF0A0E17))
                         )
                     }
                 }
@@ -450,30 +607,31 @@ private fun PlanOptionCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Preço
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = plan.formattedPrice,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
-                    color = if (isSelected) Color(0xFFFFD700) else Color(0xFF00E676)
+                    color = Color(0xFF00E676)
                 )
                 Text(
                     text = " ${plan.periodSuffix}",
                     fontSize = 12.sp,
-                    color = Color(0xFF90A4AE),
+                    color = Color(0xFFB0BEC5),
                     modifier = Modifier.padding(bottom = 3.dp)
                 )
             }
 
-            Divider(
-                color = Color(0xFF1E2838),
-                modifier = Modifier.padding(vertical = 10.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = Color(0xFF1E2838), thickness = 1.dp)
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // Lista de Benefícios
             plan.highlights.forEach { highlight ->
                 Row(
-                    modifier = Modifier.padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 3.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
@@ -481,11 +639,11 @@ private fun PlanOptionCard(
                         tint = Color(0xFF00E676),
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = highlight,
                         fontSize = 12.sp,
-                        color = Color(0xFFECEFF1)
+                        color = Color(0xFFCFD8DC)
                     )
                 }
             }
@@ -496,55 +654,42 @@ private fun PlanOptionCard(
 @Composable
 private fun ComparisonMatrixCard() {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF121826)),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0E131E)),
+        border = BorderStroke(1.dp, Color(0xFF1E2838))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Text(
-                text = "COMPARATIVO DE RECURSOS",
-                fontSize = 13.sp,
+                text = "COMPARATIVO DIRETO",
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF90A4AE)
+                color = Color(0xFF90A4AE),
+                letterSpacing = 1.sp
             )
-
             Spacer(modifier = Modifier.height(10.dp))
 
-            MatrixRow("Avaliações por dia", "15/dia", "Ilimitadas", isProOnly = false)
-            MatrixRow("HUD Flutuante Dinâmico", "Não", "Sim", isProOnly = true)
-            MatrixRow("Copiloto por Voz (TTS)", "Não", "Sim", isProOnly = true)
-            MatrixRow("Risco Deadhead (Volta Vazia)", "Não", "Sim", isProOnly = true)
-            MatrixRow("Comparativo Uber vs 99", "Não", "Sim", isProOnly = true)
-            MatrixRow("Exportação IRPF / Fiscal", "Não", "Sim", isProOnly = true)
-            MatrixRow("Suporte Prioritário VIP", "Não", "Sim", isProOnly = true)
+            ComparisonRow("Avaliações de Corridas", "15 por dia", "ILIMITADO")
+            ComparisonRow("HUD Flutuante Dinâmico", "Básico", "COMPLETO")
+            ComparisonRow("Copiloto por Voz (TTS)", "Bloqueado", "INCLUSO")
+            ComparisonRow("Detector de Volta Vazia", "Bloqueado", "INCLUSO")
+            ComparisonRow("Comparador Uber vs 99", "Apenas Uber", "TODOS OS APPS")
+            ComparisonRow("Exportação Contábil IRPF", "Bloqueado", "INCLUSO")
         }
     }
 }
 
 @Composable
-private fun MatrixRow(feature: String, free: String, pro: String, isProOnly: Boolean) {
+private fun ComparisonRow(feature: String, free: String, pro: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = feature, fontSize = 12.sp, color = Color(0xFFCFD8DC), modifier = Modifier.weight(1.5f))
-        Text(
-            text = free,
-            fontSize = 11.sp,
-            color = Color(0xFF78909C),
-            modifier = Modifier.weight(0.8f),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = pro,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (isProOnly) Color(0xFFFFD700) else Color(0xFF00E676),
-            modifier = Modifier.weight(0.9f),
-            textAlign = TextAlign.End
-        )
+        Text(feature, fontSize = 12.sp, color = Color(0xFFECEFF1), modifier = Modifier.weight(1.5f))
+        Text(free, fontSize = 11.sp, color = Color(0xFF78909C), modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        Text(pro, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00E676), modifier = Modifier.weight(1f), textAlign = TextAlign.End)
     }
 }

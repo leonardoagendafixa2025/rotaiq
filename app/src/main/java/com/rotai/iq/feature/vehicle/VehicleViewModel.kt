@@ -2,13 +2,17 @@ package com.rotai.iq.feature.vehicle
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rotai.iq.core.data.repository.CommercialRepository
 import com.rotai.iq.core.data.repository.RotaIqRepository
 import com.rotai.iq.core.domain.engine.VehicleCostEngine
 import com.rotai.iq.core.domain.model.FuelType
+import com.rotai.iq.core.domain.model.SubscriptionInfo
 import com.rotai.iq.core.domain.model.Vehicle
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class VehicleUiState(
@@ -30,8 +34,13 @@ data class VehicleUiState(
 )
 
 class VehicleViewModel(
-    private val repository: RotaIqRepository
+    private val repository: RotaIqRepository,
+    private val commercialRepository: CommercialRepository? = null
 ) : ViewModel() {
+
+    val subscriptionInfo: StateFlow<SubscriptionInfo> = commercialRepository?.getSubscriptionInfo()
+        ?.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SubscriptionInfo.FREE_DEFAULT)
+        ?: MutableStateFlow(SubscriptionInfo.FREE_DEFAULT).asStateFlow()
 
     private val _uiState = MutableStateFlow(VehicleUiState())
     val uiState: StateFlow<VehicleUiState> = _uiState.asStateFlow()

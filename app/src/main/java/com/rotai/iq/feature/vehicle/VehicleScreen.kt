@@ -93,6 +93,8 @@ fun VehicleScreen(
     onLogout: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
+    val subInfo by viewModel.subscriptionInfo.collectAsState()
+    val isPro = subInfo.isProActive
     val scrollState = rememberScrollState()
     var showEditDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
@@ -154,21 +156,25 @@ fun VehicleScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(RotaOrangeSubtleBg)
-                        .border(1.dp, RotaOrangePrimary.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .background(if (isPro) RotaOrangeSubtleBg else Color(0x18FFFFFF))
+                        .border(
+                            1.dp,
+                            if (isPro) RotaOrangePrimary.copy(alpha = 0.5f) else RotaBorderSubtle,
+                            RoundedCornerShape(8.dp)
+                        )
                         .clickable { onNavigateToSubscription() }
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Star,
+                        imageVector = if (isPro) Icons.Default.Star else Icons.Default.Lock,
                         contentDescription = null,
-                        tint = RotaOrangePrimary,
+                        tint = if (isPro) RotaOrangePrimary else RotaTextSecondary,
                         modifier = Modifier.size(12.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "CONTA PRO ATIVA",
-                        color = RotaOrangePrimary,
+                        text = if (isPro) "CONTA PRO ATIVA" else "PLANO GRÁTIS • ATUALIZAR",
+                        color = if (isPro) RotaOrangePrimary else RotaTextPrimary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
@@ -361,7 +367,7 @@ fun VehicleScreen(
             ProfileMenuRow(
                 icon = Icons.Default.Star,
                 title = "Plano & Assinatura Pro",
-                subtitle = "Gerenciar plano e desbloqueio ilimitado",
+                subtitle = if (isPro) "Plano Pro Ativo (${subInfo.tier.displayName})" else "Fazer upgrade e escolher forma de pagamento",
                 onClick = onNavigateToSubscription
             )
             HorizontalDivider(color = RotaBorderSubtle, thickness = 0.5.dp)

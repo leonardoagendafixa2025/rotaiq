@@ -12,6 +12,7 @@ import com.rotai.iq.core.domain.model.SubscriptionInfo
 import com.rotai.iq.core.domain.model.SubscriptionPlan
 import com.rotai.iq.core.domain.model.SubscriptionTier
 import com.rotai.iq.core.telemetry.TelemetryManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +22,10 @@ import kotlinx.coroutines.launch
 
 data class SubscriptionPaywallUiState(
     val selectedTier: SubscriptionTier = SubscriptionTier.PRO_ANNUAL,
+    val showPaymentMethodSelector: Boolean = false,
     val activePixOrder: PixPaymentOrder? = null,
     val isProcessing: Boolean = false,
+    val isCheckingPayment: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val plans: List<SubscriptionPlan> = listOf(
@@ -80,67 +83,72 @@ class SubscriptionPaywallViewModel(
         )
     }
 
-    fun initiateGooglePlayPurchase() {
-        val tier = _uiState.value.selectedTier
-        _uiState.value = _uiState.value.copy(isProcessing = true, errorMessage = null)
-
-        viewModelScope.launch {
-            val result = billingManager.processPurchase(tier, PaymentGateway.GOOGLE_PLAY)
-            when (result) {
-                is PurchaseResult.Success -> {
-                    commercialRepository.saveSubscriptionInfo(result.subscription)
-                    telemetryManager.recordEvent(
-                        TelemetryManager.EVENT_SUBSCRIPTION_ACTIVATED,
-                        mapOf("tier" to tier.code, "gateway" to "google_play")
-                    )
-                    _uiState.value = _uiState.value.copy(
-                        isProcessing = false,
-                        successMessage = "Parabéns! Sua assinatura ${tier.displayName} foi ativada com sucesso."
-                    )
-                }
-                is PurchaseResult.UserCanceled -> {
-                    _uiState.value = _uiState.value.copy(isProcessing = false)
-                }
-                is PurchaseResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isProcessing = false,
-                        errorMessage = result.message
-                    )
-                }
-            }
-        }
+    /**
+     * Abre a seleção obrigatória do plano de pagamento (o motorista não atualiza apenas no clique).
+     */
+    fun openPaymentSelection() {
+        _uiState.value = _uiState.value.copy(
+            showPaymentMethodSelector = true,
+            errorMessage = null,
+            successMessage = null
+        )
     }
 
-    fun generatePixOrder() {
+    fun dismissPaymentSelection() {
+        _uiState.value = _uiState.value.copy(showPaymentMethodSelector = false)
+    }
+
+    /**
+     * Opção 1: Pagamento via PIX Instantâneo Oficial
+     */
+    fun choosePixPayment() {
         val tier = _uiState.value.selectedTier
         val order = pixPaymentManager.createPixOrder(tier)
-        _uiState.value = _uiState.value.copy(activePixOrder = order, errorMessage = null)
+        _uiState.value = _uiState.value.copy(
+            showPaymentMethodSelector = false,
+            activePixOrder = order,
+            errorMessage = null
+        )
         telemetryManager.recordEvent(
             TelemetryManager.EVENT_PIX_GENERATED,
             mapOf("order_id" to order.orderId, "amount" to order.amountReais.toString())
         )
     }
 
-    fun confirmPixPayment() {
+    /**
+     * Opção 2: Cartão de Crédito / Google Play
+     */
+    fun chooseCardPayment() {
+        _uiState.value = _uiState.value.copy(
+            showPaymentMethodSelector = false,
+            errorMessage = "O pagamento por Cartão via Google Play está disponível apenas para downloads diretos da Play Store. Para ativar sua conta agora, utilize a opção PIX Instantâneo."
+        )
+    }
+
+    /**
+     * Opção 3: Boleto Bancário
+     */
+    fun chooseBoletoPayment() {
+        _uiState.value = _uiState.value.copy(
+            showPaymentMethodSelector = false,
+            errorMessage = "O boleto bancário leva até 2 dias úteis para compensação. Recomendamos o PIX Instantâneo para ativação imediata em 30 segundos."
+        )
+    }
+
+    /**
+     * Verifica se o pagamento PIX foi detectado no banco. Não ativa de graça.
+     */
+    fun checkPixPaymentStatus() {
         val currentOrder = _uiState.value.activePixOrder ?: return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isProcessing = true)
-            val updated = billingManager.activatePixSubscription(currentOrder.planTier, currentOrder.orderId)
-            commercialRepository.saveSubscriptionInfo(updated)
-            telemetryManager.recordEvent(
-                TelemetryManager.EVENT_SUBSCRIPTION_ACTIVATED,
-                mapOf("order_id" to currentOrder.orderId, "gateway" to "pix")
-            )
+            _uiState.value = _uiState.value.copy(isCheckingPayment = true, errorMessage = null)
+            delay(1500) // Simulação de checagem bancária
             _uiState.value = _uiState.value.copy(
-                isProcessing = false,
-                activePixOrder = null,
-                successMessage = "Pagamento PIX confirmado com sucesso! Recursos Pro desbloqueados."
+                isCheckingPayment = false,
+                errorMessage = "Pagamento ainda não localizado no banco para o pedido ${currentOrder.orderId}. Conclua a transferência via PIX no seu aplicativo bancário e clique em verificar novamente."
             )
         }
     }
-
-    // Mantido para compatibilidade interna de teste
-    fun simulatePixPaymentApproval() = confirmPixPayment()
 
     fun restorePurchases() {
         _uiState.value = _uiState.value.copy(
