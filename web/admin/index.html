@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROTA IQ ADMIN — Painel de Controle e Gestão Comercial</title>
-    <meta name="description" content="Painel de Administração e Gestão de Assinaturas, Motoristas e Telemetria do ROTA IQ.">
+    <title>ROTA IQ ADMIN — Centro de Controle e Gestão Operacional</title>
+    <meta name="description" content="Backoffice Oficial do ROTA IQ - Gestão de Motoristas, Planos, Assinaturas, Feature Flags e Configurações.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="../favicon.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="bg-glow-top"></div>
 
-    <!-- Tela de Login do Administrador -->
+    <!-- Tela de Login do Administrador (100% Real, Zero Mocks) -->
     <div id="admin-login-modal" class="login-overlay">
         <div class="login-card">
             <div class="login-brand">
                 <div class="brand-badge">IQ</div>
                 <h2>ROTA IQ <span>ADMIN</span></h2>
             </div>
-            <p class="login-desc">Portal Administrativo Exclusivo. Acesso restrito a administradores e gestores autorizados.</p>
+            <p class="login-desc">Backoffice oficial. Acesso autenticado via PBKDF2 e controle de acesso baseado em funções (RBAC).</p>
 
             <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
                 <div class="form-group">
@@ -33,18 +33,18 @@
                     <input type="password" id="admin-password" placeholder="••••••••••••" required value="Admin@2026Secure">
                 </div>
                 <div class="form-group">
-                    <label for="admin-role">Nível de Acesso (RBAC)</label>
+                    <label for="admin-role">Nível de Acesso Solicitado</label>
                     <select id="admin-role">
-                        <option value="SUPER_ADMIN">SUPER_ADMIN (Acesso Total)</option>
-                        <option value="ADMIN" selected>ADMIN (Gestão Operacional)</option>
-                        <option value="OPERADOR">OPERADOR (Leitura e Métricas)</option>
+                        <option value="SUPER_ADMIN" selected>SUPER_ADMIN (Acesso Total ao Sistema)</option>
+                        <option value="ADMIN">ADMIN (Gestão Operacional)</option>
+                        <option value="OPERADOR">OPERADOR (Apenas Leitura)</option>
                     </select>
                 </div>
                 <button type="submit" class="btn-primary-action" id="btn-login-submit">
                     ENTRAR NO PAINEL
                 </button>
             </form>
-            <div id="login-error-msg" class="error-banner" style="display: none;"></div>
+            <div id="login-error-msg" class="error-banner" style="display: none; margin-top: 14px; background: rgba(255,51,75,0.15); border: 1px solid #FF334B; padding: 12px; border-radius: 8px; color: #FF334B; font-size: 0.85rem;"></div>
         </div>
     </div>
 
@@ -56,14 +56,14 @@
                 <div class="brand-logo">IQ</div>
                 <div>
                     <div class="brand-title">ROTA IQ <span>ADMIN</span></div>
-                    <div class="brand-sub">CONTROLE OPERACIONAL, FINANCEIRO & ESCALA</div>
+                    <div class="brand-sub">CENTRO DE CONTROLE OPERACIONAL, FINANCEIRO & ESCALA</div>
                 </div>
             </div>
 
             <div class="header-right">
-                <div class="connection-status">
-                    <span class="status-dot"></span>
-                    <span id="conn-status-text">SUPABASE POSTGRESQL ATIVO</span>
+                <div class="connection-status" id="conn-status-badge">
+                    <span class="status-dot" id="conn-status-dot"></span>
+                    <span id="conn-status-text">VERIFICANDO POSTGRESQL...</span>
                 </div>
                 <div class="user-profile">
                     <span class="user-role-badge" id="current-role-badge">SUPER_ADMIN</span>
@@ -73,83 +73,86 @@
             </div>
         </header>
 
-        <!-- Navegação Principal -->
+        <!-- Navegação Principal com Abas -->
         <nav class="admin-nav">
             <button class="nav-tab active" onclick="switchTab('overview')">📊 Visão Geral</button>
-            <button class="nav-tab" onclick="switchTab('drivers')">🚗 Motoristas Cadastrados</button>
-            <button class="nav-tab" onclick="switchTab('subscriptions')">💎 Planos & Assinaturas</button>
+            <button class="nav-tab" onclick="switchTab('drivers')">🚗 Motoristas</button>
+            <button class="nav-tab" onclick="switchTab('plans')">💎 Planos & Preços</button>
+            <button class="nav-tab" onclick="switchTab('subs-payments')">💳 Assinaturas & Pix</button>
             <button class="nav-tab" onclick="switchTab('flags')">⚡ Feature Flags</button>
-            <button class="nav-tab" onclick="switchTab('database')">🛡️ Banco & Auditoria</button>
+            <button class="nav-tab" onclick="switchTab('settings')">⚙️ Configurações</button>
+            <button class="nav-tab" onclick="switchTab('audit')">🛡️ Auditoria & Logs</button>
         </nav>
 
         <main class="admin-content">
             <!-- 1. Aba: Visão Geral -->
             <section id="tab-overview" class="tab-panel active">
                 <div class="section-header">
-                    <h2>Métricas Comerciais em Tempo Real</h2>
-                    <span class="live-tag">● 100% DADOS REAIS DO POSTGRESQL</span>
+                    <h2>Métricas em Tempo Real do PostgreSQL</h2>
+                    <span class="live-tag">● ZERO MOCKS — CONSULTAS REAIS</span>
                 </div>
 
                 <div class="kpi-grid">
                     <div class="kpi-card highlight-orange">
-                        <div class="kpi-label">MRR APURADO (REAIS)</div>
+                        <div class="kpi-label">MRR APURADO (MENSAL)</div>
                         <div class="kpi-value" id="kpi-mrr">R$ 0,00</div>
-                        <div class="kpi-sub">Soma de assinaturas ativas no banco</div>
+                        <div class="kpi-sub">Soma de assinaturas ativas no PostgreSQL</div>
+                    </div>
+                    <div class="kpi-card highlight-orange">
+                        <div class="kpi-label">ARR PROJETADO (ANUAL)</div>
+                        <div class="kpi-value" id="kpi-arr">R$ 0,00</div>
+                        <div class="kpi-sub">Receita recorrente anualizada</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">TOTAL DE USUÁRIOS</div>
                         <div class="kpi-value" id="kpi-users">0</div>
                         <div class="kpi-sub">Registros na tabela <code>users</code></div>
                     </div>
-                    <div class="kpi-card">
+                    <div class="kpi-card highlight-green">
                         <div class="kpi-label">MOTORISTAS CADASTRADOS</div>
                         <div class="kpi-value" id="kpi-drivers">0</div>
-                        <div class="kpi-sub">Registros na tabela <code>drivers</code></div>
+                        <div class="kpi-sub">Ativos: <strong id="kpi-active-drivers">0</strong> | Bloqueados: <strong id="kpi-blocked-drivers">0</strong></div>
                     </div>
                     <div class="kpi-card highlight-green">
                         <div class="kpi-label">ASSINANTES PRO ATIVOS</div>
                         <div class="kpi-value" id="kpi-subs">0</div>
-                        <div class="kpi-sub">Assinaturas com status <code>ACTIVE</code></div>
+                        <div class="kpi-sub">Status <code>ACTIVE</code> em <code>subscriptions</code></div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">CORRIDAS AVALIADAS</div>
                         <div class="kpi-value" id="kpi-evals">0</div>
                         <div class="kpi-sub">Registros em <code>ride_evaluations</code></div>
                     </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">ABASTECIMENTOS REGISTRADOS</div>
-                        <div class="kpi-value" id="kpi-fuel">0</div>
-                        <div class="kpi-sub">Registros em <code>fuel_records</code></div>
-                    </div>
                 </div>
 
                 <div class="overview-grid">
                     <div class="panel-card">
-                        <h3>Status da Infraestrutura Cloud</h3>
+                        <h3>Status da Infraestrutura de Produção</h3>
                         <div class="info-row">
-                            <span>Provedor:</span>
+                            <span>Banco de Dados:</span>
                             <strong id="infra-provider">Supabase PostgreSQL</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>Latência da Query:</span>
+                            <strong id="infra-latency">— ms</strong>
                         </div>
                         <div class="info-row">
                             <span>Endpoint REST:</span>
                             <code id="infra-endpoint">https://jkreduqzekllsmzxiugn.supabase.co</code>
                         </div>
                         <div class="info-row">
-                            <span>Sincronização Offline-First:</span>
-                            <span class="badge-success">OPERACIONAL</span>
-                        </div>
-                        <div class="info-row">
-                            <span>Data do Snapshot:</span>
-                            <span id="infra-snapshot-date">2026-10-07</span>
+                            <span>Último Snapshot:</span>
+                            <span id="infra-snapshot-date">—</span>
                         </div>
                     </div>
 
                     <div class="panel-card">
-                        <h3>Ações Rápidas de Administração</h3>
+                        <h3>Ações Rápidas de Gestão</h3>
                         <div class="action-buttons-group">
-                            <button class="btn-secondary" onclick="fetchAdminMetrics()">🔄 Atualizar Métricas do Banco</button>
-                            <button class="btn-secondary" onclick="switchTab('drivers')">👥 Ver Tabela de Motoristas</button>
-                            <button class="btn-secondary" onclick="switchTab('flags')">⚙️ Ajustar Feature Flags</button>
+                            <button class="btn-secondary" onclick="fetchAdminDashboard()">🔄 Atualizar Métricas Agora</button>
+                            <button class="btn-secondary" onclick="openDriverModal()">+ Cadastrar Novo Motorista</button>
+                            <button class="btn-secondary" onclick="openPlanModal()">+ Criar Novo Plano Comercial</button>
+                            <button class="btn-secondary" onclick="switchTab('flags')">⚙️ Gerenciar Feature Flags</button>
                         </div>
                     </div>
                 </div>
@@ -158,154 +161,354 @@
             <!-- 2. Aba: Motoristas -->
             <section id="tab-drivers" class="tab-panel">
                 <div class="section-header">
-                    <h2>Motoristas Registrados no Sistema</h2>
-                    <button class="btn-secondary" onclick="loadDriversTable()">🔄 Recarregar</button>
+                    <h2>Gestão de Motoristas Cadastrados</h2>
+                    <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openDriverModal()">+ NOVO MOTORISTA</button>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="driver-search-input" placeholder="Buscar por cidade, ID ou nome..." oninput="debounceDriverSearch()">
+                        </div>
+                        <select class="filter-select" id="driver-status-filter" onchange="loadDriversTable(1)">
+                            <option value="ALL">Todos os Status</option>
+                            <option value="ACTIVE">Apenas Ativos</option>
+                            <option value="BLOCKED">Apenas Bloqueados</option>
+                            <option value="INACTIVE">Apenas Inativos</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" onclick="loadDriversTable(1)">🔄 Atualizar</button>
                 </div>
 
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>ID Motorista</th>
+                                <th>Motorista / Nome</th>
+                                <th>Contato / E-mail</th>
                                 <th>Cidade / UF</th>
                                 <th>Status</th>
-                                <th>Data de Cadastro</th>
-                                <th>Ações</th>
+                                <th>Plano</th>
+                                <th>Data Cadastro</th>
+                                <th>Ações Administrativas</th>
                             </tr>
                         </thead>
                         <tbody id="drivers-table-body">
                             <tr>
-                                <td colspan="5" class="table-loading">Carregando motoristas do banco...</td>
+                                <td colspan="7" class="table-loading">Carregando motoristas do PostgreSQL...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Barra de Paginação -->
+                <div class="pagination-bar">
+                    <div>Mostrando <span id="pagination-current-count">0</span> de <span id="pagination-total-count">0</span> motoristas</div>
+                    <div class="pagination-controls">
+                        <button class="btn-page" id="btn-page-prev" onclick="changeDriverPage(-1)" disabled>Anterior</button>
+                        <span id="pagination-page-label">Página 1</span>
+                        <button class="btn-page" id="btn-page-next" onclick="changeDriverPage(1)" disabled>Próxima</button>
+                    </div>
+                </div>
             </section>
 
-            <!-- 3. Aba: Assinaturas e Planos -->
-            <section id="tab-subscriptions" class="tab-panel">
+            <!-- 3. Aba: Planos & Preços -->
+            <section id="tab-plans" class="tab-panel">
                 <div class="section-header">
-                    <h2>Catálogo Comercial de Planos</h2>
-                    <span class="live-tag">TABELA subscription_plans</span>
+                    <div>
+                        <h2>Catálogo de Planos Comerciais (PostgreSQL)</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Alterações de preço feitas aqui refletem imediatamente no aplicativo dos motoristas.</p>
+                    </div>
+                    <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openPlanModal()">+ NOVO PLANO</button>
                 </div>
 
                 <div class="plans-grid" id="plans-container">
-                    <div class="plan-card">
-                        <div class="plan-badge">GRATUITO</div>
-                        <h3>Free Tier</h3>
-                        <div class="plan-price">R$ 0,00<span>/mês</span></div>
-                        <ul class="plan-features">
-                            <li>✓ 15 avaliações diárias gratuitas</li>
-                            <li>✓ HUD Flutuante básico</li>
-                            <li>✓ Cálculo de R$/km</li>
-                        </ul>
-                    </div>
-                    <div class="plan-card highlight">
-                        <div class="plan-badge">MAIS POPULAR</div>
-                        <h3>Pro Mensal</h3>
-                        <div class="plan-price">R$ 29,90<span>/mês</span></div>
-                        <ul class="plan-features">
-                            <li>✓ Avaliações ilimitadas</li>
-                            <li>✓ Copiloto por Voz TTS hands-free</li>
-                            <li>✓ Predição de Volta Vazia (Deadhead)</li>
-                            <li>✓ Heatmap de Zonas de Demanda</li>
-                            <li>✓ DRE Financeiro Completo</li>
-                        </ul>
-                    </div>
-                    <div class="plan-card">
-                        <div class="plan-badge">ECONOMIA 33%</div>
-                        <h3>Pro Anual</h3>
-                        <div class="plan-price">R$ 239,90<span>/ano</span></div>
-                        <ul class="plan-features">
-                            <li>✓ Todos os recursos do Pro</li>
-                            <li>✓ Equivalente a R$ 19,99/mês</li>
-                            <li>✓ Prioridade em suporte técnico</li>
-                        </ul>
+                    <!-- Cards carregados dinamicamente do banco de dados -->
+                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+                        Carregando planos do PostgreSQL...
                     </div>
                 </div>
             </section>
 
-            <!-- 4. Aba: Feature Flags -->
+            <!-- 4. Aba: Assinaturas & Pagamentos Pix -->
+            <section id="tab-subs-payments" class="tab-panel">
+                <div class="section-header">
+                    <h2>Assinaturas Ativas & Transações Pix</h2>
+                    <button class="btn-secondary" onclick="loadSubscriptionsAndPayments()">🔄 Atualizar</button>
+                </div>
+
+                <div style="margin-bottom: 28px;">
+                    <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: var(--orange-primary);">Últimas Assinaturas Registradas</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Assinatura</th>
+                                    <th>Motorista ID</th>
+                                    <th>Plano</th>
+                                    <th>Status</th>
+                                    <th>Provedor</th>
+                                    <th>Expira Em</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subscriptions-table-body">
+                                <tr><td colspan="6" class="table-loading">Carregando assinaturas...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: var(--orange-primary);">Transações e Cobranças Pix</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Pedido ID</th>
+                                    <th>Valor (R$)</th>
+                                    <th>Plano</th>
+                                    <th>Status</th>
+                                    <th>Data de Criação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payments-table-body">
+                                <tr><td colspan="5" class="table-loading">Carregando transações Pix...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. Aba: Feature Flags -->
             <section id="tab-flags" class="tab-panel">
                 <div class="section-header">
-                    <h2>Controle de Feature Flags Remotas</h2>
-                    <span class="live-tag">GERENCIAMENTO DINÂMICO</span>
+                    <div>
+                        <h2>Controle Dinâmico de Feature Flags</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Ative ou desative recursos do app em tempo real sem precisar recompilar o APK.</p>
+                    </div>
+                    <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openFlagModal()">+ NOVA FEATURE FLAG</button>
                 </div>
 
-                <div class="panel-card">
-                    <div class="flag-row">
-                        <div>
-                            <strong>copilot_voice_tts</strong>
-                            <p>Habilita a síntese vocal no aplicativo Android dos motoristas.</p>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="flag-tts" checked onchange="toggleFlag('copilot_voice_tts', this.checked)">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+                <div class="panel-card" id="flags-container">
+                    <!-- Feature flags carregadas dinamicamente -->
+                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">Carregando feature flags do servidor...</div>
+                </div>
+            </section>
 
-                    <div class="flag-row">
-                        <div>
-                            <strong>deadhead_prediction</strong>
-                            <p>Ativa o cálculo preditivo de volta vazia e alerta de armadilhas.</p>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="flag-deadhead" checked onchange="toggleFlag('deadhead_prediction', this.checked)">
-                            <span class="slider"></span>
-                        </label>
+            <!-- 6. Aba: Configurações do Sistema -->
+            <section id="tab-settings" class="tab-panel">
+                <div class="section-header">
+                    <div>
+                        <h2>Configurações Operacionais do Sistema</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Parâmetros globais persistidos no banco de dados.</p>
                     </div>
+                    <button class="btn-secondary" onclick="loadSettings()">🔄 Recarregar</button>
+                </div>
 
-                    <div class="flag-row">
-                        <div>
-                            <strong>pix_instant_checkout</strong>
-                            <p>Permite pagamento instantâneo de assinaturas via PIX Copia e Cola.</p>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="flag-pix" checked onchange="toggleFlag('pix_instant_checkout', this.checked)">
-                            <span class="slider"></span>
-                        </label>
+                <div class="settings-grid" id="settings-container">
+                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+                        Carregando configurações do banco...
                     </div>
                 </div>
             </section>
 
-            <!-- 5. Aba: Banco & Auditoria -->
-            <section id="tab-database" class="tab-panel">
+            <!-- 7. Aba: Auditoria & Logs -->
+            <section id="tab-audit" class="tab-panel">
                 <div class="section-header">
-                    <h2>Auditoria de Dados & Conformidade LGPD</h2>
-                    <span class="live-tag">SEGURANÇA & PRIVACY BY DESIGN</span>
+                    <div>
+                        <h2>Trilha de Auditoria Administrativa</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Registro imutável de todas as alterações feitas por administradores.</p>
+                    </div>
+                    <button class="btn-secondary" onclick="loadAuditLogs()">🔄 Atualizar Logs</button>
                 </div>
 
-                <div class="overview-grid">
-                    <div class="panel-card">
-                        <h3>Políticas de Segurança e RLS</h3>
-                        <ul class="audit-list">
-                            <li>✓ <strong>Row Level Security (RLS)</strong> ativado em todas as tabelas transacionais</li>
-                            <li>✓ <strong>PBKDF2-HMAC-SHA256</strong> com salt de 16 bytes e 100.000 iterações para senhas</li>
-                            <li>✓ <strong>JWT Tokens</strong> assinados via HMAC com revogação e expiração</li>
-                            <li>✓ <strong>Zero Dados Pessoais (PII)</strong> na telemetria remota</li>
-                            <li>✓ <strong>LGPD Art. 18</strong>: Exportação e Direito ao Esquecimento suportados</li>
-                        </ul>
-                    </div>
-
-                    <div class="panel-card">
-                        <h3>Status da API REST</h3>
-                        <div class="info-row">
-                            <span>Versão do Backend:</span>
-                            <strong>2.0.0 (FastAPI + Python 3.13)</strong>
-                        </div>
-                        <div class="info-row">
-                            <span>Endpoints Ativos:</span>
-                            <strong>28 rotas RESTful</strong>
-                        </div>
-                        <div class="info-row">
-                            <span>Sincronização Offline:</span>
-                            <span class="badge-success">CONECTADA</span>
-                        </div>
-                    </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Data / Hora</th>
+                                <th>Administrador</th>
+                                <th>Ação</th>
+                                <th>Recurso</th>
+                                <th>Detalhes / Valores</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-table-body">
+                            <tr><td colspan="5" class="table-loading">Carregando logs de auditoria...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </main>
     </div>
+
+    <!-- ======================================================================
+         MODAIS ADMINISTRATIVOS INTERATIVOS
+         ====================================================================== -->
+
+    <!-- 1. Modal: Criar / Editar Motorista -->
+    <div id="modal-driver" class="admin-modal-overlay">
+        <div class="admin-modal">
+            <div class="modal-header">
+                <h3 id="modal-driver-title">Cadastrar <span>Novo Motorista</span></h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-driver')">&times;</button>
+            </div>
+            <form id="form-driver" onsubmit="handleSaveDriver(event)">
+                <input type="hidden" id="driver-edit-id">
+                <div class="form-group">
+                    <label for="driver-name">Nome Completo</label>
+                    <input type="text" id="driver-name" required placeholder="Ex: Carlos Silva">
+                </div>
+                <div class="form-group">
+                    <label for="driver-email">E-mail</label>
+                    <input type="email" id="driver-email" required placeholder="motorista@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label for="driver-phone">Telefone / WhatsApp</label>
+                    <input type="text" id="driver-phone" placeholder="11999998888">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label for="driver-city">Cidade</label>
+                        <input type="text" id="driver-city" required value="São Paulo">
+                    </div>
+                    <div class="form-group">
+                        <label for="driver-state">UF</label>
+                        <input type="text" id="driver-state" required value="SP" maxlength="2">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="driver-plan">Plano Atribuído</label>
+                    <select id="driver-plan">
+                        <option value="free">Plano Gratuito (Free Tier)</option>
+                        <option value="pro_monthly">ROTA IQ Pro Mensal</option>
+                        <option value="pro_annual">ROTA IQ Pro Anual</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modal-driver')">Cancelar</button>
+                    <button type="submit" class="btn-primary-action" id="btn-save-driver">Salvar no PostgreSQL</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Modal: Bloquear Motorista com Motivo Formal -->
+    <div id="modal-block-driver" class="admin-modal-overlay">
+        <div class="admin-modal" style="border-color: rgba(255, 51, 75, 0.4);">
+            <div class="modal-header">
+                <h3>Bloquear <span>Acesso do Motorista</span></h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-block-driver')">&times;</button>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+                Tem certeza que deseja bloquear este motorista? O aplicativo não permitirá novas avaliações até que seja desbloqueado.
+            </p>
+            <input type="hidden" id="block-driver-id">
+            <div class="form-group">
+                <label for="block-reason">Motivo Obrigatório do Bloqueio</label>
+                <textarea id="block-reason" rows="3" required placeholder="Descreva o motivo formal para a auditoria..." style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-block-driver')">Cancelar</button>
+                <button type="button" class="btn-action-danger" style="padding: 10px 18px; border-radius: 8px;" onclick="confirmBlockDriver()">Confirmar Bloqueio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Modal: Criar / Editar Plano -->
+    <div id="modal-plan" class="admin-modal-overlay">
+        <div class="admin-modal">
+            <div class="modal-header">
+                <h3 id="modal-plan-title">Criar / Editar <span>Plano Comercial</span></h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-plan')">&times;</button>
+            </div>
+            <form id="form-plan" onsubmit="handleSavePlan(event)">
+                <input type="hidden" id="plan-is-edit" value="false">
+                <div class="form-group">
+                    <label for="plan-name">Nome do Plano</label>
+                    <input type="text" id="plan-name" required placeholder="Ex: ROTA IQ Pro Trimestral">
+                </div>
+                <div class="form-group">
+                    <label for="plan-code">Código Único (Slug)</label>
+                    <input type="text" id="plan-code" required placeholder="ex: pro_quarterly">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label for="plan-price">Preço em Reais (R$)</label>
+                        <input type="number" step="0.01" id="plan-price" required placeholder="Ex: 29.90">
+                    </div>
+                    <div class="form-group">
+                        <label for="plan-interval">Periodicidade</label>
+                        <select id="plan-interval">
+                            <option value="month">Mensal</option>
+                            <option value="year">Anual</option>
+                            <option value="none">Vitalício / Gratuito</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="plan-desc">Descrição Resumida</label>
+                    <input type="text" id="plan-desc" placeholder="Breve resumo comercial">
+                </div>
+                <div class="form-group">
+                    <label for="plan-features">Recursos (separados por vírgula)</label>
+                    <textarea id="plan-features" rows="3" placeholder="Avaliações ilimitadas, HUD Flutuante, Copiloto por Voz..." style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modal-plan')">Cancelar</button>
+                    <button type="submit" class="btn-primary-action" id="btn-save-plan">Salvar Plano</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Modal: Nova Feature Flag -->
+    <div id="modal-flag" class="admin-modal-overlay">
+        <div class="admin-modal">
+            <div class="modal-header">
+                <h3>Cadastrar <span>Nova Feature Flag</span></h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-flag')">&times;</button>
+            </div>
+            <form id="form-flag" onsubmit="handleSaveFlag(event)">
+                <div class="form-group">
+                    <label for="flag-key">Chave Técnica (KEY)</label>
+                    <input type="text" id="flag-key" required placeholder="Ex: ENABLE_AI_SMART_ACCEPT" style="text-transform: uppercase;">
+                </div>
+                <div class="form-group">
+                    <label for="flag-name">Nome Amigável</label>
+                    <input type="text" id="flag-name" required placeholder="Ex: Aceite Inteligente por IA">
+                </div>
+                <div class="form-group">
+                    <label for="flag-desc">Descrição</label>
+                    <textarea id="flag-desc" rows="2" placeholder="O que esta funcionalidade habilita no aplicativo?" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('modal-flag')">Cancelar</button>
+                    <button type="submit" class="btn-primary-action">Criar Feature Flag</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. Modal: Detalhes do Motorista -->
+    <div id="modal-driver-details" class="admin-modal-overlay">
+        <div class="admin-modal" style="max-width: 640px;">
+            <div class="modal-header">
+                <h3>Detalhes do <span>Motorista</span></h3>
+                <button class="btn-close-modal" onclick="closeModal('modal-driver-details')">&times;</button>
+            </div>
+            <div id="driver-details-content" style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                Carregando detalhes...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal('modal-driver-details')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container de Toasts de Notificação -->
+    <div id="toast-container" class="toast-container"></div>
 
     <script src="admin.js"></script>
 </body>

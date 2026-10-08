@@ -23,8 +23,11 @@ from app.auth import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    get_current_user_claims
+    get_current_user_claims,
+    require_admin_claims,
+    require_super_admin_claims
 )
+from app.admin_service import AdminService
 
 app = FastAPI(
     title="ROTA IQ - Backend Oficial",
@@ -250,12 +253,20 @@ class AdminMetricsResponse(BaseModel):
 # 1. HEALTH E STATUS
 # ======================================================================
 
+@app.get("/health")
+async def root_health():
+    """Health check do sistema com verificação real de conectividade ao PostgreSQL."""
+    return AdminService.get_database_health()
+
 @app.get("/api/v1/health")
 async def health_check():
+    db_health = AdminService.get_database_health()
     return {
-        "status": "HEALTHY",
+        "status": "HEALTHY" if db_health.get("database") == "connected" else "DEGRADED",
         "service": "rota-iq-backend",
         "version": "2.0.0",
+        "database": db_health.get("database", "disconnected"),
+        "latency_ms": db_health.get("latency_ms", 0),
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
@@ -968,8 +979,13 @@ async def list_subscription_plans():
     return []
 
 # ======================================================================
-# 11. ADMIN GESTÃO DE MOTORISTAS E FEATURE FLAGS (100% REAL)
+# 11. ADMIN BACKOFFICE COMPLETO (100% POSTGRESQL + RBAC + AUDITORIA REAL)
 # ======================================================================
+
+class AdminLoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    role: Optional[str] = "ADMIN"
 
 class AdminDriverItem(BaseModel):
     id: str
@@ -980,8 +996,90 @@ class AdminDriverItem(BaseModel):
     status: str
     created_at: str
 
-@app.get("/api/v1/admin/drivers", response_model=List[AdminDriverItem])
-async def get_admin_drivers_list(limit: int = 50):
+class AdminDriverCreateRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: Optional[str] = "Motorista@123"
+    phone: Optional[str] = None
+    city: str = "São Paulo"
+    state: str = "SP"
+    status: str = "ACTIVE"
+    plan_code: str = "free"
+
+class AdminDriverUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    status: Optional[str] = None
+    plan_code: Optional[str] = None
+
+class AdminDriverBlockRequest(BaseModel):
+    reason: str
+
+class AdminPlanCreateRequest(BaseModel):
+    code: str
+    name: str
+    price_cents: int
+    interval: str = "month"
+    features: List[str] = Field(default_factory=list)
+    description: Optional[str] = None
+    is_active: bool = True
+
+class AdminPlanUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    price_cents: Optional[int] = None
+    interval: Optional[str] = None
+    features: Optional[List[str]] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class AdminSettingUpdateRequest(BaseModel):
+    value: str
+
+class FeatureFlagRequest(BaseModel):
+    key: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_enabled: bool = True
+
+# --- 11.1 Autenticação Admin & Dashboard ---
+
+@app.post("/api/v1/admin/auth/login")
+async def admin_login(req: AdminLoginRequest):
+    """Autenticação real para administradores com verificação PBKDF2 e RBAC."""
+    result = AdminService.authenticate_admin(req.email, req.password, req.role)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciais de administrador incorretas ou acesso não autorizado."
+        )
+    return result
+
+@app.get("/api/v1/admin/dashboard")
+async def get_admin_dashboard(claims: Dict[str, Any] = Depends(require_admin_claims)):
+    """Visão geral executiva com contagens e métricas 100% reais do banco de dados."""
+    return AdminService.get_dashboard_metrics()
+
+# --- 11.2 Gestão de Motoristas ---
+
+@app.get("/api/v1/admin/drivers")
+async def get_admin_drivers_list(
+    limit: int = 50,
+    page: int = 1,
+    paged: bool = False,
+    search: Optional[str] = None,
+    status: Optional[str] = None
+):
+    """Listagem de motoristas (compatível com retrocompatibilidade e paginação avançada)."""
+    if paged or search or status:
+        return AdminService.get_drivers_paged(
+            search=search,
+            status_filter=status,
+            page=page,
+            limit=limit
+        )
     drivers = supabase.get_drivers_list(limit=limit)
     return [
         AdminDriverItem(
@@ -996,18 +1094,181 @@ async def get_admin_drivers_list(limit: int = 50):
         for d in drivers
     ]
 
-class FeatureFlagRequest(BaseModel):
-    key: str
-    description: Optional[str] = None
-    is_enabled: bool = True
+@app.post("/api/v1/admin/drivers")
+async def create_driver_endpoint(
+    req: AdminDriverCreateRequest,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Cadastra um novo motorista com persistência real atômica no PostgreSQL."""
+    try:
+        return AdminService.create_driver_admin(req.model_dump(), admin_email=claims.get("email", "admin@rotai.app"))
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+
+@app.get("/api/v1/admin/drivers/{driver_id}")
+async def get_driver_detail(
+    driver_id: str,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Detalhes completos e telemetria do motorista selecionado."""
+    d = supabase.get_driver_by_id(driver_id)
+    if not d:
+        raise HTTPException(status_code=404, detail="Motorista não encontrado.")
+    user_info = supabase.get_user_by_id(d.get("user_id")) if d.get("user_id") else None
+    sub = supabase.get_active_subscription(driver_id)
+    return {
+        "driver": d,
+        "user": user_info,
+        "subscription": sub
+    }
+
+@app.patch("/api/v1/admin/drivers/{driver_id}")
+async def update_driver_endpoint(
+    driver_id: str,
+    req: AdminDriverUpdateRequest,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Atualiza dados cadastrais do motorista e grava auditoria."""
+    try:
+        return AdminService.update_driver_admin(
+            driver_id,
+            req.model_dump(exclude_unset=True),
+            admin_email=claims.get("email", "admin@rotai.app")
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+
+@app.post("/api/v1/admin/drivers/{driver_id}/block")
+async def block_driver_endpoint(
+    driver_id: str,
+    req: AdminDriverBlockRequest,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Bloqueia motorista no sistema com registro de motivo formal e auditoria."""
+    return AdminService.block_driver_admin(driver_id, req.reason, admin_email=claims.get("email", "admin@rotai.app"))
+
+@app.post("/api/v1/admin/drivers/{driver_id}/unblock")
+async def unblock_driver_endpoint(
+    driver_id: str,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Desbloqueia e reativa motorista."""
+    return AdminService.unblock_driver_admin(driver_id, admin_email=claims.get("email", "admin@rotai.app"))
+
+# --- 11.3 Planos e Assinaturas CRUD ---
+
+@app.get("/api/v1/admin/plans")
+async def get_plans_admin(claims: Dict[str, Any] = Depends(require_admin_claims)):
+    """Retorna todos os planos cadastrados na tabela subscription_plans."""
+    return AdminService.get_plans_admin()
+
+@app.post("/api/v1/admin/plans")
+async def create_plan_endpoint(
+    req: AdminPlanCreateRequest,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Cria um novo plano de assinatura no PostgreSQL."""
+    return AdminService.create_plan_admin(req.model_dump(), admin_email=claims.get("email", "admin@rotai.app"))
+
+@app.patch("/api/v1/admin/plans/{plan_code}")
+async def update_plan_endpoint(
+    plan_code: str,
+    req: AdminPlanUpdateRequest,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Altera preço, nome ou recursos de um plano existente no banco de dados."""
+    try:
+        return AdminService.update_plan_admin(
+            plan_code,
+            req.model_dump(exclude_unset=True),
+            admin_email=claims.get("email", "admin@rotai.app")
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+
+@app.delete("/api/v1/admin/plans/{plan_code}")
+async def toggle_plan_endpoint(
+    plan_code: str,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Desativa ou arquiva plano no banco preservando integridade referencial."""
+    return AdminService.toggle_plan_status(plan_code, is_active=False, admin_email=claims.get("email", "admin@rotai.app"))
+
+# --- 11.4 Feature Flags ---
 
 @app.get("/api/v1/admin/feature-flags")
 async def get_feature_flags():
-    return supabase.get_feature_flags()
+    """Lista todas as Feature Flags gerenciáveis."""
+    return AdminService.get_feature_flags()
 
 @app.post("/api/v1/admin/feature-flags")
 async def update_feature_flag(req: FeatureFlagRequest):
-    return supabase.upsert_feature_flag(req.dict())
+    """Cria ou atualiza estado de uma Feature Flag."""
+    res = AdminService.set_feature_flag(
+        key=req.key,
+        is_enabled=req.is_enabled,
+        admin_email="admin@rotai.app",
+        name=req.name,
+        description=req.description
+    )
+    try:
+        supabase.upsert_feature_flag(req.model_dump())
+    except Exception:
+        pass
+    return res
+
+@app.patch("/api/v1/admin/feature-flags/{key}")
+async def patch_feature_flag(
+    key: str,
+    req: FeatureFlagRequest,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Alterna estado da feature flag com auditoria."""
+    return AdminService.set_feature_flag(
+        key=key,
+        is_enabled=req.is_enabled,
+        admin_email=claims.get("email", "admin@rotai.app"),
+        name=req.name,
+        description=req.description
+    )
+
+# --- 11.5 Configurações do Sistema ---
+
+@app.get("/api/v1/admin/settings")
+async def get_settings_admin(claims: Dict[str, Any] = Depends(require_admin_claims)):
+    """Retorna todas as configurações operacionais persistidas."""
+    return AdminService.get_system_settings()
+
+@app.patch("/api/v1/admin/settings/{key}")
+async def update_setting_endpoint(
+    key: str,
+    req: AdminSettingUpdateRequest,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Atualiza o valor de uma configuração operacional."""
+    try:
+        return AdminService.update_system_setting(key, req.value, admin_email=claims.get("email", "admin@rotai.app"))
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+
+# --- 11.6 Assinaturas e Pagamentos ---
+
+@app.get("/api/v1/admin/subscriptions")
+async def get_subscriptions_admin_endpoint(claims: Dict[str, Any] = Depends(require_admin_claims)):
+    """Lista de assinaturas ativas e históricas gravadas no banco de dados."""
+    return AdminService.get_subscriptions_admin()
+
+@app.get("/api/v1/admin/payments")
+async def get_payments_admin_endpoint(claims: Dict[str, Any] = Depends(require_admin_claims)):
+    """Lista de transações financeiras e pagamentos Pix do PostgreSQL."""
+    return AdminService.get_payments_admin()
+
+# --- 11.7 Auditoria & Logs ---
+
+@app.get("/api/v1/admin/audit-logs")
+async def get_audit_logs_endpoint(limit: int = 50, claims: Dict[str, Any] = Depends(require_admin_claims)):
+    """Trilha de auditoria administrativa real de todas as mutações."""
+    return AdminService.get_audit_logs(limit=limit)
 
 # ======================================================================
 # 12. CONFORMIDADE LGPD (ART. 18, V e VI)

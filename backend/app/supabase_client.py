@@ -10,6 +10,27 @@ import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Optional, Tuple
 
+# Carregar .env se existir localmente (sem vazar segredos para o Git)
+_env_paths = [
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),
+    ".env"
+]
+for _p in _env_paths:
+    if os.path.exists(_p):
+        try:
+            with open(_p, "r", encoding="utf-8") as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if _line and not _line.startswith("#") and "=" in _line:
+                        _k, _v = _line.split("=", 1)
+                        _k = _k.strip()
+                        _v = _v.strip().strip('"').strip("'")
+                        if _k not in os.environ:
+                            os.environ[_k] = _v
+        except Exception:
+            pass
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jkreduqzekllsmzxiugn.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 

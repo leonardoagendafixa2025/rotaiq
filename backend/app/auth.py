@@ -91,3 +91,25 @@ def get_current_user_claims(credentials: HTTPAuthorizationCredentials = Security
             detail="Token fornecido não é um access token válido."
         )
     return claims
+
+def require_admin_claims(credentials: HTTPAuthorizationCredentials = Security(security)) -> Dict[str, Any]:
+    """Exige que a requisição venha de um usuário com role de administração (SUPER_ADMIN, ADMIN ou OPERADOR)."""
+    claims = get_current_user_claims(credentials)
+    role = claims.get("role")
+    if not role or role not in ["SUPER_ADMIN", "ADMIN", "OPERADOR"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito: Requer privilégios administrativos."
+        )
+    return claims
+
+def require_super_admin_claims(credentials: HTTPAuthorizationCredentials = Security(security)) -> Dict[str, Any]:
+    """Exige privilégios de SUPER_ADMIN para ações críticas."""
+    claims = get_current_user_claims(credentials)
+    role = claims.get("role")
+    if role != "SUPER_ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado: Operação exclusiva para SUPER_ADMIN."
+        )
+    return claims
