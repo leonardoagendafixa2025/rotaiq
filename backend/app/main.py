@@ -285,6 +285,15 @@ class AdminMetricsResponse(BaseModel):
 # 1. HEALTH E STATUS
 # ======================================================================
 
+@app.get("/")
+async def root_index():
+    return {
+        "status": "online",
+        "service": "ROTA IQ Backend API",
+        "version": "2.0.0",
+        "database": "Supabase PostgreSQL"
+    }
+
 @app.get("/health")
 async def root_health():
     """Health check do sistema com verificação real de conectividade ao PostgreSQL."""
