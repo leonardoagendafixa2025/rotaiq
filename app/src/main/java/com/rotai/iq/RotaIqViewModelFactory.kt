@@ -7,6 +7,7 @@ import com.rotai.iq.core.data.repository.RotaIqRepository
 import com.rotai.iq.feature.advanced.AdvancedToolsViewModel
 import com.rotai.iq.feature.automation.AutomationViewModel
 import com.rotai.iq.feature.dashboard.DashboardViewModel
+import com.rotai.iq.feature.filter.RideFilterViewModel
 import com.rotai.iq.feature.finance.FinancialHubViewModel
 import com.rotai.iq.feature.geographic.GeoInsightsViewModel
 import com.rotai.iq.feature.goals.GoalsViewModel
@@ -24,7 +25,6 @@ class RotaIqViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         val app = application as? RotaIqApplication
-
         return when {
             modelClass.isAssignableFrom(DashboardViewModel::class.java) -> {
                 DashboardViewModel(repository) as T
@@ -37,6 +37,9 @@ class RotaIqViewModelFactory(
             }
             modelClass.isAssignableFrom(GoalsViewModel::class.java) -> {
                 GoalsViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(RideFilterViewModel::class.java) -> {
+                RideFilterViewModel(repository) as T
             }
             modelClass.isAssignableFrom(HistoryViewModel::class.java) -> {
                 HistoryViewModel(repository) as T

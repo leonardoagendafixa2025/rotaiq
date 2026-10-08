@@ -186,7 +186,38 @@ fun HudEvaluationCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // BANNER PRINCIPAL DO FILTRO DO MOTORISTA
+            val filterColor = if (evaluation.matchesFilter) ClassExcellent else ClassAvoid
+            val filterBg = if (evaluation.matchesFilter) Color(0xFF00381B) else Color(0xFF380D12)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(filterBg, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (evaluation.matchesFilter) "✓ BATEU SEU FILTRO" else "✕ REPROVADO PELO FILTRO",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 12.sp,
+                    color = filterColor,
+                    letterSpacing = 0.5.sp
+                )
+                if (!evaluation.matchesFilter && evaluation.filterViolations.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "• ${evaluation.filterViolations.first()}",
+                        fontSize = 11.sp,
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Gross Fare
             Text(

@@ -82,6 +82,7 @@ fun VehicleScreen(
     viewModel: VehicleViewModel,
     modifier: Modifier = Modifier,
     onNavigateToGoals: () -> Unit = {},
+    onNavigateToRideFilter: () -> Unit = {},
     onNavigateToPreferences: () -> Unit = {},
     onNavigateToZones: () -> Unit = {},
     onNavigateToAutomation: () -> Unit = {},
@@ -319,15 +320,15 @@ fun VehicleScreen(
             )
             ProfileMenuRow(
                 icon = Icons.Default.Tune,
+                title = "Filtros de Aceite de Corrida",
+                subtitle = "Piso R$/km, piso R$/hora, raio de embarque e paradas",
+                onClick = onNavigateToRideFilter
+            )
+            ProfileMenuRow(
+                icon = Icons.Default.DirectionsCar,
                 title = "Preferências & Ferramentas",
                 subtitle = "Simulador inDrive, MEI e livro caixa",
                 onClick = onNavigateToPreferences
-            )
-            ProfileMenuRow(
-                icon = Icons.Default.Map,
-                title = "Áreas & Zonas de Demanda",
-                subtitle = "Heatmap de liquidez e deadhead",
-                onClick = onNavigateToZones
             )
             ProfileMenuRow(
                 icon = Icons.Default.Notifications,

@@ -36,10 +36,14 @@ data class DriverGoal(
 
 data class DriverPreference(
     val id: String = "default_preferences",
-    val minRatePerKm: Double = 2.20,
-    val minRatePerHour: Double = 40.0,
-    val maxPickupDistanceKm: Double = 3.5,
-    val maxStops: Int = 1,
+    val minRatePerKm: Double = 2.20,              // Piso R$/km (mínimo desejado por km)
+    val minRatePerHour: Double = 40.0,            // Piso R$/h (faturamento mínimo por hora)
+    val minGrossFare: Double = 10.0,              // Valor mínimo total da corrida (R$)
+    val maxPickupDistanceKm: Double = 3.5,        // Distância máxima até o passageiro (km)
+    val maxPickupMinutes: Double = 10.0,          // Tempo máximo até o passageiro (min)
+    val maxStops: Int = 0,                        // Quantidade máxima de paradas (0 = sem paradas)
+    val allowIntermediateStops: Boolean = false,  // Rejeitar viagens com paradas adicionais
+    val minProfitMarginPercent: Double = 50.0,    // Margem líquida mínima (%)
     val preferShortTrips: Boolean = false,
     val audioAlertsEnabled: Boolean = true,
     val overlayHudEnabled: Boolean = true

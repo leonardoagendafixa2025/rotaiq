@@ -28,6 +28,8 @@ import com.rotai.iq.feature.automation.AutomationHubScreen
 import com.rotai.iq.feature.automation.AutomationViewModel
 import com.rotai.iq.feature.dashboard.DashboardScreen
 import com.rotai.iq.feature.dashboard.DashboardViewModel
+import com.rotai.iq.feature.filter.RideFilterScreen
+import com.rotai.iq.feature.filter.RideFilterViewModel
 import com.rotai.iq.feature.finance.FinancialHubScreen
 import com.rotai.iq.feature.finance.FinancialHubViewModel
 import com.rotai.iq.feature.geographic.GeoInsightsScreen
@@ -144,6 +146,13 @@ fun RotaIqApp(
                     }
                 )
             }
+            composable(Screen.RideFilter.route) {
+                val vm: RideFilterViewModel = viewModel(factory = viewModelFactory)
+                RideFilterScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             composable(Screen.GeoInsights.route) {
                 val vm: GeoInsightsViewModel = viewModel(factory = viewModelFactory)
                 GeoInsightsScreen(
@@ -162,11 +171,14 @@ fun RotaIqApp(
                     onNavigateToGoals = {
                         navController.navigate(Screen.Goals.route)
                     },
+                    onNavigateToRideFilter = {
+                        navController.navigate(Screen.RideFilter.route)
+                    },
                     onNavigateToPreferences = {
                         navController.navigate(Screen.AdvancedTools.route)
                     },
                     onNavigateToZones = {
-                        navController.navigate(Screen.GeoInsights.route)
+                        navController.navigate(Screen.RideFilter.route)
                     },
                     onNavigateToAutomation = {
                         navController.navigate(Screen.Automation.route)

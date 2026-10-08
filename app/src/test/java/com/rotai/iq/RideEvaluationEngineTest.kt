@@ -240,4 +240,85 @@ class RideEvaluationEngineTest {
         assertThat(evalLow.netProfit).isGreaterThan(evalHigh.netProfit)
         assertThat(evalLow.score).isGreaterThan(evalHigh.score)
     }
+
+    @Test
+    fun evaluate_rideMatchesDriverFilter_returnsMatchesFilterTrue() {
+        val customFilter = DriverPreference(
+            minRatePerKm = 2.50,
+            minRatePerHour = 45.0,
+            minGrossFare = 15.0,
+            maxPickupDistanceKm = 3.0,
+            allowIntermediateStops = false
+        )
+        val offer = RideOffer(
+            grossFare = 30.00,
+            distanceKm = 8.0,
+            durationMinutes = 20.0,
+            pickupDistanceKm = 1.2,
+            stopsCount = 0
+        )
+
+        val eval = engine.evaluate(offer, defaultVehicle, customFilter, defaultGoal)
+        assertThat(eval.matchesFilter).isTrue()
+        assertThat(eval.filterViolations).isEmpty()
+        assertThat(eval.reasons.any { it.contains("BATEU SEU FILTRO") }).isTrue()
+    }
+
+    @Test
+    fun evaluate_rideViolatesMinRatePerKmFilter_returnsMatchesFilterFalse() {
+        val strictFilter = DriverPreference(
+            minRatePerKm = 2.80, // Motorista quer no mínimo 2.80/km
+            minRatePerHour = 40.0
+        )
+        // Corrida de R$ 20,00 por 10 km -> R$ 2,00/km (abaixo do piso de 2.80)
+        val offer = RideOffer(
+            grossFare = 20.00,
+            distanceKm = 9.0,
+            durationMinutes = 20.0,
+            pickupDistanceKm = 1.0,
+            stopsCount = 0
+        )
+
+        val eval = engine.evaluate(offer, defaultVehicle, strictFilter, defaultGoal)
+        assertThat(eval.matchesFilter).isFalse()
+        assertThat(eval.filterViolations.any { it.contains("abaixo do piso de R$ 2,80") }).isTrue()
+        assertThat(eval.alerts.any { it.contains("FORA DO SEU FILTRO") }).isTrue()
+    }
+
+    @Test
+    fun evaluate_rideViolatesPickupDistanceFilter_returnsMatchesFilterFalse() {
+        val filter = DriverPreference(
+            maxPickupDistanceKm = 2.0 // Motorista não quer buscar passageiro a mais de 2 km
+        )
+        val offer = RideOffer(
+            grossFare = 35.00,
+            distanceKm = 10.0,
+            durationMinutes = 25.0,
+            pickupDistanceKm = 4.5, // 4.5 km até passageiro (muito longe!)
+            stopsCount = 0
+        )
+
+        val eval = engine.evaluate(offer, defaultVehicle, filter, defaultGoal)
+        assertThat(eval.matchesFilter).isFalse()
+        assertThat(eval.filterViolations.any { it.contains("excede limite de 2,0 km") }).isTrue()
+    }
+
+    @Test
+    fun evaluate_rideViolatesIntermediateStopsFilter_returnsMatchesFilterFalse() {
+        val noStopsFilter = DriverPreference(
+            allowIntermediateStops = false,
+            maxStops = 0 // Não aceita nenhuma parada
+        )
+        val offer = RideOffer(
+            grossFare = 25.00,
+            distanceKm = 8.0,
+            durationMinutes = 25.0,
+            pickupDistanceKm = 1.0,
+            stopsCount = 2 // 2 paradas intermediárias
+        )
+
+        val eval = engine.evaluate(offer, defaultVehicle, noStopsFilter, defaultGoal)
+        assertThat(eval.matchesFilter).isFalse()
+        assertThat(eval.filterViolations.any { it.contains("Possui 2 parada(s)") }).isTrue()
+    }
 }

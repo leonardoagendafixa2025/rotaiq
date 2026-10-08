@@ -43,6 +43,8 @@ data class RideEvaluation(
     val grossRatePerMinute: Double,                   // R$/min
     val totalDistanceKm: Double,                      // km total
     val totalDurationMinutes: Double,                 // min total
+    val matchesFilter: Boolean = true,                 // Bateu todos os critérios do filtro do motorista?
+    val filterViolations: List<String> = emptyList(), // Critérios violados (se houver)
     val reasons: List<String>,                        // Motivos positivos
     val alerts: List<String>,                         // Alertas negativos ou riscos
     val evaluatedAt: Long = System.currentTimeMillis()

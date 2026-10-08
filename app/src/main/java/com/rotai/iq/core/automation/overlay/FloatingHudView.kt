@@ -160,24 +160,29 @@ class FloatingHudView(
     }
 
     fun updateWithEvaluation(evaluation: RideEvaluation) {
-        val colorHex = when (evaluation.classification) {
-            EvaluationClassification.EXCELLENT -> "#00E676"
-            EvaluationClassification.GOOD -> "#76FF03"
-            EvaluationClassification.ACCEPTABLE -> "#FFD600"
-            EvaluationClassification.BAD -> "#FF9100"
-            EvaluationClassification.AVOID -> "#FF334B"
+        val filterColor = if (evaluation.matchesFilter) {
+            Color.parseColor("#00E676") // Verde Neon de Aprovação
+        } else {
+            Color.parseColor("#FF334B") // Vermelho Alerta de Recusa
         }
-        val mainColor = Color.parseColor(colorHex)
 
-        // Atualiza borda do container com o veredito da corrida
-        (container.background as? GradientDrawable)?.setStroke(dp(2), mainColor)
+        // Borda do container reflete diretamente o status do filtro
+        (container.background as? GradientDrawable)?.setStroke(dp(2), filterColor)
 
-        // Score e Badge
+        // Score numérico
         scoreText.text = evaluation.score.toString()
-        scoreText.setTextColor(mainColor)
+        scoreText.setTextColor(filterColor)
 
-        classBadge.text = evaluation.classification.label.uppercase()
-        (classBadge.background as? GradientDrawable)?.setColor(mainColor)
+        // Badge em destaque: BATEU SEU FILTRO vs REPROVADO PELO FILTRO
+        if (evaluation.matchesFilter) {
+            classBadge.text = "✓ BATEU SEU FILTRO"
+            classBadge.setTextColor(Color.parseColor("#0A0D14"))
+            (classBadge.background as? GradientDrawable)?.setColor(filterColor)
+        } else {
+            classBadge.text = "✕ REPROVADO PELO FILTRO"
+            classBadge.setTextColor(Color.WHITE)
+            (classBadge.background as? GradientDrawable)?.setColor(filterColor)
+        }
 
         // Lucro Líquido
         profitText.text = if (evaluation.netProfit >= 0) {
@@ -195,15 +200,15 @@ class FloatingHudView(
             evaluation.offer.totalDistanceKm
         )
 
-        // Alertas / Motivos
-        val firstAlert = evaluation.alerts.firstOrNull()
-        val firstReason = evaluation.reasons.firstOrNull() ?: "Decisão ROTA IQ pronta"
-        reasonsText.text = if (!firstAlert.isNullOrBlank()) {
-            "⚠️ $firstAlert"
+        // Motivo do filtro em destaque imediato
+        if (!evaluation.matchesFilter && evaluation.filterViolations.isNotEmpty()) {
+            reasonsText.text = "⛔ ${evaluation.filterViolations.first()}"
+            reasonsText.setTextColor(Color.parseColor("#FF5252"))
         } else {
-            "✓ $firstReason"
+            val firstReason = evaluation.reasons.firstOrNull() ?: "Dentro de todos os critérios definidos"
+            reasonsText.text = "✓ $firstReason"
+            reasonsText.setTextColor(Color.parseColor("#00E676"))
         }
-        reasonsText.setTextColor(if (!firstAlert.isNullOrBlank()) Color.parseColor("#FFD600") else Color.parseColor("#9E9E9E"))
     }
 
     private fun dp(value: Int): Int {

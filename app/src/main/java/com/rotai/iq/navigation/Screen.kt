@@ -12,11 +12,13 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Painel", Icons.Default.Speed)
     object Automation : Screen("automation", "Copiloto", Icons.Default.PlayArrow)
+    object RideFilter : Screen("ride_filter", "Filtros de Corrida", Icons.Default.Tune)
     object GeoInsights : Screen("insights", "Zonas", Icons.Default.Map)
     object Finance : Screen("finance", "Financeiro", Icons.Default.AccountBalanceWallet)
     object Simulator : Screen("simulator", "Simulador", Icons.Default.Calculate)

@@ -147,7 +147,7 @@ class RideEvaluationEngine(
             alerts.add("⚠️ Viagem com %d parada(s) intermediária(s)".format(offer.stopsCount))
         }
 
-        // Fator 6: Contexto Geográfico / Zonas
+        // Fator 6: Contexto Geográfico / Zonas (Opcional)
         if (destinationZone != null) {
             if (destinationZone.isAvoidZone) {
                 scoreAcc -= 25.0
@@ -164,6 +164,38 @@ class RideEvaluationEngine(
             if (totalDurationMinutes in 8.0..40.0 && profitMarginPercent >= 60.0) {
                 reasons.add("✓ Tempo e duração aceitáveis (%d min)".format(totalDurationMinutes.toInt()))
             }
+        }
+
+        // 7. VERIFICAÇÃO ESTRITA DO FILTRO DE ACEITE DO MOTORISTA
+        val filterViolations = mutableListOf<String>()
+
+        if (grossRatePerKm < preferences.minRatePerKm) {
+            filterViolations.add("R$ %.2f/km abaixo do piso de R$ %.2f/km".format(Locale("pt", "BR"), grossRatePerKm, preferences.minRatePerKm))
+        }
+        if (grossRatePerHour < preferences.minRatePerHour) {
+            filterViolations.add("R$ %.2f/h abaixo do piso de R$ %.2f/h".format(Locale("pt", "BR"), grossRatePerHour, preferences.minRatePerHour))
+        }
+        if (offer.grossFare < preferences.minGrossFare && preferences.minGrossFare > 0.0) {
+            filterViolations.add("R$ %.2f abaixo do valor mínimo de R$ %.2f".format(Locale("pt", "BR"), offer.grossFare, preferences.minGrossFare))
+        }
+        if (offer.pickupDistanceKm > preferences.maxPickupDistanceKm) {
+            filterViolations.add("Embarque a %.1f km excede limite de %.1f km".format(Locale("pt", "BR"), offer.pickupDistanceKm, preferences.maxPickupDistanceKm))
+        }
+        if (preferences.maxPickupMinutes > 0.0 && offer.pickupDurationMinutes > preferences.maxPickupMinutes) {
+            filterViolations.add("Tempo até embarque (%.0f min) excede limite de %.0f min".format(Locale("pt", "BR"), offer.pickupDurationMinutes, preferences.maxPickupMinutes))
+        }
+        if (!preferences.allowIntermediateStops && offer.stopsCount > preferences.maxStops) {
+            filterViolations.add("Possui %d parada(s) (filtro não aceita paradas)".format(offer.stopsCount))
+        }
+
+        val matchesFilter = filterViolations.isEmpty()
+
+        if (matchesFilter) {
+            reasons.add(0, "✓ BATEU SEU FILTRO: R$ %.2f/km • R$ %.2f/h".format(Locale("pt", "BR"), grossRatePerKm, grossRatePerHour))
+            scoreAcc += 8.0
+        } else {
+            alerts.add(0, "⛔ FORA DO SEU FILTRO: ${filterViolations.first()}")
+            scoreAcc -= 15.0
         }
 
         val finalScore = scoreAcc.roundToInt().coerceIn(0, 100)
@@ -188,6 +220,8 @@ class RideEvaluationEngine(
             grossRatePerMinute = grossRatePerMinute,
             totalDistanceKm = totalDistanceKm,
             totalDurationMinutes = totalDurationMinutes,
+            matchesFilter = matchesFilter,
+            filterViolations = filterViolations,
             reasons = reasons,
             alerts = alerts
         )
