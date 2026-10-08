@@ -76,76 +76,17 @@ class RotaFirebaseMessagingService : FirebaseMessagingService() {
             else -> NotificationChannels.CHANNEL_GENERAL
         }
 
-        // 3. Monta a notificação nativa do sistema operacional Android
-        showNativeNotification(
+        val campaignId = dataPayload["campaign_id"]
+
+        // 3. Monta a notificação nativa do sistema Android com som, vibração e banner flutuante
+        NotificationHelper.showHeadsUpNotification(
+            context = applicationContext,
             title = title,
             body = body,
             deepLink = deepLink,
             channelId = channelId,
-            imageUrl = imageUrl
+            imageUrl = imageUrl,
+            campaignId = campaignId
         )
-    }
-
-    private fun showNativeNotification(
-        title: String,
-        body: String,
-        deepLink: String,
-        channelId: String,
-        imageUrl: String?
-    ) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
-            setClass(applicationContext, MainActivity::class.java)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("deep_link_source", "push_notification")
-            putExtra("deep_link_target", deepLink)
-        }
-
-        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            System.currentTimeMillis().toInt(),
-            intent,
-            pendingIntentFlags
-        )
-
-        val builder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setColor(0xFFFF7A00.toInt()) // Laranja ROTA IQ (#FF7A00)
-            .setContentIntent(pendingIntent)
-
-        // Se houver imagem opcional, carrega no estilo BigPictureStyle
-        if (!imageUrl.isNullOrBlank()) {
-            try {
-                val url = URL(imageUrl)
-                val bitmap = BitmapFactory.decodeStream(url.openConnection().getInputStream())
-                if (bitmap != null) {
-                    builder.setLargeIcon(bitmap)
-                    builder.setStyle(
-                        NotificationCompat.BigPictureStyle()
-                            .bigPicture(bitmap)
-                            .setSummaryText(body)
-                    )
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Não foi possível carregar imagem remota da notificação: ${e.message}")
-            }
-        }
-
-        try {
-            val notificationId = (System.currentTimeMillis() % 100000).toInt()
-            NotificationManagerCompat.from(this).notify(notificationId, builder.build())
-        } catch (e: SecurityException) {
-            Log.e(TAG, "Permissão POST_NOTIFICATIONS não concedida pelo usuário: ${e.message}")
-        }
     }
 }

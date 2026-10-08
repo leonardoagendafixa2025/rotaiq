@@ -1347,7 +1347,7 @@ async function loadCampaignsTable(filterStatus = null) {
         if (!response.ok) throw new Error('Falha ao listar campanhas.');
 
         const data = await response.json();
-        const campaigns = data.campaigns || [];
+        const campaigns = Array.isArray(data) ? data : (data.campaigns || data.items || []);
 
         if (campaigns.length === 0) {
             tbody.innerHTML = `
@@ -1392,9 +1392,11 @@ async function loadCampaignsTable(filterStatus = null) {
             const formattedDate = dateStr ? new Date(dateStr).toLocaleString('pt-BR') : 'N/D';
 
             // Destinatários e métricas reais
-            const recipients = c.recipient_count || 'N/D';
-            const sentAndFailures = `${c.sent_count || 0} / <span style="color: ${c.failure_count > 0 ? '#FF334B' : 'inherit'}">${c.failure_count || 0}</span>`;
-            const openings = c.open_count !== null && c.open_count !== undefined ? c.open_count : 'N/D';
+            const recipients = c.recipient_count ?? c.total_recipients ?? 'N/D';
+            const sentCountVal = c.sent_count ?? c.total_sent ?? 0;
+            const failCountVal = c.failure_count ?? c.total_failed ?? 0;
+            const sentAndFailures = `${sentCountVal} / <span style="color: ${failCountVal > 0 ? '#FF334B' : 'inherit'}">${failCountVal}</span>`;
+            const openings = (c.open_count ?? c.total_opened) !== null && (c.open_count ?? c.total_opened) !== undefined ? (c.open_count ?? c.total_opened) : 'N/D';
 
             // Ações disponíveis com base no estado
             let actionsHtml = `

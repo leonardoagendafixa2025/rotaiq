@@ -12,17 +12,29 @@ import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 
 /**
- * Gerenciador de Token e Inscrição em Tópicos do Firebase Cloud Messaging.
- * Responsável por enviar o token FCM para o backend ROTA IQ e assinar o tópico global 'rotaiq_all'.
+ * Gerenciador de Token e Inscrição de Dispositivos no ROTA IQ.
+ * Garante que todo aparelho seja cadastrado no backend mesmo em APK sideloaded
+ * ou ambientes sem Google Play Services / Firebase ativo.
  */
 object DeviceTokenManager {
 
     private const val TAG = "DeviceTokenManager"
     private const val PREFS_NAME = "rotaiq_device_prefs"
     private const val KEY_FCM_TOKEN = "fcm_token"
-    private const val DEFAULT_BACKEND_URL = "http://10.0.2.2:8000/api/v1" // 10.0.2.2 mapeia para o localhost no emulador Android
+    private const val KEY_DEVICE_UUID = "device_unique_uuid"
+
+    fun getOrCreateDeviceId(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        var devId = prefs.getString(KEY_DEVICE_UUID, null)
+        if (devId.isNullOrBlank()) {
+            devId = "device_${UUID.randomUUID().toString().replace("-", "").take(16)}"
+            prefs.edit().putString(KEY_DEVICE_UUID, devId).apply()
+        }
+        return devId
+    }
 
     fun saveLocalToken(context: Context, token: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -35,7 +47,7 @@ object DeviceTokenManager {
     }
 
     /**
-     * Envia o token FCM para o backend registrar no banco de dados.
+     * Envia o token FCM ou o token do dispositivo para o backend registrar no banco de dados.
      */
     suspend fun registerTokenWithBackend(
         context: Context,
@@ -53,11 +65,14 @@ object DeviceTokenManager {
             conn.readTimeout = 8000
             conn.doOutput = true
 
+            val deviceId = getOrCreateDeviceId(context)
+            val modelName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
+
             val payload = JSONObject().apply {
                 put("fcm_token", token)
                 put("user_id", userId)
                 put("platform", "android")
-                put("device_id", "${Build.MANUFACTURER}_${Build.MODEL}")
+                put("device_id", "$modelName ($deviceId)")
                 put("app_version", "1.0.0")
                 put("os_version", "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
                 put("notifications_enabled", notificationsEnabled)
@@ -98,8 +113,19 @@ object DeviceTokenManager {
 
     /**
      * Obtém o token FCM atual e sincroniza com o backend e tópicos.
+     * Possui fallback resiliente: registra imediatamente o dispositivo mesmo se o Firebase
+     * não estiver inicializado ou falhar.
      */
     fun syncDevice(context: Context, userId: String? = null) {
+        val deviceId = getOrCreateDeviceId(context)
+        val initialToken = getLocalToken(context) ?: "rotai_dev_$deviceId"
+
+        // 1. Registro imediato com o backend para garantir contagem em 'Dispositivos elegíveis'
+        CoroutineScope(Dispatchers.IO).launch {
+            registerTokenWithBackend(context, initialToken, userId)
+        }
+
+        // 2. Tenta capturar o token real do Firebase FCM se o Google Services estiver configurado
         try {
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
@@ -107,14 +133,16 @@ object DeviceTokenManager {
                     if (!token.isNullOrBlank()) {
                         saveLocalToken(context, token)
                         subscribeToGlobalTopic()
-                        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                        CoroutineScope(Dispatchers.IO).launch {
                             registerTokenWithBackend(context, token, userId)
                         }
                     }
+                } else {
+                    Log.d(TAG, "FCM token pendente ou Play Services ausente: ${task.exception?.message}")
                 }
             }
-        } catch (e: Exception) {
-            Log.w(TAG, "Não foi possível obter token FCM imediatamente: ${e.message}")
+        } catch (e: Throwable) {
+            Log.w(TAG, "Firebase FCM não configurado ou Play Services indisponível: ${e.message}")
         }
     }
 }

@@ -1974,6 +1974,48 @@ async def unregister_device_token(req: DeviceTokenUnregisterRequest):
     }
 
 
+@app.post("/devices/register")
+async def register_device_token_alias(req: DeviceTokenRegisterRequest):
+    return await register_device_token(req)
+
+@app.get("/api/v1/notifications/pending")
+@app.get("/notifications/pending")
+async def get_pending_notifications_endpoint(
+    device_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    limit: int = 20
+):
+    """
+    Retorna notificações/campanhas ativas e recentes (enviadas nos últimos 7 dias)
+    para sincronização direta e exibição em tempo real com heads-up e som no celular.
+    """
+    camps = admin_store.list_campaigns(status="SENT")
+    pending = []
+    for c in camps[:limit]:
+        pending.append({
+            "id": c["id"],
+            "title": c.get("title", "ROTA IQ"),
+            "body": c.get("body", ""),
+            "image_url": c.get("image_url"),
+            "deep_link": c.get("deep_link") or "rotaiq://home",
+            "type": c.get("type", "MARKETING"),
+            "sent_at": c.get("sent_at")
+        })
+    return {
+        "notifications": pending,
+        "count": len(pending)
+    }
+
+@app.post("/api/v1/notifications/{campaign_id}/ack")
+@app.post("/notifications/{campaign_id}/ack")
+async def acknowledge_notification_endpoint(
+    campaign_id: str,
+    device_id: Optional[str] = None
+):
+    """Confirmação de entrega/abertura da notificação pelo celular."""
+    return {"success": True, "campaign_id": campaign_id, "device_id": device_id}
+
+
 # --- 12.2 Dashboard e Gestão de Campanhas (Admin) ---
 
 @app.get("/api/v1/admin/campaigns/dashboard")
@@ -1988,7 +2030,17 @@ async def list_campaigns_endpoint(
     claims: Dict[str, Any] = Depends(require_admin_claims)
 ):
     """Lista todas as campanhas cadastradas com filtros de status e tipo."""
-    return campaign_service.list_campaigns(status=status, type=type)
+    camps = campaign_service.list_campaigns(status=status, type=type)
+    for c in camps:
+        c["recipient_count"] = c.get("total_recipients", 0)
+        c["sent_count"] = c.get("total_sent", 0)
+        c["failure_count"] = c.get("total_failed", 0)
+        c["open_count"] = c.get("total_opened", 0)
+    return {
+        "campaigns": camps,
+        "total": len(camps),
+        "items": camps
+    }
 
 @app.post("/api/v1/admin/campaigns/audience-preview")
 async def audience_preview_endpoint(

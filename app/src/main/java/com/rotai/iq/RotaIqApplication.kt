@@ -88,6 +88,9 @@ class RotaIqApplication : Application() {
 
         // Sincroniza Token FCM e inscrição no tópico global 'rotaiq_all'
         com.rotai.iq.core.notifications.DeviceTokenManager.syncDevice(this)
+
+        // Inicia monitoramento e sincronização em tempo real de notificações push
+        com.rotai.iq.core.notifications.NotificationSyncManager.startSync(this)
     }
 
     override fun onTerminate() {

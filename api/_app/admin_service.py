@@ -20,7 +20,25 @@ from .auth import hash_password, verify_password, create_access_token
 # Caminho do banco local persistente para tabelas complementares (sobrevive a restarts e reboots)
 def get_admin_db_path() -> str:
     if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-        return os.path.join("/tmp", "admin_store.db")
+        tmp_path = os.path.join("/tmp", "admin_store.db")
+        if not os.path.exists(tmp_path):
+            candidates = [
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "admin_store.db"),
+                os.path.join(os.path.dirname(__file__), "..", "..", "backend", "data", "admin_store.db"),
+                os.path.join(os.path.dirname(__file__), "..", "..", "api", "data", "admin_store.db"),
+                "/var/task/backend/data/admin_store.db",
+                "/var/task/api/data/admin_store.db"
+            ]
+            for cand in candidates:
+                cand_abs = os.path.abspath(cand)
+                if os.path.exists(cand_abs):
+                    try:
+                        import shutil
+                        shutil.copyfile(cand_abs, tmp_path)
+                        break
+                    except Exception:
+                        pass
+        return tmp_path
     local_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
     try:
         os.makedirs(local_dir, exist_ok=True)
