@@ -17,3 +17,4 @@ __pycache__/
 *.db
 *.sqlite3
 backend/data/
+*.exe

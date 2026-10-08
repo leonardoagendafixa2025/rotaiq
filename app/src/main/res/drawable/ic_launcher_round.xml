@@ -3,28 +3,23 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Obsidian Background -->
+    <!-- Fundo Laranja Oficial ROTA IQ (100% Unificado - Sem Fundo Preto) -->
     <path
-        android:fillColor="#0A1019"
+        android:fillColor="#FF7A00"
         android:pathData="M0,0h108v108h-108z"/>
 
-    <!-- Electric Cyan Circular Badge -->
+    <!-- Letra 'I' (Preto Grafite Oficial) -->
     <path
-        android:fillColor="#00D2FF"
-        android:pathData="M54,8 C79.4,8 100,28.6 100,54 C100,79.4 79.4,100 54,100 C28.6,100 8,79.4 8,54 C8,28.6 28.6,8 54,8 Z"/>
-
-    <!-- Letter 'I' (Obsidian Black) -->
-    <path
-        android:fillColor="#060A10"
+        android:fillColor="#08080A"
         android:pathData="M31,35 L42,35 L42,73 L31,73 Z"/>
 
-    <!-- Letter 'Q' Outer Ring and Hole (Obsidian Black) -->
+    <!-- Letra 'Q' Anel Externo e Interno (Preto Grafite Oficial) -->
     <path
-        android:fillColor="#060A10"
+        android:fillColor="#08080A"
         android:pathData="M65,35 C75.5,35 84,43.5 84,54 C84,64.5 75.5,73 65,73 C54.5,73 46,64.5 46,54 C46,43.5 54.5,35 65,35 Z M65,45 C59.8,45 55.6,49 55.6,54 C55.6,59 59.8,63 65,63 C70.2,63 74.4,59 74.4,54 C74.4,49 70.2,45 65,45 Z"/>
 
-    <!-- Letter 'Q' Tail -->
+    <!-- Letra 'Q' Cauda -->
     <path
-        android:fillColor="#060A10"
+        android:fillColor="#08080A"
         android:pathData="M67,58 L74,58 L86,72 L80,78 L67,65 Z"/>
 </vector>

@@ -9,14 +9,13 @@ public class Program {
     public static void Main(string[] args) {
         string rootDir = args.Length > 0 ? args[0] : ".";
 
-        int[] sizes = new int[] { 48, 72, 96, 144, 192, 512 };
+        int[] sizes = new int[] { 48, 72, 96, 144, 192 };
         string[] dirs = new string[] {
             "app/src/main/res/mipmap-mdpi",
             "app/src/main/res/mipmap-hdpi",
             "app/src/main/res/mipmap-xhdpi",
             "app/src/main/res/mipmap-xxhdpi",
-            "app/src/main/res/mipmap-xxxhdpi",
-            "web"
+            "app/src/main/res/mipmap-xxxhdpi"
         };
 
         for (int i = 0; i < sizes.Length; i++) {
@@ -24,24 +23,35 @@ public class Program {
             string targetDir = Path.Combine(rootDir, dirs[i]);
             Directory.CreateDirectory(targetDir);
 
-            if (sz == 512) {
-                GenerateIcon(sz, Path.Combine(targetDir, "icon-512.png"), false);
-                GenerateIcon(sz, Path.Combine(targetDir, "favicon.png"), false);
-                Console.WriteLine("Generated 512x512 web icons");
-            } else {
-                GenerateIcon(sz, Path.Combine(targetDir, "ic_launcher.png"), false);
-                GenerateIcon(sz, Path.Combine(targetDir, "ic_launcher_round.png"), true);
-                Console.WriteLine("Generated " + sz + "x" + sz + " for " + dirs[i]);
-            }
+            GenerateIcon(sz, Path.Combine(targetDir, "ic_launcher.png"), false);
+            GenerateIcon(sz, Path.Combine(targetDir, "ic_launcher_round.png"), true);
+            Console.WriteLine("Generated " + sz + "x" + sz + " for " + dirs[i]);
         }
 
-        // Também gerar cópia de alta resolução para drawable/
+        // Drawable Bitmaps de alta resolução para Android
         string drawableDir = Path.Combine(rootDir, "app/src/main/res/drawable");
         Directory.CreateDirectory(drawableDir);
         GenerateIcon(192, Path.Combine(drawableDir, "ic_launcher_bitmap.png"), false);
         GenerateIcon(192, Path.Combine(drawableDir, "ic_launcher_round_bitmap.png"), true);
 
-        Console.WriteLine("All Android launcher icons generated successfully!");
+        // Web Favicons e Ícones em múltiplos diretórios (public, web, backend/public, root)
+        string[] webDirs = new string[] {
+            Path.Combine(rootDir, "public"),
+            Path.Combine(rootDir, "web"),
+            Path.Combine(rootDir, "backend/public"),
+            rootDir
+        };
+
+        foreach (string wDir in webDirs) {
+            if (Directory.Exists(wDir)) {
+                GenerateIcon(512, Path.Combine(wDir, "favicon.png"), false);
+                GenerateIcon(512, Path.Combine(wDir, "icon-512.png"), false);
+                GenerateIcon(192, Path.Combine(wDir, "icon-192.png"), false);
+                Console.WriteLine("Generated web favicon and icons in: " + wDir);
+            }
+        }
+
+        Console.WriteLine("All ROTA IQ unified orange icons generated successfully!");
     }
 
     public static void GenerateIcon(int size, string outputPath, bool isRound) {
@@ -52,54 +62,49 @@ public class Program {
             g.PixelOffsetMode = PixelOffsetMode.HighQuality;
             g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
-            // Fundo escuro sutil
-            g.Clear(Color.FromArgb(10, 16, 25));
+            // 1. FUNDO 100% TRANSPARENTE — SEM FUNDO PRETO
+            g.Clear(Color.Transparent);
 
-            float margin = size * 0.06f;
+            float margin = size * 0.04f;
             float boxSize = size - (2f * margin);
 
-            using (GraphicsPath squirclePath = new GraphicsPath()) {
+            using (GraphicsPath path = new GraphicsPath()) {
                 if (isRound) {
-                    squirclePath.AddEllipse(margin, margin, boxSize, boxSize);
+                    path.AddEllipse(margin, margin, boxSize, boxSize);
                 } else {
-                    float radius = boxSize * 0.28f;
+                    float radius = boxSize * 0.24f;
                     float d = radius * 2f;
-                    squirclePath.AddArc(margin, margin, d, d, 180, 90);
-                    squirclePath.AddArc(margin + boxSize - d, margin, d, d, 270, 90);
-                    squirclePath.AddArc(margin + boxSize - d, margin + boxSize - d, d, d, 0, 90);
-                    squirclePath.AddArc(margin, margin + boxSize - d, d, d, 90, 90);
-                    squirclePath.CloseFigure();
+                    path.AddArc(margin, margin, d, d, 180, 90);
+                    path.AddArc(margin + boxSize - d, margin, d, d, 270, 90);
+                    path.AddArc(margin + boxSize - d, margin + boxSize - d, d, d, 0, 90);
+                    path.AddArc(margin, margin + boxSize - d, d, d, 90, 90);
+                    path.CloseFigure();
                 }
 
-                // Brilho externo sutil (glow ciano)
-                using (Pen outerGlow = new Pen(Color.FromArgb(45, 0, 210, 255), Math.Max(1f, size * 0.035f))) {
-                    g.DrawPath(outerGlow, squirclePath);
+                // 2. COR OFICIAL ROTA IQ: LARANJA VIBRANTE UNIFICADO (#FF7A00)
+                PointF ptTop = new PointF(margin, margin);
+                PointF ptBottom = new PointF(margin + boxSize, margin + boxSize);
+                Color topOrange = Color.FromArgb(255, 130, 0);  // #FF8200
+                Color bottomOrange = Color.FromArgb(230, 81, 0); // #E65100
+
+                using (LinearGradientBrush orangeBrush = new LinearGradientBrush(ptTop, ptBottom, topOrange, bottomOrange)) {
+                    g.FillPath(orangeBrush, path);
                 }
 
-                // Gradiente Ciano Elétrico oficial da marca
-                PointF ptTop = new PointF(size * 0.5f, margin);
-                PointF ptBottom = new PointF(size * 0.5f, margin + boxSize);
-                Color topCyan = Color.FromArgb(0, 215, 255);
-                Color bottomCyan = Color.FromArgb(0, 145, 220);
-
-                using (LinearGradientBrush cyanBrush = new LinearGradientBrush(ptTop, ptBottom, topCyan, bottomCyan)) {
-                    g.FillPath(cyanBrush, squirclePath);
+                // Borda de acabamento suave sutil
+                using (Pen borderPen = new Pen(Color.FromArgb(40, 255, 255, 255), Math.Max(1f, size * 0.015f))) {
+                    g.DrawPath(borderPen, path);
                 }
 
-                // Borda interna / bevel suave
-                using (Pen innerSheen = new Pen(Color.FromArgb(60, 255, 255, 255), Math.Max(1f, size * 0.012f))) {
-                    g.DrawPath(innerSheen, squirclePath);
-                }
-
-                // Letras 'IQ' perfeitamente centralizadas
-                float fontSize = boxSize * 0.47f;
+                // 3. LETRAS 'IQ' CENTRALIZADAS EM PRETO GRAFITE ELEGANTE (#08080A)
+                float fontSize = boxSize * 0.46f;
                 using (Font font = new Font("Arial Black", fontSize, FontStyle.Bold, GraphicsUnit.Pixel))
-                using (Brush brush = new SolidBrush(Color.FromArgb(6, 10, 16))) {
+                using (Brush textBrush = new SolidBrush(Color.FromArgb(8, 8, 10))) {
                     StringFormat sf = new StringFormat();
                     sf.Alignment = StringAlignment.Center;
                     sf.LineAlignment = StringAlignment.Center;
                     RectangleF rect = new RectangleF(margin, margin + (boxSize * 0.035f), boxSize, boxSize);
-                    g.DrawString("IQ", font, brush, rect, sf);
+                    g.DrawString("IQ", font, textBrush, rect, sf);
                 }
             }
 
