@@ -20,19 +20,29 @@ class FeatureGateManager {
         subscription: SubscriptionInfo,
         dailyUsageCount: Int = 0
     ): FeatureAccessResult {
-        // Se a assinatura Pro estiver ativa, todas as funcionalidades estão liberadas sem limites
+        // Se a assinatura Pro estiver ativa (incluindo o período de 7 dias grátis), todas as funcionalidades estão liberadas sem limites
         if (subscription.isProActive) {
             return FeatureAccessResult.Granted(subscription.tier)
         }
 
-        // Regras para plano FREE
+        // Se o período de degustação de 7 dias já expirou:
+        if (subscription.isTrialExpired) {
+            return FeatureAccessResult.Denied(
+                reason = "Seu período de teste grátis de 7 dias expirou. Ative o plano mensal por R$ 29,90/mês para continuar utilizando o ROTA IQ.",
+                requiredTier = SubscriptionTier.PRO_MONTHLY,
+                currentUsage = dailyUsageCount,
+                usageLimit = 0
+            )
+        }
+
+        // Regras para plano FREE (fallback)
         return when (feature) {
             FeatureKey.UNLIMITED_EVALUATIONS -> {
                 if (dailyUsageCount < FREE_DAILY_EVALUATION_LIMIT) {
                     FeatureAccessResult.Granted(SubscriptionTier.FREE)
                 } else {
                     FeatureAccessResult.Denied(
-                        reason = "Você atingiu o limite gratuito de $FREE_DAILY_EVALUATION_LIMIT avaliações por dia. Assine o ROTA IQ Pro para avaliações ilimitadas sem interrupções.",
+                        reason = "Você atingiu o limite de $FREE_DAILY_EVALUATION_LIMIT avaliações por dia. Assine o ROTA IQ Pro para avaliações ilimitadas sem interrupções.",
                         requiredTier = SubscriptionTier.PRO_MONTHLY,
                         currentUsage = dailyUsageCount,
                         usageLimit = FREE_DAILY_EVALUATION_LIMIT
@@ -102,6 +112,7 @@ class FeatureGateManager {
         dailyUsageCount: Int
     ): Int {
         if (subscription.isProActive) return Int.MAX_VALUE
+        if (subscription.isTrialExpired) return 0
         val remaining = FREE_DAILY_EVALUATION_LIMIT - dailyUsageCount
         return if (remaining > 0) remaining else 0
     }

@@ -65,10 +65,38 @@ data class SubscriptionInfo(
     val tier: SubscriptionTier = SubscriptionTier.FREE,
     val status: SubscriptionStatus = SubscriptionStatus.NONE,
     val expiresAtEpochMs: Long? = null,
+    val trialStartedAtEpochMs: Long? = null,
     val autoRenew: Boolean = false,
     val gateway: PaymentGateway = PaymentGateway.NONE,
     val purchaseToken: String? = null
 ) {
+    /**
+     * Indica se o usuário está dentro dos 7 dias de degustação gratuita.
+     */
+    val isTrialActive: Boolean
+        get() = status == SubscriptionStatus.TRIALING &&
+                (expiresAtEpochMs == null || expiresAtEpochMs > System.currentTimeMillis())
+
+    /**
+     * Dias restantes do período de teste gratuito de 7 dias (arredondado para cima).
+     */
+    val trialDaysRemaining: Int
+        get() {
+            if (!isTrialActive || expiresAtEpochMs == null) return 0
+            val diffMs = expiresAtEpochMs - System.currentTimeMillis()
+            return if (diffMs > 0) kotlin.math.ceil(diffMs.toDouble() / (1000.0 * 60.0 * 60.0 * 24.0)).toInt() else 0
+        }
+
+    /**
+     * Indica se o teste gratuito de 7 dias já expirou e o usuário precisa assinar para continuar.
+     */
+    val isTrialExpired: Boolean
+        get() = status == SubscriptionStatus.EXPIRED ||
+                (status == SubscriptionStatus.TRIALING && expiresAtEpochMs != null && expiresAtEpochMs <= System.currentTimeMillis())
+
+    /**
+     * Se os recursos Pro estão liberados (seja por assinatura paga ativa ou trial de 7 dias ativo).
+     */
     val isProActive: Boolean
         get() = tier.isPro && (
             status == SubscriptionStatus.ACTIVE ||
@@ -81,9 +109,26 @@ data class SubscriptionInfo(
             tier = SubscriptionTier.FREE,
             status = SubscriptionStatus.NONE,
             expiresAtEpochMs = null,
+            trialStartedAtEpochMs = null,
             autoRenew = false,
             gateway = PaymentGateway.NONE
         )
+
+        /**
+         * Cria o plano de teste gratuito com 7 dias de acesso Pro completo.
+         */
+        fun createTrial(durationDays: Long = 7): SubscriptionInfo {
+            val now = System.currentTimeMillis()
+            val expires = now + (durationDays * 24 * 60 * 60 * 1000L)
+            return SubscriptionInfo(
+                tier = SubscriptionTier.PRO_MONTHLY,
+                status = SubscriptionStatus.TRIALING,
+                expiresAtEpochMs = expires,
+                trialStartedAtEpochMs = now,
+                autoRenew = false,
+                gateway = PaymentGateway.NONE
+            )
+        }
     }
 }
 

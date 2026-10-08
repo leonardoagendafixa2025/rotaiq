@@ -108,6 +108,8 @@ class FakeAuthRepository : AuthRepository {
     }
 
     override fun setOnboardingCompleted(completed: Boolean) {}
+
+    override fun updateServerUrl(url: String) {}
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

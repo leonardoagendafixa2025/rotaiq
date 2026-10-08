@@ -42,9 +42,11 @@ class CommercialRepositoryImpl(
 
     override suspend fun saveSubscriptionInfo(info: SubscriptionInfo) {
         prefs.edit()
+            .putBoolean("sub_initialized", true)
             .putString("sub_tier", info.tier.code)
             .putString("sub_status", info.status.name)
             .putLong("sub_expires", info.expiresAtEpochMs ?: 0L)
+            .putLong("sub_trial_start", info.trialStartedAtEpochMs ?: 0L)
             .putBoolean("sub_autorenew", info.autoRenew)
             .putString("sub_gateway", info.gateway.name)
             .putString("sub_token", info.purchaseToken ?: "")
@@ -92,19 +94,46 @@ class CommercialRepositoryImpl(
     private fun getTodayKey(): String = dateFormat.format(Date())
 
     private fun loadSubscription(): SubscriptionInfo {
+        // Novo motorista: libera período gratuito por 7 dias
+        if (!prefs.contains("sub_initialized")) {
+            val trial = SubscriptionInfo.createTrial(7)
+            prefs.edit()
+                .putBoolean("sub_initialized", true)
+                .putString("sub_tier", trial.tier.code)
+                .putString("sub_status", trial.status.name)
+                .putLong("sub_expires", trial.expiresAtEpochMs ?: 0L)
+                .putLong("sub_trial_start", trial.trialStartedAtEpochMs ?: 0L)
+                .putBoolean("sub_autorenew", false)
+                .putString("sub_gateway", trial.gateway.name)
+                .apply()
+            return trial
+        }
+
         val tierCode = prefs.getString("sub_tier", "free") ?: "free"
         val statusName = prefs.getString("sub_status", SubscriptionStatus.NONE.name) ?: SubscriptionStatus.NONE.name
         val expires = prefs.getLong("sub_expires", 0L).let { if (it > 0L) it else null }
+        val trialStart = prefs.getLong("sub_trial_start", 0L).let { if (it > 0L) it else null }
         val autoRenew = prefs.getBoolean("sub_autorenew", false)
         val gatewayName = prefs.getString("sub_gateway", PaymentGateway.NONE.name) ?: PaymentGateway.NONE.name
         val token = prefs.getString("sub_token", null)?.takeIf { it.isNotBlank() }
 
-        val tier = SubscriptionTier.entries.find { it.code == tierCode } ?: SubscriptionTier.FREE
-        val status = try {
+        var tier = SubscriptionTier.entries.find { it.code == tierCode } ?: SubscriptionTier.FREE
+        var status = try {
             SubscriptionStatus.valueOf(statusName)
         } catch (e: Exception) {
             SubscriptionStatus.NONE
         }
+
+        // Se estava no período de teste de 7 dias e os 7 dias encerraram:
+        if (status == SubscriptionStatus.TRIALING && expires != null && expires <= System.currentTimeMillis()) {
+            status = SubscriptionStatus.EXPIRED
+            tier = SubscriptionTier.FREE
+            prefs.edit()
+                .putString("sub_tier", tier.code)
+                .putString("sub_status", status.name)
+                .apply()
+        }
+
         val gateway = try {
             PaymentGateway.valueOf(gatewayName)
         } catch (e: Exception) {
@@ -115,6 +144,7 @@ class CommercialRepositoryImpl(
             tier = tier,
             status = status,
             expiresAtEpochMs = expires,
+            trialStartedAtEpochMs = trialStart,
             autoRenew = autoRenew,
             gateway = gateway,
             purchaseToken = token

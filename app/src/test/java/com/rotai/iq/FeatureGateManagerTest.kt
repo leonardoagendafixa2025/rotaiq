@@ -94,4 +94,43 @@ class FeatureGateManagerTest {
         val hudAccess = featureGateManager.checkAccess(FeatureKey.FLOATING_HUD, expiredPro)
         assertFalse(hudAccess.isGranted)
     }
+
+    @Test
+    fun testTrialActiveFor7DaysGrantsFullProAccess() {
+        val trialSub = SubscriptionInfo.createTrial(7)
+
+        assertTrue(trialSub.isTrialActive)
+        assertTrue(trialSub.isProActive)
+        assertEquals(7, trialSub.trialDaysRemaining)
+
+        // Recursos Pro liberados
+        assertTrue(featureGateManager.checkAccess(FeatureKey.FLOATING_HUD, trialSub).isGranted)
+        assertTrue(featureGateManager.checkAccess(FeatureKey.TTS_AUDIO_COPILOT, trialSub).isGranted)
+        assertTrue(featureGateManager.canEvaluateOffer(trialSub, dailyUsageCount = 100).isGranted)
+        assertEquals(Int.MAX_VALUE, featureGateManager.remainingEvaluationsToday(trialSub, dailyUsageCount = 100))
+    }
+
+    @Test
+    fun testTrialExpiredAfter7DaysBlocksProFeatures() {
+        val expiredTrial = SubscriptionInfo(
+            tier = SubscriptionTier.FREE,
+            status = SubscriptionStatus.EXPIRED,
+            expiresAtEpochMs = System.currentTimeMillis() - 1000L,
+            trialStartedAtEpochMs = System.currentTimeMillis() - (8L * 86400000L)
+        )
+
+        assertFalse(expiredTrial.isTrialActive)
+        assertTrue(expiredTrial.isTrialExpired)
+        assertFalse(expiredTrial.isProActive)
+
+        // Recursos Pro bloqueados
+        val hudAccess = featureGateManager.checkAccess(FeatureKey.FLOATING_HUD, expiredTrial)
+        assertFalse(hudAccess.isGranted)
+        assertTrue(hudAccess is FeatureAccessResult.Denied)
+
+        // Avaliações bloqueadas com instrução de assinar o plano mensal
+        val evalAccess = featureGateManager.canEvaluateOffer(expiredTrial, dailyUsageCount = 1)
+        assertFalse(evalAccess.isGranted)
+        assertEquals(0, featureGateManager.remainingEvaluationsToday(expiredTrial, dailyUsageCount = 0))
+    }
 }

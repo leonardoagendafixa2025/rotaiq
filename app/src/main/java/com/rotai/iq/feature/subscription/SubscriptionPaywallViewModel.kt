@@ -32,29 +32,30 @@ data class SubscriptionPaywallUiState(
         SubscriptionPlan(
             tier = SubscriptionTier.PRO_MONTHLY,
             title = "Pro Mensal",
-            headline = "Flexibilidade total",
+            headline = "7 Dias Grátis • Cancele quando quiser",
             formattedPrice = "R$ 29,90",
-            periodSuffix = "/mês",
-            savingsBadge = null,
+            periodSuffix = "/mês (após 7 dias de teste)",
+            savingsBadge = "7 DIAS GRÁTIS",
             highlights = listOf(
+                "7 dias de teste grátis com acesso ilimitado",
+                "Após o teste: apenas R$ 29,90/mês",
                 "Avaliações ilimitadas de ofertas",
                 "HUD Flutuante translúcido ao volante",
                 "Copiloto inteligente por voz (TTS)",
-                "Preditor de retorno vazio (Deadhead)",
-                "Comparativo avançado Uber vs 99"
+                "Preditor de retorno vazio (Deadhead)"
             )
         ),
         SubscriptionPlan(
             tier = SubscriptionTier.PRO_ANNUAL,
             title = "Pro Anual",
-            headline = "Melhor Custo-Benefício",
+            headline = "Melhor Custo-Benefício (33% OFF)",
             formattedPrice = "R$ 19,99",
             periodSuffix = "/mês (R$ 239,90/ano)",
-            savingsBadge = "33% OFF - Economize R$ 118,90",
+            savingsBadge = "33% OFF • Economize R$ 118,90",
             highlights = listOf(
-                "Tudo do plano Pro Mensal",
+                "Tudo do plano Pro com desconto máximo",
                 "Economia equivalente a 4 meses grátis",
-                "Acesso antecipado a novas IAs de rota",
+                "Acesso prioritário a novas IAs de rota",
                 "Relatórios fiscais consolidados para IRPF",
                 "Canal prioritário de suporte técnico"
             )

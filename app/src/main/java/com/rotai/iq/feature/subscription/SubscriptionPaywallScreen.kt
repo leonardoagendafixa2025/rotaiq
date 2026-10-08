@@ -210,11 +210,18 @@ fun SubscriptionPaywallScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7A00)),
                 enabled = !uiState.isProcessing
             ) {
+                val ctaText = when {
+                    subscriptionInfo.isTrialExpired -> "ASSINAR PLANO MENSAL (R$ 29,90/mês) →"
+                    subscriptionInfo.isTrialActive -> "ESCOLHER FORMA DE PAGAMENTO PRO →"
+                    subscriptionInfo.isProActive -> "GERENCIAR FORMA DE PAGAMENTO →"
+                    else -> "ESCOLHER FORMA DE PAGAMENTO →"
+                }
+
                 if (uiState.isProcessing) {
                     CircularProgressIndicator(color = Color(0xFF0A0E17), modifier = Modifier.size(24.dp))
                 } else {
                     Text(
-                        text = "ESCOLHER FORMA DE PAGAMENTO →",
+                        text = ctaText,
                         color = Color(0xFF0A0E17),
                         fontWeight = FontWeight.Black,
                         fontSize = 15.sp
@@ -469,63 +476,114 @@ private fun PaymentMethodItem(
 
 @Composable
 private fun CurrentSubscriptionStatusCard(subscription: SubscriptionInfo) {
+    val isTrialActive = subscription.isTrialActive
+    val isTrialExpired = subscription.isTrialExpired
+    val isPaidPro = subscription.isProActive && !isTrialActive
+
+    val cardBg = when {
+        isPaidPro -> Color(0xFF10281E)
+        isTrialActive -> Color(0xFF0F2618)
+        isTrialExpired -> Color(0xFF2E1717)
+        else -> Color(0xFF161E2E)
+    }
+
+    val cardBorder = when {
+        isPaidPro -> Color(0xFF00E676)
+        isTrialActive -> Color(0xFF00E676)
+        isTrialExpired -> Color(0xFFFF5252)
+        else -> Color(0xFF263238)
+    }
+
+    val titleText = when {
+        isPaidPro -> "Assinatura Pro Oficial"
+        isTrialActive -> "Degustação Grátis (7 Dias)"
+        isTrialExpired -> "Teste de 7 Dias Expirado"
+        else -> "Plano Gratuito"
+    }
+
+    val badgeLabel = when {
+        isPaidPro -> "PRO ATIVO"
+        isTrialActive -> "${subscription.trialDaysRemaining}D RESTANTES"
+        isTrialExpired -> "EXPIRADO"
+        else -> "LIMITADO"
+    }
+
+    val badgeBg = when {
+        isPaidPro -> Color(0xFF00E676)
+        isTrialActive -> Color(0xFFFF7A00)
+        isTrialExpired -> Color(0xFFFF5252)
+        else -> Color(0xFF37474F)
+    }
+
+    val badgeTextColor = when {
+        isPaidPro -> Color(0xFF0A0E17)
+        isTrialActive -> Color(0xFF0A0E17)
+        else -> Color.White
+    }
+
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (subscription.isProActive) Color(0xFF10281E) else Color(0xFF161E2E)
-        ),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(
-                1.dp,
-                if (subscription.isProActive) Color(0xFF00E676) else Color(0xFF263238),
-                RoundedCornerShape(12.dp)
-            )
+            .border(1.dp, cardBorder, RoundedCornerShape(12.dp))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = "SEU PLANO ATUAL",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF90A4AE),
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = if (subscription.isProActive) subscription.tier.displayName else "Plano Gratuito",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (subscription.isProActive) Color(0xFF00E676) else Color(0xFFECEFF1)
-                )
-                subscription.expiresAtEpochMs?.let { exp ->
-                    val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Válido até ${sdf.format(java.util.Date(exp))}",
-                        fontSize = 11.sp,
-                        color = Color(0xFF78909C)
+                        text = "STATUS DA SUA CONTA",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF90A4AE),
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = titleText,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = when {
+                            isPaidPro || isTrialActive -> Color(0xFF00E676)
+                            isTrialExpired -> Color(0xFFFF8A80)
+                            else -> Color(0xFFECEFF1)
+                        }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(badgeBg)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = badgeLabel,
+                        color = badgeTextColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black
                     )
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (subscription.isProActive) Color(0xFF00E676) else Color(0xFF37474F))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = if (subscription.isProActive) "ATIVO" else "LIMITADO",
-                    color = if (subscription.isProActive) Color(0xFF0A0E17) else Color.White,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black
-                )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val description = when {
+                isPaidPro -> "Seus recursos ilimitados estão desbloqueados."
+                isTrialActive -> "Você tem 7 dias de degustação gratuita sem cobrança imediata. Restam ${subscription.trialDaysRemaining} dias. Ao término, assine o plano mensal (R$ 29,90/mês)."
+                isTrialExpired -> "Seu teste grátis de 7 dias encerrou. Ative o plano mensal por R$ 29,90/mês para continuar utilizando o HUD e o copiloto de rotas."
+                else -> "Novos motoristas contam com 7 dias de degustação grátis com recursos Pro liberados. Depois apenas R$ 29,90/mês."
             }
+
+            Text(
+                text = description,
+                fontSize = 12.sp,
+                color = Color(0xFFB0BEC5),
+                lineHeight = 16.sp
+            )
         }
     }
 }

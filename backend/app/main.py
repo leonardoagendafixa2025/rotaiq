@@ -1709,11 +1709,46 @@ async def get_my_subscription(claims: Dict[str, Any] = Depends(get_current_user_
     driver_id = claims.get("driver_id")
     sub = supabase.get_active_subscription(driver_id)
     if not sub:
+        # Verificar período de degustação gratuita de 7 dias para novos motoristas
+        driver = supabase.get_driver_by_id(driver_id)
+        if driver and driver.get("created_at"):
+            try:
+                created_dt = datetime.fromisoformat(driver["created_at"].replace("Z", "+00:00"))
+                now_dt = datetime.now(timezone.utc)
+                delta = now_dt - created_dt
+                if delta < timedelta(days=7):
+                    days_left = max(1, 7 - delta.days)
+                    expires_iso = (created_dt + timedelta(days=7)).isoformat()
+                    return {
+                        "tier": "PRO",
+                        "status": "TRIALING",
+                        "is_pro": True,
+                        "plan_code": "pro_monthly",
+                        "trial_active": True,
+                        "trial_days_remaining": days_left,
+                        "expires_at": expires_iso,
+                        "message": f"Degustação de 7 dias grátis ativa ({days_left} dias restantes). Após o teste: R$ 29,90/mês."
+                    }
+                else:
+                    return {
+                        "tier": "FREE",
+                        "status": "EXPIRED",
+                        "is_pro": False,
+                        "plan_code": "free",
+                        "trial_active": False,
+                        "trial_expired": True,
+                        "trial_days_remaining": 0,
+                        "message": "Seu período de teste grátis de 7 dias encerrou. Assine o plano mensal por R$ 29,90/mês para continuar."
+                    }
+            except Exception:
+                pass
+
         return {
             "tier": "FREE",
             "status": "INACTIVE",
             "is_pro": False,
-            "expires_at": None
+            "expires_at": None,
+            "trial_active": False
         }
     return {
         "tier": sub.get("tier", "PRO"),

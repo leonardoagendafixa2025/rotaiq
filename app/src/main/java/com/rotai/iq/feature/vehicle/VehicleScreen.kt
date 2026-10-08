@@ -152,29 +152,57 @@ fun VehicleScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
+                val isTrialActive = subInfo.isTrialActive
+                val isTrialExpired = subInfo.isTrialExpired
+                val isPaidPro = subInfo.isProActive && !isTrialActive
+
+                val badgeText = when {
+                    isPaidPro -> "💎 CONTA PRO ATIVA"
+                    isTrialActive -> "⚡ 7 DIAS GRÁTIS (${subInfo.trialDaysRemaining}d)"
+                    isTrialExpired -> "⚠️ TESTE EXPIRADO • R$ 29,90/mês"
+                    else -> "⭐ 7 DIAS GRÁTIS • ATIVAR"
+                }
+
+                val badgeBg = when {
+                    isPaidPro -> RotaOrangeSubtleBg
+                    isTrialActive -> Color(0x2200E676)
+                    isTrialExpired -> Color(0x22FF5252)
+                    else -> Color(0x18FFFFFF)
+                }
+
+                val badgeBorder = when {
+                    isPaidPro -> RotaOrangePrimary.copy(alpha = 0.5f)
+                    isTrialActive -> Color(0xFF00E676).copy(alpha = 0.5f)
+                    isTrialExpired -> Color(0xFFFF5252).copy(alpha = 0.5f)
+                    else -> RotaBorderSubtle
+                }
+
+                val badgeTextColor = when {
+                    isPaidPro -> RotaOrangePrimary
+                    isTrialActive -> Color(0xFF00E676)
+                    isTrialExpired -> Color(0xFFFF8A80)
+                    else -> RotaTextPrimary
+                }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isPro) RotaOrangeSubtleBg else Color(0x18FFFFFF))
-                        .border(
-                            1.dp,
-                            if (isPro) RotaOrangePrimary.copy(alpha = 0.5f) else RotaBorderSubtle,
-                            RoundedCornerShape(8.dp)
-                        )
+                        .background(badgeBg)
+                        .border(1.dp, badgeBorder, RoundedCornerShape(8.dp))
                         .clickable { onNavigateToSubscription() }
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Icon(
-                        imageVector = if (isPro) Icons.Default.Star else Icons.Default.Lock,
+                        imageVector = Icons.Default.Star,
                         contentDescription = null,
-                        tint = if (isPro) RotaOrangePrimary else RotaTextSecondary,
+                        tint = badgeTextColor,
                         modifier = Modifier.size(12.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (isPro) "CONTA PRO ATIVA" else "PLANO GRÁTIS • ATUALIZAR",
-                        color = if (isPro) RotaOrangePrimary else RotaTextPrimary,
+                        text = badgeText,
+                        color = badgeTextColor,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
@@ -364,10 +392,16 @@ fun VehicleScreen(
                 subtitle = "Exportação de dados e direitos do titular",
                 onClick = onNavigateToPrivacy
             )
+            val menuSubSubtitle = when {
+                subInfo.isProActive && !subInfo.isTrialActive -> "Plano Pro Ativo (${subInfo.tier.displayName})"
+                subInfo.isTrialActive -> "Degustação Grátis • Restam ${subInfo.trialDaysRemaining} dias"
+                subInfo.isTrialExpired -> "Teste de 7 dias encerrou • Ativar plano mensal (R$ 29,90/mês)"
+                else -> "7 dias grátis • Depois R$ 29,90/mês"
+            }
             ProfileMenuRow(
                 icon = Icons.Default.Star,
-                title = "Plano & Assinatura Pro",
-                subtitle = if (isPro) "Plano Pro Ativo (${subInfo.tier.displayName})" else "Fazer upgrade e escolher forma de pagamento",
+                title = "Plano & Assinatura",
+                subtitle = menuSubSubtitle,
                 onClick = onNavigateToSubscription
             )
             HorizontalDivider(color = RotaBorderSubtle, thickness = 0.5.dp)

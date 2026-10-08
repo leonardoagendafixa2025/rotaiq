@@ -161,8 +161,8 @@ function togglePricing(isAnnual) {
         if (labelMonthly) labelMonthly.classList.remove("active");
     } else {
         if (pricePro) pricePro.innerText = "29,90";
-        if (periodPro) periodPro.innerText = "/mês (sem fidelidade)";
-        if (proSubtext) proSubtext.innerText = "Cancele quando quiser • Menos de R$ 1,00/dia";
+        if (periodPro) periodPro.innerText = "/mês (após 7 dias de teste)";
+        if (proSubtext) proSubtext.innerText = "7 dias grátis para novos motoristas • Depois R$ 29,90/mês";
         if (labelMonthly) labelMonthly.classList.add("active");
         if (labelAnnual) labelAnnual.classList.remove("active");
     }
