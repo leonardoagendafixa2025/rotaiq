@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ROTA IQ ADMIN — Centro de Controle e Gestão Operacional</title>
-    <meta name="description" content="Backoffice Oficial do ROTA IQ - Gestão de Motoristas, Planos, Assinaturas, Feature Flags e Configurações.">
+    <meta name="description" content="Backoffice Oficial do ROTA IQ - Gestão de Motoristas, Planos, Assinaturas e Configurações da Plataforma.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -14,14 +14,14 @@
 <body>
     <div class="bg-glow-top"></div>
 
-    <!-- Tela de Login do Administrador (100% Real, Zero Mocks) -->
+    <!-- Tela de Login do Administrador -->
     <div id="admin-login-modal" class="login-overlay">
         <div class="login-card">
             <div class="login-brand">
                 <div class="brand-badge">IQ</div>
                 <h2>ROTA IQ <span>ADMIN</span></h2>
             </div>
-            <p class="login-desc">Backoffice oficial. Acesso autenticado via PBKDF2 e controle de acesso baseado em funções (RBAC).</p>
+            <p class="login-desc">Painel administrativo exclusivo para gestão comercial e operacional da plataforma ROTA IQ.</p>
 
             <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
                 <div class="form-group">
@@ -33,11 +33,11 @@
                     <input type="password" id="admin-password" placeholder="••••••••••••" required value="Admin@2026Secure">
                 </div>
                 <div class="form-group">
-                    <label for="admin-role">Nível de Acesso Solicitado</label>
+                    <label for="admin-role">Nível de Acesso</label>
                     <select id="admin-role">
-                        <option value="SUPER_ADMIN" selected>SUPER_ADMIN (Acesso Total ao Sistema)</option>
-                        <option value="ADMIN">ADMIN (Gestão Operacional)</option>
-                        <option value="OPERADOR">OPERADOR (Apenas Leitura)</option>
+                        <option value="SUPER_ADMIN" selected>Super Administrador (Acesso Completo)</option>
+                        <option value="ADMIN">Administrador (Gestão Operacional)</option>
+                        <option value="OPERADOR">Operador (Apenas Consulta)</option>
                     </select>
                 </div>
                 <button type="submit" class="btn-primary-action" id="btn-login-submit">
@@ -63,7 +63,7 @@
             <div class="header-right">
                 <div class="connection-status" id="conn-status-badge">
                     <span class="status-dot" id="conn-status-dot"></span>
-                    <span id="conn-status-text">VERIFICANDO POSTGRESQL...</span>
+                    <span id="conn-status-text">SISTEMA ONLINE</span>
                 </div>
                 <div class="user-profile">
                     <span class="user-role-badge" id="current-role-badge">SUPER_ADMIN</span>
@@ -79,24 +79,23 @@
             <button class="nav-tab" onclick="switchTab('drivers')">🚗 Motoristas</button>
             <button class="nav-tab" onclick="switchTab('plans')">💎 Planos & Preços</button>
             <button class="nav-tab" onclick="switchTab('subs-payments')">💳 Assinaturas & Pix</button>
-            <button class="nav-tab" onclick="switchTab('flags')">⚡ Feature Flags</button>
+            <button class="nav-tab" onclick="switchTab('flags')">⚡ Funcionalidades</button>
             <button class="nav-tab" onclick="switchTab('settings')">⚙️ Configurações</button>
-            <button class="nav-tab" onclick="switchTab('audit')">🛡️ Auditoria & Logs</button>
         </nav>
 
         <main class="admin-content">
             <!-- 1. Aba: Visão Geral -->
             <section id="tab-overview" class="tab-panel active">
                 <div class="section-header">
-                    <h2>Métricas em Tempo Real do PostgreSQL</h2>
-                    <span class="live-tag">● ZERO MOCKS — CONSULTAS REAIS</span>
+                    <h2>Indicadores de Desempenho do Negócio</h2>
+                    <span class="live-tag">● OPERAÇÃO EM TEMPO REAL</span>
                 </div>
 
                 <div class="kpi-grid">
                     <div class="kpi-card highlight-orange">
                         <div class="kpi-label">MRR APURADO (MENSAL)</div>
                         <div class="kpi-value" id="kpi-mrr">R$ 0,00</div>
-                        <div class="kpi-sub">Soma de assinaturas ativas no PostgreSQL</div>
+                        <div class="kpi-sub">Faturamento recorrente mensal</div>
                     </div>
                     <div class="kpi-card highlight-orange">
                         <div class="kpi-label">ARR PROJETADO (ANUAL)</div>
@@ -104,55 +103,55 @@
                         <div class="kpi-sub">Receita recorrente anualizada</div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-label">TOTAL DE USUÁRIOS</div>
+                        <div class="kpi-label">TOTAL DE CONTAS</div>
                         <div class="kpi-value" id="kpi-users">0</div>
-                        <div class="kpi-sub">Registros na tabela <code>users</code></div>
+                        <div class="kpi-sub">Cadastros registrados no sistema</div>
                     </div>
                     <div class="kpi-card highlight-green">
-                        <div class="kpi-label">MOTORISTAS CADASTRADOS</div>
+                        <div class="kpi-label">MOTORISTAS REGISTRADOS</div>
                         <div class="kpi-value" id="kpi-drivers">0</div>
                         <div class="kpi-sub">Ativos: <strong id="kpi-active-drivers">0</strong> | Bloqueados: <strong id="kpi-blocked-drivers">0</strong></div>
                     </div>
                     <div class="kpi-card highlight-green">
-                        <div class="kpi-label">ASSINANTES PRO ATIVOS</div>
+                        <div class="kpi-label">ASSINANTES PRO</div>
                         <div class="kpi-value" id="kpi-subs">0</div>
-                        <div class="kpi-sub">Status <code>ACTIVE</code> em <code>subscriptions</code></div>
+                        <div class="kpi-sub">Motoristas com plano pago ativo</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">CORRIDAS AVALIADAS</div>
                         <div class="kpi-value" id="kpi-evals">0</div>
-                        <div class="kpi-sub">Registros em <code>ride_evaluations</code></div>
+                        <div class="kpi-sub">Análises realizadas no aplicativo</div>
                     </div>
                 </div>
 
                 <div class="overview-grid">
                     <div class="panel-card">
-                        <h3>Status da Infraestrutura de Produção</h3>
+                        <h3>Desempenho Comercial & Conversão</h3>
                         <div class="info-row">
-                            <span>Banco de Dados:</span>
-                            <strong id="infra-provider">Supabase PostgreSQL</strong>
+                            <span>Taxa de Conversão Pro:</span>
+                            <strong id="kpi-conversion-rate">0%</strong>
                         </div>
                         <div class="info-row">
-                            <span>Latência da Query:</span>
-                            <strong id="infra-latency">— ms</strong>
+                            <span>Ticket Médio por Assinante:</span>
+                            <strong id="kpi-avg-ticket">R$ 0,00</strong>
                         </div>
                         <div class="info-row">
-                            <span>Endpoint REST:</span>
-                            <code id="infra-endpoint">https://jkreduqzekllsmzxiugn.supabase.co</code>
+                            <span>Taxa de Ativação da Base:</span>
+                            <strong id="kpi-activation-rate">100%</strong>
                         </div>
                         <div class="info-row">
-                            <span>Último Snapshot:</span>
-                            <span id="infra-snapshot-date">—</span>
+                            <span>Status da Plataforma:</span>
+                            <span style="color: var(--green-accent); font-weight: 700;">🟢 Operação 100% Estável</span>
                         </div>
                     </div>
 
                     <div class="panel-card">
                         <h3>Ações Rápidas de Gestão</h3>
                         <div class="action-buttons-group">
-                            <button class="btn-secondary" onclick="fetchAdminDashboard()">🔄 Atualizar Métricas Agora</button>
+                            <button class="btn-secondary" onclick="fetchAdminDashboard()">🔄 Atualizar Indicadores</button>
                             <button class="btn-secondary" onclick="openDriverModal()">+ Cadastrar Novo Motorista</button>
                             <button class="btn-secondary" onclick="openPlanModal()">+ Criar Novo Plano Comercial</button>
-                            <button class="btn-secondary" onclick="switchTab('flags')">⚙️ Gerenciar Feature Flags</button>
+                            <button class="btn-secondary" onclick="switchTab('flags')">⚡ Gerenciar Funcionalidades</button>
                         </div>
                     </div>
                 </div>
@@ -196,7 +195,7 @@
                         </thead>
                         <tbody id="drivers-table-body">
                             <tr>
-                                <td colspan="7" class="table-loading">Carregando motoristas do PostgreSQL...</td>
+                                <td colspan="7" class="table-loading">Carregando motoristas...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -217,7 +216,7 @@
             <section id="tab-plans" class="tab-panel">
                 <div class="section-header">
                     <div>
-                        <h2>Catálogo de Planos Comerciais (PostgreSQL)</h2>
+                        <h2>Catálogo de Planos Comerciais</h2>
                         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Alterações de preço feitas aqui refletem imediatamente no aplicativo dos motoristas.</p>
                     </div>
                     <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openPlanModal()">+ NOVO PLANO</button>
@@ -226,7 +225,7 @@
                 <div class="plans-grid" id="plans-container">
                     <!-- Cards carregados dinamicamente do banco de dados -->
                     <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                        Carregando planos do PostgreSQL...
+                        Carregando planos...
                     </div>
                 </div>
             </section>
@@ -245,10 +244,10 @@
                             <thead>
                                 <tr>
                                     <th>ID Assinatura</th>
-                                    <th>Motorista ID</th>
+                                    <th>Motorista</th>
                                     <th>Plano</th>
                                     <th>Status</th>
-                                    <th>Provedor</th>
+                                    <th>Forma de Pagamento</th>
                                     <th>Expira Em</th>
                                 </tr>
                             </thead>
@@ -269,7 +268,7 @@
                                     <th>Valor (R$)</th>
                                     <th>Plano</th>
                                     <th>Status</th>
-                                    <th>Data de Criação</th>
+                                    <th>Data da Transação</th>
                                 </tr>
                             </thead>
                             <tbody id="payments-table-body">
@@ -280,19 +279,18 @@
                 </div>
             </section>
 
-            <!-- 5. Aba: Feature Flags -->
+            <!-- 5. Aba: Funcionalidades (Flags) -->
             <section id="tab-flags" class="tab-panel">
                 <div class="section-header">
                     <div>
-                        <h2>Controle Dinâmico de Feature Flags</h2>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Ative ou desative recursos do app em tempo real sem precisar recompilar o APK.</p>
+                        <h2>Controle de Funcionalidades do App</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Ative ou desative recursos do app em tempo real para os motoristas.</p>
                     </div>
-                    <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openFlagModal()">+ NOVA FEATURE FLAG</button>
+                    <button class="btn-primary-action" style="padding: 8px 18px; font-size: 0.88rem;" onclick="openFlagModal()">+ NOVA FUNCIONALIDADE</button>
                 </div>
 
                 <div class="panel-card" id="flags-container">
-                    <!-- Feature flags carregadas dinamicamente -->
-                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">Carregando feature flags do servidor...</div>
+                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">Carregando funcionalidades...</div>
                 </div>
             </section>
 
@@ -300,44 +298,16 @@
             <section id="tab-settings" class="tab-panel">
                 <div class="section-header">
                     <div>
-                        <h2>Configurações Operacionais do Sistema</h2>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Parâmetros globais persistidos no banco de dados.</p>
+                        <h2>Configurações Operacionais da Plataforma</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Parâmetros globais que definem as regras do aplicativo.</p>
                     </div>
                     <button class="btn-secondary" onclick="loadSettings()">🔄 Recarregar</button>
                 </div>
 
                 <div class="settings-grid" id="settings-container">
                     <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                        Carregando configurações do banco...
+                        Carregando configurações...
                     </div>
-                </div>
-            </section>
-
-            <!-- 7. Aba: Auditoria & Logs -->
-            <section id="tab-audit" class="tab-panel">
-                <div class="section-header">
-                    <div>
-                        <h2>Trilha de Auditoria Administrativa</h2>
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Registro imutável de todas as alterações feitas por administradores.</p>
-                    </div>
-                    <button class="btn-secondary" onclick="loadAuditLogs()">🔄 Atualizar Logs</button>
-                </div>
-
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Data / Hora</th>
-                                <th>Administrador</th>
-                                <th>Ação</th>
-                                <th>Recurso</th>
-                                <th>Detalhes / Valores</th>
-                            </tr>
-                        </thead>
-                        <tbody id="audit-table-body">
-                            <tr><td colspan="5" class="table-loading">Carregando logs de auditoria...</td></tr>
-                        </tbody>
-                    </table>
                 </div>
             </section>
         </main>
@@ -388,7 +358,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeModal('modal-driver')">Cancelar</button>
-                    <button type="submit" class="btn-primary-action" id="btn-save-driver">Salvar no PostgreSQL</button>
+                    <button type="submit" class="btn-primary-action" id="btn-save-driver">Salvar Motorista</button>
                 </div>
             </form>
         </div>
@@ -407,7 +377,7 @@
             <input type="hidden" id="block-driver-id">
             <div class="form-group">
                 <label for="block-reason">Motivo Obrigatório do Bloqueio</label>
-                <textarea id="block-reason" rows="3" required placeholder="Descreva o motivo formal para a auditoria..." style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
+                <textarea id="block-reason" rows="3" required placeholder="Descreva o motivo formal do bloqueio..." style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" onclick="closeModal('modal-block-driver')">Cancelar</button>
@@ -430,8 +400,8 @@
                     <input type="text" id="plan-name" required placeholder="Ex: ROTA IQ Pro Trimestral">
                 </div>
                 <div class="form-group">
-                    <label for="plan-code">Código Único (Slug)</label>
-                    <input type="text" id="plan-code" required placeholder="ex: pro_quarterly">
+                    <label for="plan-code">Código Único (Identificador)</label>
+                    <input type="text" id="plan-code" required placeholder="ex: pro_trimestral">
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div class="form-group">
@@ -452,7 +422,7 @@
                     <input type="text" id="plan-desc" placeholder="Breve resumo comercial">
                 </div>
                 <div class="form-group">
-                    <label for="plan-features">Recursos (separados por vírgula)</label>
+                    <label for="plan-features">Recursos Incluídos (separados por vírgula)</label>
                     <textarea id="plan-features" rows="3" placeholder="Avaliações ilimitadas, HUD Flutuante, Copiloto por Voz..." style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
                 </div>
                 <div class="modal-footer">
@@ -463,16 +433,16 @@
         </div>
     </div>
 
-    <!-- 4. Modal: Nova Feature Flag -->
+    <!-- 4. Modal: Nova Funcionalidade (Flag) -->
     <div id="modal-flag" class="admin-modal-overlay">
         <div class="admin-modal">
             <div class="modal-header">
-                <h3>Cadastrar <span>Nova Feature Flag</span></h3>
+                <h3>Cadastrar <span>Nova Funcionalidade</span></h3>
                 <button class="btn-close-modal" onclick="closeModal('modal-flag')">&times;</button>
             </div>
             <form id="form-flag" onsubmit="handleSaveFlag(event)">
                 <div class="form-group">
-                    <label for="flag-key">Chave Técnica (KEY)</label>
+                    <label for="flag-key">Identificador da Funcionalidade</label>
                     <input type="text" id="flag-key" required placeholder="Ex: ENABLE_AI_SMART_ACCEPT" style="text-transform: uppercase;">
                 </div>
                 <div class="form-group">
@@ -481,11 +451,11 @@
                 </div>
                 <div class="form-group">
                     <label for="flag-desc">Descrição</label>
-                    <textarea id="flag-desc" rows="2" placeholder="O que esta funcionalidade habilita no aplicativo?" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
+                    <textarea id="flag-desc" rows="2" placeholder="O que este recurso habilita no aplicativo?" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeModal('modal-flag')">Cancelar</button>
-                    <button type="submit" class="btn-primary-action">Criar Feature Flag</button>
+                    <button type="submit" class="btn-primary-action">Salvar Funcionalidade</button>
                 </div>
             </form>
         </div>

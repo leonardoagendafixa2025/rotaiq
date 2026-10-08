@@ -1,7 +1,7 @@
 /**
  * ROTA IQ ADMIN — CLIENTE WEB ADMINISTRATIVO & BACKOFFICE REAL
- * Comunicação direta com a API FastAPI + Banco de Dados PostgreSQL (Supabase).
- * REGRA ABSOLUTA: ZERO MOCKS — Persistência real em todas as mutações.
+ * Comunicação direta com a API REST oficial.
+ * Mutações persistentes em tempo real.
  */
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
@@ -22,12 +22,12 @@ let driverPagination = {
 };
 
 // ==========================================================================
-// 1. INICIALIZAÇÃO & VERIFICAÇÃO DE SAÚDE DO POSTGRESQL
+// 1. INICIALIZAÇÃO & VERIFICAÇÃO DE STATUS
 // ==========================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
     checkDatabaseHealth();
-    // Poll de saúde do banco a cada 15 segundos
+    // Verificação periódica de conectividade a cada 15 segundos
     setInterval(checkDatabaseHealth, 15000);
 
     const savedSession = sessionStorage.getItem('rota_iq_admin_session');
@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function checkDatabaseHealth() {
-    const badge = document.getElementById('conn-status-badge');
     const dot = document.getElementById('conn-status-dot');
     const text = document.getElementById('conn-status-text');
 
@@ -51,23 +50,20 @@ async function checkDatabaseHealth() {
         const response = await fetch(HEALTH_URL);
         if (response.ok) {
             const data = await response.json();
-            if (data.database === 'connected') {
+            if (data.status === 'ok' || data.database === 'connected') {
                 if (dot) dot.style.background = '#00E676';
-                if (text) text.innerText = `POSTGRESQL CONECTADO (${data.latency_ms || 0}ms)`;
-                
-                const infraLatency = document.getElementById('infra-latency');
-                if (infraLatency) infraLatency.innerText = `${data.latency_ms || 0} ms`;
+                if (text) text.innerText = 'SISTEMA ONLINE';
             } else {
-                if (dot) dot.style.background = '#FF334B';
-                if (text) text.innerText = 'POSTGRESQL OFFLINE / INDISPONÍVEL';
+                if (dot) dot.style.background = '#FFB800';
+                if (text) text.innerText = 'ATENÇÃO OPERACIONAL';
             }
         } else {
             if (dot) dot.style.background = '#FF334B';
-            if (text) text.innerText = 'BANCO INDISPONÍVEL (HTTP ' + response.status + ')';
+            if (text) text.innerText = 'INSTABILIDADE';
         }
     } catch (err) {
         if (dot) dot.style.background = '#FF334B';
-        if (text) text.innerText = 'BACKEND OFFLINE / REINICIALIZANDO';
+        if (text) text.innerText = 'OFFLINE';
     }
 }
 
@@ -80,7 +76,7 @@ function getAuthHeaders() {
 }
 
 // ==========================================================================
-// 2. AUTENTICAÇÃO REAL (PBKDF2 + JWT) — ZERO MOCKS
+// 2. AUTENTICAÇÃO
 // ==========================================================================
 
 async function handleAdminLogin(event) {
@@ -92,7 +88,7 @@ async function handleAdminLogin(event) {
     const submitBtn = document.getElementById('btn-login-submit');
 
     errorMsg.style.display = 'none';
-    submitBtn.innerText = 'AUTENTICANDO NO SERVIDOR...';
+    submitBtn.innerText = 'AUTENTICANDO...';
     submitBtn.disabled = true;
 
     try {
@@ -173,8 +169,6 @@ function switchTab(tabName) {
         loadFeatureFlags();
     } else if (tabName === 'settings') {
         loadSettings();
-    } else if (tabName === 'audit') {
-        loadAuditLogs();
     }
 }
 
@@ -192,10 +186,15 @@ async function fetchAdminDashboard() {
             const data = await response.json();
             const kpis = data.kpis || {};
 
+            const mrr = kpis.mrr_reais || 0;
+            const totalDrivers = kpis.total_drivers || 0;
+            const activeDrivers = kpis.active_drivers || 0;
+            const activeSubs = kpis.active_pro_subscribers || 0;
+
             document.getElementById('kpi-mrr').innerText = new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL'
-            }).format(kpis.mrr_reais || 0);
+            }).format(mrr);
 
             document.getElementById('kpi-arr').innerText = new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
@@ -203,13 +202,28 @@ async function fetchAdminDashboard() {
             }).format(kpis.arr_reais || 0);
 
             document.getElementById('kpi-users').innerText = kpis.total_users || 0;
-            document.getElementById('kpi-drivers').innerText = kpis.total_drivers || 0;
-            document.getElementById('kpi-active-drivers').innerText = kpis.active_drivers || 0;
+            document.getElementById('kpi-drivers').innerText = totalDrivers;
+            document.getElementById('kpi-active-drivers').innerText = activeDrivers;
             document.getElementById('kpi-blocked-drivers').innerText = kpis.blocked_drivers || 0;
-            document.getElementById('kpi-subs').innerText = kpis.active_pro_subscribers || 0;
+            document.getElementById('kpi-subs').innerText = activeSubs;
             document.getElementById('kpi-evals').innerText = kpis.total_evaluations_recorded || 0;
 
-            document.getElementById('infra-snapshot-date').innerText = data.snapshot_date || new Date().toLocaleString('pt-BR');
+            // Métricas Comerciais e de Conversão
+            const convRate = totalDrivers > 0 ? ((activeSubs / totalDrivers) * 100).toFixed(1) + '%' : '0%';
+            const avgTicket = activeSubs > 0 
+                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mrr / activeSubs)
+                : 'R$ 0,00';
+            const actRate = totalDrivers > 0 ? ((activeDrivers / totalDrivers) * 100).toFixed(0) + '%' : '100%';
+
+            const convEl = document.getElementById('kpi-conversion-rate');
+            if (convEl) convEl.innerText = convRate;
+
+            const ticketEl = document.getElementById('kpi-avg-ticket');
+            if (ticketEl) ticketEl.innerText = avgTicket;
+
+            const actEl = document.getElementById('kpi-activation-rate');
+            if (actEl) actEl.innerText = actRate;
+
         } else if (response.status === 401 || response.status === 403) {
             handleAdminLogout();
         }
@@ -219,7 +233,7 @@ async function fetchAdminDashboard() {
 }
 
 // ==========================================================================
-// 5. MOTORISTAS — TABELA, BUSCA, PAGINAÇÃO, MODAL, BLOQUEIO
+// 5. MOTORISTAS — GESTÃO, BUSCA, PAGINAÇÃO, MODAL, BLOQUEIO
 // ==========================================================================
 
 function debounceDriverSearch() {
@@ -231,7 +245,7 @@ function debounceDriverSearch() {
 
 async function loadDriversTable(page = 1) {
     const tbody = document.getElementById('drivers-table-body');
-    tbody.innerHTML = '<tr><td colspan="7" class="table-loading">Consultando motoristas no PostgreSQL...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="table-loading">Carregando motoristas...</td></tr>';
 
     const search = document.getElementById('driver-search-input')?.value.trim() || '';
     const status = document.getElementById('driver-status-filter')?.value || 'ALL';
@@ -272,7 +286,7 @@ async function loadDriversTable(page = 1) {
                 tr.innerHTML = `
                     <td>
                         <strong>${escapeHtml(d.name)}</strong>
-                        <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${escapeHtml(d.id.substring(0, 13))}...</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(d.id.substring(0, 10))}</div>
                     </td>
                     <td>
                         <div>${escapeHtml(d.email)}</div>
@@ -293,7 +307,7 @@ async function loadDriversTable(page = 1) {
                 tbody.appendChild(tr);
             });
         } else {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: #FF334B; padding: 20px;">Falha ao obter motoristas (HTTP ${response.status})</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: #FF334B; padding: 20px;">Falha ao carregar motoristas (HTTP ${response.status})</td></tr>`;
         }
     } catch (err) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: #FF334B; padding: 20px;">Erro de conexão ao carregar motoristas.</td></tr>';
@@ -349,7 +363,7 @@ async function handleSaveDriver(event) {
     const plan_code = document.getElementById('driver-plan').value;
 
     const submitBtn = document.getElementById('btn-save-driver');
-    submitBtn.innerText = 'Salvando no PostgreSQL...';
+    submitBtn.innerText = 'Salvando...';
     submitBtn.disabled = true;
 
     try {
@@ -376,12 +390,12 @@ async function handleSaveDriver(event) {
         }
 
         closeModal('modal-driver');
-        showToast('Motorista salvo com sucesso no PostgreSQL!', 'success');
+        showToast('Motorista salvo com sucesso!', 'success');
         loadDriversTable(driverPagination.currentPage);
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
-        submitBtn.innerText = 'Salvar no PostgreSQL';
+        submitBtn.innerText = 'Salvar Motorista';
         submitBtn.disabled = false;
     }
 }
@@ -398,7 +412,7 @@ async function confirmBlockDriver() {
     const reason = document.getElementById('block-reason').value.trim();
 
     if (!reason) {
-        alert('Por favor, informe o motivo formal do bloqueio para a auditoria.');
+        alert('Por favor, informe o motivo do bloqueio.');
         return;
     }
 
@@ -412,7 +426,7 @@ async function confirmBlockDriver() {
         if (!response.ok) throw new Error('Falha ao bloquear motorista.');
 
         closeModal('modal-block-driver');
-        showToast('Motorista bloqueado com sucesso no sistema.', 'success');
+        showToast('Motorista bloqueado com sucesso.', 'success');
         loadDriversTable(driverPagination.currentPage);
     } catch (err) {
         showToast(err.message, 'error');
@@ -420,7 +434,7 @@ async function confirmBlockDriver() {
 }
 
 async function handleUnblockDriver(driverId) {
-    if (!confirm('Deseja realmente reativar e desbloquear este motorista?')) return;
+    if (!confirm('Deseja realmente reativar este motorista?')) return;
 
     try {
         const response = await fetch(`${API_BASE_URL}/admin/drivers/${driverId}/unblock`, {
@@ -440,7 +454,7 @@ async function handleUnblockDriver(driverId) {
 // Detalhes do Motorista
 async function openDriverDetails(driverId) {
     const container = document.getElementById('driver-details-content');
-    container.innerHTML = 'Carregando dados completos do banco...';
+    container.innerHTML = 'Carregando detalhes...';
     openModal('modal-driver-details');
 
     try {
@@ -461,20 +475,20 @@ async function openDriverDetails(driverId) {
             </div>
 
             <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-                <h4 style="color: #fff; margin-bottom: 8px;">Dados Operacionais</h4>
-                <div><strong>ID Motorista:</strong> <code>${escapeHtml(d.id)}</code></div>
+                <h4 style="color: #fff; margin-bottom: 8px;">Situação Cadastral</h4>
+                <div><strong>ID do Motorista:</strong> <code>${escapeHtml(d.id)}</code></div>
                 <div><strong>Praça / Região:</strong> ${escapeHtml(d.city || '—')} / ${escapeHtml(d.state || '—')}</div>
-                <div><strong>Status Atual:</strong> <span class="chip ${d.status === 'BLOCKED' ? 'chip-blocked' : 'chip-active'}">${d.status}</span></div>
+                <div><strong>Status:</strong> <span class="chip ${d.status === 'BLOCKED' ? 'chip-blocked' : 'chip-active'}">${d.status}</span></div>
                 ${d.block_reason ? `<div style="color: #FF334B; margin-top: 6px;"><strong>Motivo do Bloqueio:</strong> ${escapeHtml(d.block_reason)}</div>` : ''}
             </div>
 
             <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px;">
-                <h4 style="color: #fff; margin-bottom: 8px;">Situação de Assinatura</h4>
+                <h4 style="color: #fff; margin-bottom: 8px;">Assinatura</h4>
                 ${sub ? `
-                    <div><strong>Plano:</strong> <span class="chip chip-pro">${sub.tier || 'PRO'}</span></div>
-                    <div><strong>Provedor:</strong> ${sub.provider || 'PIX'}</div>
-                    <div><strong>Expiração:</strong> ${sub.expires_at ? new Date(sub.expires_at).toLocaleDateString('pt-BR') : '—'}</div>
-                ` : `<div>Motorista utiliza o <strong>Plano Gratuito (Free Tier)</strong>.</div>`}
+                    <div><strong>Plano Ativo:</strong> <span class="chip chip-pro">${sub.tier || 'PRO'}</span></div>
+                    <div><strong>Forma de Cobrança:</strong> ${sub.provider || 'PIX'}</div>
+                    <div><strong>Expira em:</strong> ${sub.expires_at ? new Date(sub.expires_at).toLocaleDateString('pt-BR') : '—'}</div>
+                ` : `<div>O motorista está no <strong>Plano Gratuito</strong>.</div>`}
             </div>
         `;
     } catch (err) {
@@ -483,12 +497,12 @@ async function openDriverDetails(driverId) {
 }
 
 // ==========================================================================
-// 6. PLANOS & PREÇOS — CRUD COMPLETO NO POSTGRESQL
+// 6. PLANOS & PREÇOS — GESTÃO COMERCIAL
 // ==========================================================================
 
 async function loadPlansCatalog() {
     const container = document.getElementById('plans-container');
-    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #888;">Consultando planos no PostgreSQL...</div>';
+    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #888;">Carregando planos...</div>';
 
     try {
         const response = await fetch(`${API_BASE_URL}/admin/plans`, { headers: getAuthHeaders() });
@@ -573,7 +587,7 @@ async function handleSavePlan(event) {
     const price_cents = Math.round(price * 100);
 
     const submitBtn = document.getElementById('btn-save-plan');
-    submitBtn.innerText = 'Salvando no banco...';
+    submitBtn.innerText = 'Salvando plano...';
     submitBtn.disabled = true;
 
     try {
@@ -595,7 +609,7 @@ async function handleSavePlan(event) {
         if (!response.ok) throw new Error('Falha ao salvar plano.');
 
         closeModal('modal-plan');
-        showToast('Plano persistido com sucesso no PostgreSQL! O novo preço já está disponível na API.', 'success');
+        showToast('Plano salvo com sucesso! O novo valor já está disponível no aplicativo.', 'success');
         loadPlansCatalog();
     } catch (err) {
         showToast(err.message, 'error');
@@ -640,7 +654,7 @@ async function loadSubscriptionsAndPayments() {
         if (subsRes.ok) {
             const subs = await subsRes.json();
             if (subs.length === 0) {
-                subsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #888;">Nenhuma assinatura registrada no banco ainda.</td></tr>';
+                subsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #888;">Nenhuma assinatura registrada ainda.</td></tr>';
             } else {
                 subsTbody.innerHTML = '';
                 subs.forEach(s => {
@@ -684,20 +698,20 @@ async function loadSubscriptionsAndPayments() {
 }
 
 // ==========================================================================
-// 8. FEATURE FLAGS CRUD
+// 8. CONTROLE DE FUNCIONALIDADES (FEATURE FLAGS)
 // ==========================================================================
 
 async function loadFeatureFlags() {
     const container = document.getElementById('flags-container');
-    container.innerHTML = '<div style="text-align:center; padding: 30px; color: #888;">Consultando Feature Flags...</div>';
+    container.innerHTML = '<div style="text-align:center; padding: 30px; color: #888;">Carregando funcionalidades...</div>';
 
     try {
         const response = await fetch(`${API_BASE_URL}/admin/feature-flags`, { headers: getAuthHeaders() });
-        if (!response.ok) throw new Error('Falha ao obter flags.');
+        if (!response.ok) throw new Error('Falha ao obter funcionalidades.');
 
         const flags = await response.json();
         if (flags.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding: 30px; color: #888;">Nenhuma feature flag cadastrada.</div>';
+            container.innerHTML = '<div style="text-align:center; padding: 30px; color: #888;">Nenhuma funcionalidade cadastrada.</div>';
             return;
         }
 
@@ -707,7 +721,7 @@ async function loadFeatureFlags() {
             row.className = 'flag-row';
             row.innerHTML = `
                 <div>
-                    <strong>${escapeHtml(f.name || f.key)} <code style="font-size: 0.75rem; color: var(--orange-primary); font-weight: normal;">${escapeHtml(f.key)}</code></strong>
+                    <strong>${escapeHtml(f.name || f.key)}</strong>
                     <p>${escapeHtml(f.description || '')}</p>
                 </div>
                 <label class="switch">
@@ -718,7 +732,7 @@ async function loadFeatureFlags() {
             container.appendChild(row);
         });
     } catch (err) {
-        container.innerHTML = `<div style="text-align:center; color: #FF334B; padding: 20px;">Erro ao carregar feature flags: ${err.message}</div>`;
+        container.innerHTML = `<div style="text-align:center; color: #FF334B; padding: 20px;">Erro ao carregar funcionalidades: ${err.message}</div>`;
     }
 }
 
@@ -729,8 +743,8 @@ async function toggleFlag(flagKey, isEnabled) {
             headers: getAuthHeaders(),
             body: JSON.stringify({ is_enabled: isEnabled })
         });
-        if (!response.ok) throw new Error('Falha ao alternar feature flag.');
-        showToast(`Feature Flag '${flagKey}' atualizada para ${isEnabled ? 'ATIVA' : 'INATIVA'}!`, 'success');
+        if (!response.ok) throw new Error('Falha ao alternar funcionalidade.');
+        showToast(`Recurso ${isEnabled ? 'ativado' : 'desativado'} com sucesso!`, 'success');
     } catch (err) {
         showToast(err.message, 'error');
         loadFeatureFlags();
@@ -754,10 +768,10 @@ async function handleSaveFlag(event) {
             headers: getAuthHeaders(),
             body: JSON.stringify({ key, name, description, is_enabled: true })
         });
-        if (!response.ok) throw new Error('Falha ao cadastrar feature flag.');
+        if (!response.ok) throw new Error('Falha ao cadastrar funcionalidade.');
 
         closeModal('modal-flag');
-        showToast(`Feature Flag '${key}' cadastrada com sucesso!`, 'success');
+        showToast(`Funcionalidade cadastrada com sucesso!`, 'success');
         loadFeatureFlags();
     } catch (err) {
         showToast(err.message, 'error');
@@ -765,7 +779,7 @@ async function handleSaveFlag(event) {
 }
 
 // ==========================================================================
-// 9. CONFIGURAÇÕES DO SISTEMA (CRUD REAL)
+// 9. CONFIGURAÇÕES OPERACIONAIS DO SISTEMA
 // ==========================================================================
 
 async function loadSettings() {
@@ -785,10 +799,9 @@ async function loadSettings() {
                 <div>
                     <div class="setting-header">
                         <span class="setting-category">${escapeHtml(s.category)}</span>
-                        <code style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(s.environment)}</code>
                     </div>
-                    <div class="setting-title">${escapeHtml(s.key)}</div>
-                    <div class="setting-desc">${escapeHtml(s.description || '')}</div>
+                    <div class="setting-title">${escapeHtml(s.description || s.key)}</div>
+                    <div class="setting-desc">Chave: <code>${escapeHtml(s.key)}</code></div>
                 </div>
                 <div class="setting-input-row">
                     <input type="text" id="setting-input-${s.key}" value="${escapeHtml(s.value)}">
@@ -813,52 +826,14 @@ async function saveSetting(key) {
             body: JSON.stringify({ value })
         });
         if (!response.ok) throw new Error('Falha ao atualizar configuração.');
-        showToast(`Configuração '${key}' salva no PostgreSQL com sucesso!`, 'success');
+        showToast(`Configuração salva com sucesso!`, 'success');
     } catch (err) {
         showToast(err.message, 'error');
     }
 }
 
 // ==========================================================================
-// 10. AUDITORIA & LOGS
-// ==========================================================================
-
-async function loadAuditLogs() {
-    const tbody = document.getElementById('audit-table-body');
-    tbody.innerHTML = '<tr><td colspan="5" class="table-loading">Buscando logs de auditoria...</td></tr>';
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/audit-logs?limit=50`, { headers: getAuthHeaders() });
-        if (!response.ok) throw new Error('Falha ao carregar auditoria.');
-
-        const logs = await response.json();
-        if (logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">Nenhum log de auditoria registrado ainda.</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = '';
-        logs.forEach(l => {
-            const tr = document.createElement('tr');
-            const dateStr = l.created_at ? new Date(l.created_at).toLocaleString('pt-BR') : '—';
-            const details = l.new_value ? JSON.stringify(l.new_value) : (l.old_value ? JSON.stringify(l.old_value) : '—');
-
-            tr.innerHTML = `
-                <td>${dateStr}</td>
-                <td><strong>${escapeHtml(l.admin_email)}</strong></td>
-                <td><span class="chip chip-active">${escapeHtml(l.action)}</span></td>
-                <td><code>${escapeHtml(l.resource)}</code> ${l.resource_id ? `(${escapeHtml(l.resource_id)})` : ''}</td>
-                <td style="font-size: 0.78rem; font-family: monospace; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(details)}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-    } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: #FF334B; padding: 20px;">Erro: ${err.message}</td></tr>`;
-    }
-}
-
-// ==========================================================================
-// 11. UTILITÁRIOS, MODAIS & TOASTS
+// 10. UTILITÁRIOS, MODAIS & TOASTS
 // ==========================================================================
 
 function openModal(id) {
