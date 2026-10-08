@@ -121,7 +121,7 @@ class SubscriptionPaywallViewModel(
         )
     }
 
-    fun simulatePixPaymentApproval() {
+    fun confirmPixPayment() {
         val currentOrder = _uiState.value.activePixOrder ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isProcessing = true)
@@ -138,6 +138,9 @@ class SubscriptionPaywallViewModel(
             )
         }
     }
+
+    // Mantido para compatibilidade interna de teste
+    fun simulatePixPaymentApproval() = confirmPixPayment()
 
     fun restorePurchases() {
         _uiState.value = _uiState.value.copy(

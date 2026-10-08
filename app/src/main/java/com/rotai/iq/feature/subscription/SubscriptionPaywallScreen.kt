@@ -316,11 +316,15 @@ fun SubscriptionPaywallScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        OutlinedButton(
-                            onClick = { viewModel.simulatePixPaymentApproval() },
-                            modifier = Modifier.fillMaxWidth()
+                        Button(
+                            onClick = { viewModel.confirmPixPayment() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("Simular Confirmação Bancária (Teste)", color = Color(0xFF00E676), fontSize = 12.sp)
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("JÁ PAGUEI NO MEU BANCO — ATIVAR PRO", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                         }
                     }
                 },

@@ -317,6 +317,65 @@ class SupabaseClient:
             "expenses": expenses
         }
 
+    # -------------------------------------------------------------
+    # 9. Assinaturas e Pagamentos PIX (Comercialização)
+    # -------------------------------------------------------------
+    def get_subscription_plans(self) -> List[Dict[str, Any]]:
+        try:
+            return self._request("subscription_plans?is_active=eq.true&order=price_cents.asc") or []
+        except Exception:
+            return [
+                {
+                    "code": "pro_monthly",
+                    "name": "ROTA IQ Pro Mensal",
+                    "price_cents": 2990,
+                    "billing_period": "month",
+                    "features": ["Avaliações ilimitadas", "HUD Flutuante", "Copiloto por Voz TTS", "Filtro de Aceite Avançado"]
+                },
+                {
+                    "code": "pro_annual",
+                    "name": "ROTA IQ Pro Anual",
+                    "price_cents": 23990,
+                    "billing_period": "year",
+                    "features": ["Avaliações ilimitadas", "HUD Flutuante", "Copiloto por Voz TTS", "Filtro de Aceite Avançado", "33% de Desconto"]
+                }
+            ]
+
+    def create_pix_transaction(self, pix_data: Dict[str, Any]) -> Any:
+        try:
+            return self._request("pix_transactions", method="POST", data=pix_data, prefer="return=representation")
+        except Exception:
+            return pix_data
+
+    def get_pix_transaction(self, order_id: str) -> Optional[Dict[str, Any]]:
+        try:
+            rows = self._request(f"pix_transactions?order_id=eq.{order_id}&limit=1")
+            return rows[0] if rows else None
+        except Exception:
+            return None
+
+    def update_pix_status(self, order_id: str, status: str, paid_at: Optional[str] = None) -> Any:
+        try:
+            payload = {"status": status}
+            if paid_at:
+                payload["paid_at"] = paid_at
+            return self._request(f"pix_transactions?order_id=eq.{order_id}", method="PATCH", data=payload, prefer="return=representation")
+        except Exception:
+            return None
+
+    def create_or_update_subscription(self, sub_data: Dict[str, Any]) -> Any:
+        try:
+            return self._request("subscriptions", method="POST", data=sub_data, prefer="return=representation")
+        except Exception:
+            return sub_data
+
+    def get_active_subscription(self, driver_id: str) -> Optional[Dict[str, Any]]:
+        try:
+            rows = self._request(f"subscriptions?driver_id=eq.{driver_id}&status=eq.ACTIVE&order=created_at.desc&limit=1")
+            return rows[0] if rows else None
+        except Exception:
+            return None
+
     def insert_telemetry_batch(self, events: List[Dict[str, Any]]) -> Any:
         if not events:
             return []
@@ -326,3 +385,4 @@ class SupabaseClient:
             return events
 
 supabase = SupabaseClient()
+

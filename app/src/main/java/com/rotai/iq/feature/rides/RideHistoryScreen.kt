@@ -150,9 +150,9 @@ fun RideHistoryScreen(
             )
             RotaMetric(
                 title = "Lucro Líquido",
-                value = "R$ %.2f".format(Locale("pt", "BR"), state.totalSimulatedProfit),
+                value = "R$ %.2f".format(Locale("pt", "BR"), state.totalAccumulatedProfit),
                 subtitle = "Total acumulado",
-                accentColor = if (state.totalSimulatedProfit > 0) RotaExcellent else RotaTextSecondary,
+                accentColor = if (state.totalAccumulatedProfit > 0) RotaExcellent else RotaTextSecondary,
                 modifier = Modifier.weight(1.3f)
             )
             RotaMetric(

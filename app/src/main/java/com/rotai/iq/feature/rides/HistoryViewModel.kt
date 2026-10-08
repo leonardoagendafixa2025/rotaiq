@@ -12,10 +12,12 @@ import kotlinx.coroutines.launch
 data class HistoryUiState(
     val evaluations: List<RideEvaluation> = emptyList(),
     val totalCount: Int = 0,
-    val totalSimulatedProfit: Double = 0.0,
+    val totalAccumulatedProfit: Double = 0.0,
     val averageScore: Double = 0.0,
     val isLoading: Boolean = true
-)
+) {
+    val totalSimulatedProfit: Double get() = totalAccumulatedProfit
+}
 
 class HistoryViewModel(
     private val repository: RotaIqRepository
@@ -37,7 +39,7 @@ class HistoryViewModel(
                 _uiState.value = HistoryUiState(
                     evaluations = list,
                     totalCount = list.size,
-                    totalSimulatedProfit = totalProfit,
+                    totalAccumulatedProfit = totalProfit,
                     averageScore = avgScore,
                     isLoading = false
                 )

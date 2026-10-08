@@ -403,15 +403,15 @@ fun AutomationHubScreen(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Seção: Demonstração e Simulação em Tempo Real
+        // Seção: Teste Pré-Turno do Copiloto (Verificação de Tela e Fone)
         Text(
-            text = "Laboratório de Teste do Copiloto",
+            text = "Teste Operacional Pré-Turno",
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
         Text(
-            text = "Dispare simulações para ver o HUD flutuante e ouvir o áudio em tempo real agora mesmo:",
+            text = "Faça uma verificação rápida para checar o HUD flutuante e o áudio no seu fone antes de abrir o Uber e a 99:",
             fontSize = 12.sp,
             color = Color(0xFF90A4AE),
             modifier = Modifier.padding(top = 2.dp, bottom = 10.dp)
@@ -435,8 +435,8 @@ fun AutomationHubScreen(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Oferta Boa (Uber)",
-                    fontSize = 11.sp,
+                    text = "Testar Aprovada",
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
@@ -456,8 +456,8 @@ fun AutomationHubScreen(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Oferta Ruim (99)",
-                    fontSize = 11.sp,
+                    text = "Testar Recusada",
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )

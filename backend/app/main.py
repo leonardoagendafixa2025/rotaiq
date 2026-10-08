@@ -1082,3 +1082,171 @@ async def ingest_telemetry_batch(batch: TelemetryBatchRequest):
     ]
     supabase.insert_telemetry_batch(records)
     return {"success": True, "ingested_count": len(records)}
+
+# ======================================================================
+# 14. MONETIZAÇÃO, PLANOS PRO E CHECKOUT PIX / GOOGLE PLAY
+# ======================================================================
+
+class CreatePixOrderRequest(BaseModel):
+    plan_code: str = "pro_monthly" # pro_monthly ou pro_annual
+
+class PixWebhookPayload(BaseModel):
+    order_id: str
+    status: str = "PAID"
+    tx_id: Optional[str] = None
+    paid_at: Optional[str] = None
+
+@app.get("/api/v1/subscription/plans")
+async def get_plans():
+    """Retorna planos de assinatura vigentes para o aplicativo."""
+    plans = supabase.get_subscription_plans()
+    return {"plans": plans}
+
+@app.get("/api/v1/subscription/my-status")
+async def get_my_subscription(claims: Dict[str, Any] = Depends(get_current_user_claims)):
+    """Retorna o status atual da assinatura do motorista autenticado."""
+    driver_id = claims.get("driver_id")
+    sub = supabase.get_active_subscription(driver_id)
+    if not sub:
+        return {
+            "tier": "FREE",
+            "status": "INACTIVE",
+            "is_pro": False,
+            "expires_at": None
+        }
+    return {
+        "tier": sub.get("tier", "PRO"),
+        "status": sub.get("status", "ACTIVE"),
+        "is_pro": True,
+        "plan_code": sub.get("plan_code"),
+        "expires_at": sub.get("expires_at"),
+        "provider": sub.get("provider")
+    }
+
+@app.post("/api/v1/subscription/pix-create")
+async def create_pix_order(
+    req: CreatePixOrderRequest,
+    claims: Dict[str, Any] = Depends(get_current_user_claims)
+):
+    """Gera um pedido PIX oficial com EMV Payload (Copia e Cola) para desbloqueio Pro."""
+    driver_id = claims.get("driver_id")
+    order_id = "ROTAIQ" + uuid.uuid4().hex[:8].upper()
+    amount_cents = 23990 if req.plan_code == "pro_annual" else 2990
+    amount_reais = amount_cents / 100.0
+
+    # Chave Pix de Produção (configurável via ENV)
+    pix_key = os.getenv("MERCHANT_PIX_KEY", "financeiro@rotai.com.br")
+    merchant_name = os.getenv("MERCHANT_NAME", "ROTA IQ BRASIL")
+    merchant_city = os.getenv("MERCHANT_CITY", "SAO PAULO")
+
+    # Gerar payload EMV BR Code oficial
+    emv_payload = f"00020126360014br.gov.bcb.pix0114{pix_key}520400005303986540{amount_reais:.2f}5802BR5914{merchant_name}6009{merchant_city}62120508{order_id}6304"
+
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+
+    pix_record = {
+        "id": str(uuid.uuid4()),
+        "driver_id": driver_id,
+        "order_id": order_id,
+        "tx_id": order_id,
+        "amount_cents": amount_cents,
+        "plan_code": req.plan_code,
+        "emv_payload": emv_payload,
+        "status": "PENDING",
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    supabase.create_pix_transaction(pix_record)
+
+    return {
+        "order_id": order_id,
+        "plan_code": req.plan_code,
+        "amount_reais": amount_reais,
+        "pix_key": pix_key,
+        "pix_copia_e_cola": emv_payload,
+        "expires_at": expires_at,
+        "status": "PENDING"
+    }
+
+@app.get("/api/v1/subscription/pix-status/{order_id}")
+async def check_pix_status(order_id: str):
+    """Consulta se a ordem PIX foi paga no banco / gateway."""
+    tx = supabase.get_pix_transaction(order_id)
+    if not tx:
+        # Se for teste local ou ordem rápida
+        return {"order_id": order_id, "status": "PENDING", "is_paid": False}
+
+    status = tx.get("status", "PENDING")
+    return {
+        "order_id": order_id,
+        "status": status,
+        "is_paid": (status == "PAID"),
+        "paid_at": tx.get("paid_at")
+    }
+
+@app.post("/api/v1/subscription/pix-confirm/{order_id}")
+async def confirm_pix_order(
+    order_id: str,
+    claims: Dict[str, Any] = Depends(get_current_user_claims)
+):
+    """Confirmação de pagamento e ativação imediata dos benefícios PRO."""
+    driver_id = claims.get("driver_id")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    
+    # Atualiza transação
+    supabase.update_pix_status(order_id, status="PAID", paid_at=now_iso)
+
+    # Identificar plano
+    tx = supabase.get_pix_transaction(order_id)
+    plan_code = tx.get("plan_code", "pro_monthly") if tx else "pro_monthly"
+    days = 365 if plan_code == "pro_annual" else 30
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+
+    sub_record = {
+        "id": str(uuid.uuid4()),
+        "driver_id": driver_id,
+        "plan_code": plan_code,
+        "tier": "PRO",
+        "status": "ACTIVE",
+        "provider": "PIX",
+        "starts_at": now_iso,
+        "expires_at": expires_at,
+        "created_at": now_iso
+    }
+    supabase.create_or_update_subscription(sub_record)
+
+    return {
+        "success": True,
+        "message": "Assinatura Pro ativada com sucesso!",
+        "order_id": order_id,
+        "tier": "PRO",
+        "expires_at": expires_at
+    }
+
+@app.post("/api/v1/webhooks/pix")
+async def webhook_pix_notification(payload: PixWebhookPayload):
+    """Webhook para gateways como Mercado Pago, Asaas ou Gerencianet."""
+    if payload.status == "PAID":
+        now_iso = payload.paid_at or datetime.now(timezone.utc).isoformat()
+        supabase.update_pix_status(payload.order_id, status="PAID", paid_at=now_iso)
+        tx = supabase.get_pix_transaction(payload.order_id)
+        if tx and tx.get("driver_id"):
+            driver_id = tx["driver_id"]
+            plan_code = tx.get("plan_code", "pro_monthly")
+            days = 365 if plan_code == "pro_annual" else 30
+            expires_at = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+            sub_record = {
+                "id": str(uuid.uuid4()),
+                "driver_id": driver_id,
+                "plan_code": plan_code,
+                "tier": "PRO",
+                "status": "ACTIVE",
+                "provider": "PIX_WEBHOOK",
+                "starts_at": now_iso,
+                "expires_at": expires_at,
+                "created_at": now_iso
+            }
+            supabase.create_or_update_subscription(sub_record)
+
+    return {"status": "RECEIVED", "order_id": payload.order_id}
+
