@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -82,8 +81,6 @@ fun LoginScreen(
 ) {
     val state by viewModel.loginState.collectAsState()
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
-    var showServerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.navEvents.collectLatest { event ->
@@ -111,19 +108,6 @@ fun LoginScreen(
             .padding(horizontal = 24.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Botão Configurar Servidor no topo direito
-        IconButton(
-            onClick = { showServerDialog = true },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 16.dp, end = 4.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Configurar Servidor",
-                tint = RotaOrangePrimary
-            )
-        }
 
         Column(
             modifier = Modifier
@@ -373,17 +357,6 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
-        }
-
-        if (showServerDialog) {
-            ServerConfigDialog(
-                currentUrl = viewModel.getCurrentServerUrl(context),
-                onDismiss = { showServerDialog = false },
-                onSaveUrl = { newUrl ->
-                    viewModel.updateServerUrl(context, newUrl)
-                }
-            )
         }
     }
 }

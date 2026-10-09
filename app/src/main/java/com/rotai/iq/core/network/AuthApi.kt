@@ -308,15 +308,13 @@ class AuthApiClient(
     private fun formatNetworkException(e: Exception): String {
         val msg = e.message ?: ""
         return when {
-            msg.contains("Cleartext", ignoreCase = true) ->
-                "Tráfego HTTP não permitido. O app foi atualizado para permitir a conexão local."
             msg.contains("failed to connect", ignoreCase = true) ||
             msg.contains("Connection refused", ignoreCase = true) ||
             msg.contains("ENETUNREACH", ignoreCase = true) ||
             msg.contains("No route to host", ignoreCase = true) ->
-                "Não foi possível conectar ao servidor ROTA IQ ($baseUrl). Verifique se o seu celular está no mesmo Wi-Fi do computador (IP: ${NetworkConfig.LAN_DEFAULT_HOST}:8000)."
+                "Não foi possível conectar aos servidores em nuvem do ROTA IQ. Verifique sua conexão com a internet."
             msg.contains("timeout", ignoreCase = true) ->
-                "Tempo limite de conexão esgotado ao tentar contatar $baseUrl. Verifique se o firewall do computador permite a porta 8000."
+                "Tempo limite esgotado ao contatar os servidores do ROTA IQ. Verifique seu sinal de internet e tente novamente."
             else -> msg.ifBlank { "Erro de conexão com o servidor." }
         }
     }

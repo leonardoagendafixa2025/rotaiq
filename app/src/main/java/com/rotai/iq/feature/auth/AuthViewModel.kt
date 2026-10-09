@@ -71,8 +71,7 @@ class AuthViewModel(
     }
 
     fun updateServerUrl(context: android.content.Context, newUrl: String) {
-        com.rotai.iq.core.network.NetworkConfig.setCustomBaseUrl(context, newUrl)
-        authRepository.updateServerUrl(newUrl)
+        // No-op: servidor fixo na nuvem Vercel
     }
 
     // -------------------------------------------------------------

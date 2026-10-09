@@ -10,11 +10,11 @@ import json
 import time
 import uuid
 import urllib.request
-import urllib.error
 from datetime import datetime, timezone
+import os
 
-BASE_URL = "http://localhost:8000/api/v1"
-HEALTH_URL = "http://localhost:8000/health"
+BASE_URL = os.getenv("API_BASE_URL", "https://rotaiq-puce.vercel.app/api/v1")
+HEALTH_URL = os.getenv("HEALTH_URL", "https://rotaiq-puce.vercel.app/health")
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")

@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Checkbox
@@ -85,8 +84,6 @@ fun RegisterScreen(
 ) {
     val state by viewModel.registerState.collectAsState()
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
-    var showServerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.navEvents.collectLatest { event ->
@@ -120,38 +117,26 @@ fun RegisterScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Barra Superior: Voltar + Configurar Servidor
+            // Barra Superior: Voltar
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateBackToLogin() },
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onNavigateBackToLogin() }
-                ) {
-                    IconButton(onClick = onNavigateBackToLogin) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Voltar",
-                            tint = RotaTextPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Voltar ao Login",
-                        color = RotaTextSecondary,
-                        fontSize = 14.sp
-                    )
-                }
-
-                IconButton(onClick = { showServerDialog = true }) {
+                IconButton(onClick = onNavigateBackToLogin) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Configurar Servidor",
-                        tint = RotaOrangePrimary
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Voltar",
+                        tint = RotaTextPrimary
                     )
                 }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Voltar ao Login",
+                    color = RotaTextSecondary,
+                    fontSize = 14.sp
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -405,17 +390,6 @@ fun RegisterScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
-        }
-
-        if (showServerDialog) {
-            ServerConfigDialog(
-                currentUrl = viewModel.getCurrentServerUrl(context),
-                onDismiss = { showServerDialog = false },
-                onSaveUrl = { newUrl ->
-                    viewModel.updateServerUrl(context, newUrl)
-                }
-            )
         }
     }
 }
