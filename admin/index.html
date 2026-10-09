@@ -7,9 +7,8 @@
     <meta name="description" content="Backoffice Oficial do ROTA IQ - Gestão de Motoristas, Planos, Assinaturas e Configurações da Plataforma.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="apple-touch-icon" href="/favicon.png">
     <link rel="stylesheet" href="/admin/style.css">
 </head>
 <body>
@@ -531,6 +530,16 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Barra de Paginação de Campanhas -->
+                    <div class="pagination-bar" id="campaigns-pagination-bar" style="margin-top: 14px;">
+                        <div>Mostrando <span id="pagination-camp-current-count">0</span> de <span id="pagination-camp-total-count">0</span> campanhas</div>
+                        <div class="pagination-controls">
+                            <button class="btn-page" id="btn-camp-prev" onclick="changeCampaignPage(-1)" disabled>Anterior</button>
+                            <span id="pagination-camp-page-label">Página 1</span>
+                            <button class="btn-page" id="btn-camp-next" onclick="changeCampaignPage(1)" disabled>Próxima</button>
+                        </div>
                     </div>
                 </section>
             </main>

@@ -19,7 +19,50 @@ from typing import Optional, Dict, Any
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-JWT_SECRET = os.getenv("JWT_SECRET", "rota_iq_jwt_secret_production_key_994827103857")
+# Carregar .env se existir localmente
+_env_paths = [
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),
+    ".env"
+]
+for _p in _env_paths:
+    if os.path.exists(_p):
+        try:
+            with open(_p, "r", encoding="utf-8") as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if _line and not _line.startswith("#") and "=" in _line:
+                        _k, _v = _line.split("=", 1)
+                        _k = _k.strip()
+                        _v = _v.strip().strip('"').strip("'")
+                        if _k not in os.environ:
+                            os.environ[_k] = _v
+        except Exception:
+            pass
+
+_JWT_SECRET_RAW = os.getenv("JWT_SECRET", "")
+if not _JWT_SECRET_RAW or len(_JWT_SECRET_RAW) < 32:
+    import sys
+    _is_vercel = os.getenv("VERCEL") or os.getenv("VERCEL_ENV")
+    if _is_vercel or os.getenv("PRODUCTION"):
+        print(
+            "[ROTA IQ] FATAL: JWT_SECRET não configurado ou muito curto (mínimo 32 chars). "
+            "Configure a variável de ambiente JWT_SECRET no painel da Vercel.",
+            file=sys.stderr
+        )
+        # Não abortar em serverless (a função continuaria crashando em loop); 
+        # gerar segredo efêmero que invalida todos os tokens existentes ao reiniciar
+        import secrets as _sec
+        _JWT_SECRET_RAW = _sec.token_hex(32)
+    else:
+        # Em desenvolvimento local: falhar explicitamente para forçar configuração
+        raise RuntimeError(
+            "JWT_SECRET não configurado. Defina a variável de ambiente JWT_SECRET "
+            "com no mínimo 32 caracteres aleatórios. Exemplo: "
+            "export JWT_SECRET=$(python -c 'import secrets; print(secrets.token_hex(32))')"
+        )
+
+JWT_SECRET = _JWT_SECRET_RAW
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 REFRESH_TOKEN_EXPIRE_DAYS = 30

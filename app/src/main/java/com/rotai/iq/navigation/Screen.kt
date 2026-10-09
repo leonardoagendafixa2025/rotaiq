@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
@@ -32,4 +34,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Login : Screen("login", "Login", Icons.Default.Security)
     object Register : Screen("register", "Criar Conta", Icons.Default.Security)
     object ForgotPassword : Screen("forgot_password", "Recuperar Senha", Icons.Default.Security)
+    object ChangePassword : Screen("change_password", "Alterar Senha", Icons.Default.Lock)
+    object Profile : Screen("profile", "Meu Perfil", Icons.Default.Person)
+    object Onboarding : Screen("onboarding", "Boas-vindas", Icons.Default.DirectionsCar)
+    object Support : Screen("support", "Suporte & Ajuda", Icons.Default.Person)
 }

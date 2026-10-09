@@ -267,7 +267,19 @@ def test_11_sync_push(authenticated_driver):
     assert sync_data["acknowledged_fuel_count"] == 1
 
 def test_12_admin_metrics_real_data():
-    admin_resp = client.get("/api/v1/admin/metrics")
+    from app.auth import create_access_token
+    # 1. Sem credenciais deve retornar 401 Unauthorized (P1-008 Security Audit)
+    unauth_resp = client.get("/api/v1/admin/metrics")
+    assert unauth_resp.status_code == 401
+
+    # 2. Com credenciais de administrador deve retornar 200 e métricas reais
+    admin_token = create_access_token({
+        "sub": "admin@rotai.app",
+        "email": "admin@rotai.app",
+        "role": "SUPER_ADMIN",
+        "type": "access"
+    })
+    admin_resp = client.get("/api/v1/admin/metrics", headers={"Authorization": f"Bearer {admin_token}"})
     assert admin_resp.status_code == 200
     admin_data = admin_resp.json()
 

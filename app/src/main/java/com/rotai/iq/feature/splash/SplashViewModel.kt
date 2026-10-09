@@ -38,8 +38,11 @@ class SplashViewModel(
 
             when (status) {
                 SessionStatus.AUTHENTICATED -> {
-                    // Se onboarding estiver incompleto, poderia ir para onboarding; caso contrário, vai para Home
-                    _destination.emit(SplashDestination.Navigate(Screen.Dashboard.route))
+                    if (!authRepository.isOnboardingCompleted()) {
+                        _destination.emit(SplashDestination.Navigate(Screen.Onboarding.route))
+                    } else {
+                        _destination.emit(SplashDestination.Navigate(Screen.Dashboard.route))
+                    }
                 }
                 SessionStatus.NEEDS_REFRESH,
                 SessionStatus.UNAUTHENTICATED -> {

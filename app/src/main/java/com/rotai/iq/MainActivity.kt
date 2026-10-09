@@ -91,8 +91,8 @@ class MainActivity : ComponentActivity() {
         val dataUri = intent?.data
         val target = intent?.getStringExtra("deep_link_target") ?: dataUri?.toString()
         if (!target.isNullOrBlank()) {
-            Log.d(TAG, "Deep Link aberto pelo motorista: $target")
-            // A navegação do app interpreta a rota específica (rotaiq://subscription, etc.)
+            Log.d(TAG, "Deep Link recebido pelo motorista: $target")
+            com.rotai.iq.navigation.DeepLinkManager.handleDeepLink(target)
         }
     }
 }

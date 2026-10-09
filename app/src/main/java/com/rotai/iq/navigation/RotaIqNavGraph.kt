@@ -47,9 +47,13 @@ import com.rotai.iq.feature.subscription.SubscriptionPaywallViewModel
 import com.rotai.iq.feature.vehicle.VehicleScreen
 import com.rotai.iq.feature.vehicle.VehicleViewModel
 import com.rotai.iq.feature.auth.AuthViewModel
+import com.rotai.iq.feature.auth.ChangePasswordScreen
 import com.rotai.iq.feature.auth.ForgotPasswordScreen
 import com.rotai.iq.feature.auth.LoginScreen
+import com.rotai.iq.feature.auth.ProfileScreen
 import com.rotai.iq.feature.auth.RegisterScreen
+import com.rotai.iq.feature.onboarding.OnboardingScreen
+import com.rotai.iq.feature.onboarding.OnboardingViewModel
 import com.rotai.iq.feature.splash.SplashScreen
 import com.rotai.iq.feature.splash.SplashViewModel
 
@@ -62,12 +66,13 @@ fun RotaIqApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Rotas públicas (não exigem autenticação e não exibem a barra de navegação)
+    // Rotas sem barra de navegação inferior (Splash, Auth, Onboarding)
     val authRoutes = setOf(
         Screen.Splash.route,
         Screen.Login.route,
         Screen.Register.route,
-        Screen.ForgotPassword.route
+        Screen.ForgotPassword.route,
+        Screen.Onboarding.route
     )
     val shouldShowBottomBar = currentRoute !in authRoutes
 
@@ -80,6 +85,17 @@ fun RotaIqApp(
         androidx.compose.runtime.LaunchedEffect(currentRoute) {
             navController.navigate(Screen.Login.route) {
                 popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+    // Processamento de Deep Links em tempo de execução (P2-002)
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        DeepLinkManager.deepLinkEvents.collect { targetRoute ->
+            if (isAuthenticated || targetRoute in authRoutes) {
+                navController.navigate(targetRoute) {
+                    launchSingleTop = true
+                }
             }
         }
     }
@@ -221,6 +237,12 @@ fun RotaIqApp(
                     onNavigateToSubscription = {
                         navController.navigate(Screen.Subscription.route)
                     },
+                    onNavigateToChangePassword = {
+                        navController.navigate(Screen.ChangePassword.route)
+                    },
+                    onNavigateToProfile = {
+                        navController.navigate(Screen.Profile.route)
+                    },
                     onLogout = {
                         authVm.executeLogout()
                         navController.navigate(Screen.Login.route) {
@@ -284,7 +306,12 @@ fun RotaIqApp(
                 LoginScreen(
                     viewModel = vm,
                     onNavigateToHome = {
-                        navController.navigate(Screen.Dashboard.route) {
+                        val destination = if (app?.authRepository?.isOnboardingCompleted() == false) {
+                            Screen.Onboarding.route
+                        } else {
+                            Screen.Dashboard.route
+                        }
+                        navController.navigate(destination) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
@@ -301,7 +328,7 @@ fun RotaIqApp(
                 RegisterScreen(
                     viewModel = vm,
                     onNavigateToHome = {
-                        navController.navigate(Screen.Dashboard.route) {
+                        navController.navigate(Screen.Onboarding.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
@@ -317,6 +344,55 @@ fun RotaIqApp(
                     onNavigateBackToLogin = {
                         navController.popBackStack()
                     }
+                )
+            }
+            composable(Screen.ChangePassword.route) {
+                val vm: AuthViewModel = viewModel(factory = viewModelFactory)
+                ChangePasswordScreen(
+                    viewModel = vm,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(Screen.Onboarding.route) {
+                val vm: OnboardingViewModel = viewModel(factory = viewModelFactory)
+                OnboardingScreen(
+                    viewModel = vm,
+                    onFinishOnboarding = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(Screen.Profile.route) {
+                val authVm: AuthViewModel = viewModel(factory = viewModelFactory)
+                ProfileScreen(
+                    authViewModel = authVm,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToChangePassword = {
+                        navController.navigate(Screen.ChangePassword.route)
+                    },
+                    onNavigateToPrivacy = {
+                        navController.navigate(Screen.Privacy.route)
+                    },
+                    onNavigateToSupport = {
+                        navController.navigate(Screen.Support.route)
+                    },
+                    onLogout = {
+                        authVm.executeLogout()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(Screen.Support.route) {
+                com.rotai.iq.feature.support.SupportScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

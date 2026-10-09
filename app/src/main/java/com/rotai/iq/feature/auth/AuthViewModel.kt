@@ -371,6 +371,22 @@ class AuthViewModel(
         }
     }
 
+    fun getCachedProfile(): com.rotai.iq.core.network.UserSessionProfile? {
+        return authRepository.getCachedProfile()
+    }
+
+    fun resendVerification(email: String, onResult: ((Boolean, String) -> Unit)? = null) {
+        viewModelScope.launch {
+            val res = authRepository.verifyEmail(email)
+            if (res.isSuccess) {
+                onResult?.invoke(true, "E-mail de confirmação reenviado com sucesso!")
+            } else {
+                val err = res.exceptionOrNull()?.message ?: "Falha ao reenviar confirmação."
+                onResult?.invoke(false, err)
+            }
+        }
+    }
+
     // -------------------------------------------------------------
     // LOGOUT
     // -------------------------------------------------------------

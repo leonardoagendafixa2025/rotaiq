@@ -10,7 +10,7 @@ import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Optional, Tuple
 
-# Carregar .env se existir localmente (sem vazar segredos para o Git)
+# Carregar .env se existir localmente (não vazar segredos para o Git)
 _env_paths = [
     os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),
@@ -31,11 +31,27 @@ for _p in _env_paths:
         except Exception:
             pass
 
-import base64
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-_FALLBACK_KEY = base64.b64decode("c2Jfc2VjcmV0X2JyY1Q0VjJCS3FXN0ZPWjFxZ0FKeGdfX1o1WU56WUs=").decode("utf-8")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jkreduqzekllsmzxiugn.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", _FALLBACK_KEY)
+# Validação obrigatória: sem chave Supabase o sistema não pode operar
+if not SUPABASE_URL or not SUPABASE_KEY:
+    import sys
+    _missing = []
+    if not SUPABASE_URL:
+        _missing.append("SUPABASE_URL")
+    if not SUPABASE_KEY:
+        _missing.append("SUPABASE_KEY")
+    _msg = (
+        f"[ROTA IQ] FATAL: Variáveis de ambiente obrigatórias não configuradas: {', '.join(_missing)}. "
+        "Configure-as no painel da Vercel (Settings > Environment Variables) "
+        "ou no arquivo .env local."
+    )
+    print(_msg, file=sys.stderr)
+    # Em modo serverless não abortamos mas logamos o erro crítico;
+    # as operações de banco irão falhar com erro descritivo.
+    if not (os.getenv("VERCEL") or os.getenv("VERCEL_ENV")):
+        raise RuntimeError(_msg)
 
 class SupabaseClient:
 
@@ -223,12 +239,13 @@ class SupabaseClient:
         self,
         driver_id: str,
         limit: int = 50,
+        offset: int = 0,
         classification: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         filter_str = f"driver_id=eq.{driver_id}"
         if classification:
             filter_str += f"&classification=eq.{classification}"
-        return self._request(f"ride_evaluations?{filter_str}&order=evaluated_at.desc&limit={limit}")
+        return self._request(f"ride_evaluations?{filter_str}&order=evaluated_at.desc&limit={limit}&offset={offset}")
 
     def insert_evaluation(self, evaluation: Dict[str, Any]) -> Dict[str, Any]:
         rows = self._request("ride_evaluations", method="POST", data=evaluation, prefer="return=representation")

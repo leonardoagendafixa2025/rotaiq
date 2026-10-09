@@ -214,3 +214,17 @@ def test_10_admin_audit_logs(admin_token):
     assert "action" in first_log
     assert "admin_email" in first_log
     assert "created_at" in first_log
+
+
+def test_11_admin_telemetry_purge(admin_token):
+    """Verifica que o expurgo de telemetria LGPD é executado com sucesso por um admin."""
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    purge_resp = client.post("/api/v1/admin/telemetry/purge?retention_days=30", headers=headers)
+    assert purge_resp.status_code == 200
+    data = purge_resp.json()
+    assert data["success"] is True
+    assert data["retention_days"] == 30
+    assert "cutoff_timestamp" in data
+    assert "purged_count" in data
+    assert "executed_by" in data
+

@@ -77,3 +77,20 @@ O `RotaIqAccessibilityService` segue as políticas da Google Play Store:
 - **Filtro de Conteúdo**: O extrator de texto (`AccessibilityNodeExtractor`) apenas coleta nós públicos do cartão de oferta. Conteúdos de chats particulares, passageiros ou pagamentos são ignorados.
 - **Transparência**: Tela educativa prévia com solicitação explícita de permissão.
 - **Controle Total**: Switches instantâneos para pausar acessibilidade, HUD ou TTS a qualquer momento.
+
+---
+
+## 7. Encarregado pelo Tratamento de Dados Pessoais (DPO) & Bases Legais
+
+Em estrito atendimento ao **Artigo 41 da Lei Geral de Proteção de Dados (Lei nº 13.709/2018)**:
+
+### 7.1 Canal de Contato do DPO
+- **Encarregado Oficial**: Setor de Privacidade e Segurança ROTA IQ
+- **E-mail de Contato**: `dpo@rotai.app`
+- **Prazo de Atendimento**: Resposta e confirmação de solicitações de titulares (Art. 18) em até 15 dias corridos.
+
+### 7.2 Bases Legais Aplicáveis
+1. **Execução de Contrato (Art. 7º, V)**: Tratamento estritamente necessário para prestar o serviço de inteligência veicular, cálculo de custos por km e projeções de rentabilidade contratadas pelo motorista.
+2. **Consentimento Explícito (Art. 7º, I)**: Coleta voluntária e revogável de telemetria técnica de diagnóstico e contribuição com médias estatísticas agregadas de zonas de calor (Benchmarking).
+3. **Legítimo Interesse (Art. 7º, IX)**: Monitoramento de estabilidade e prevenção contra fraudes utilizando dados previamente anonimizados.
+

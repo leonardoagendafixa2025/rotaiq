@@ -20,6 +20,8 @@ data class PrivacySettingsUiState(
     val isExporting: Boolean = false,
     val isDeleting: Boolean = false,
     val showDeleteConfirmation: Boolean = false,
+    val deleteConfirmationText: String = "",
+    val deleteErrorMessage: String? = null,
     val feedbackMessage: String? = null
 )
 
@@ -50,6 +52,13 @@ class PrivacySettingsViewModel(
             val updated = current.copy(anonymousBenchmarkingOptIn = optIn)
             commercialRepository.saveLgpdConsent(updated)
         }
+    }
+
+    fun onDeleteConfirmationTextChanged(text: String) {
+        _uiState.value = _uiState.value.copy(
+            deleteConfirmationText = text,
+            deleteErrorMessage = null
+        )
     }
 
     fun exportDriverData() {
@@ -89,16 +98,37 @@ class PrivacySettingsViewModel(
     }
 
     fun promptDeleteAccount() {
-        _uiState.value = _uiState.value.copy(showDeleteConfirmation = true)
+        _uiState.value = _uiState.value.copy(
+            showDeleteConfirmation = true,
+            deleteConfirmationText = "",
+            deleteErrorMessage = null
+        )
     }
 
     fun dismissDeletePrompt() {
-        _uiState.value = _uiState.value.copy(showDeleteConfirmation = false)
+        _uiState.value = _uiState.value.copy(
+            showDeleteConfirmation = false,
+            deleteConfirmationText = "",
+            deleteErrorMessage = null
+        )
     }
 
     fun confirmDeleteAccountAndPurge() {
+        val input = _uiState.value.deleteConfirmationText.trim()
+        if (!input.equals("EXCLUIR", ignoreCase = true)) {
+            _uiState.value = _uiState.value.copy(
+                deleteErrorMessage = "Digite 'EXCLUIR' exatamente para autorizar a remoção permanente."
+            )
+            return
+        }
+
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isDeleting = true, showDeleteConfirmation = false)
+            _uiState.value = _uiState.value.copy(
+                isDeleting = true,
+                showDeleteConfirmation = false,
+                deleteConfirmationText = "",
+                deleteErrorMessage = null
+            )
             commercialRepository.purgeAllUserData()
             _uiState.value = _uiState.value.copy(
                 isDeleting = false,

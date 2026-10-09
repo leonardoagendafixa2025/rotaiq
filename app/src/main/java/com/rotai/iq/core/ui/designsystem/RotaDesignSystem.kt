@@ -356,8 +356,10 @@ fun RotaScore(
 
 @Composable
 fun RotaHeader(
-    driverName: String = "Leonardo",
+    driverName: String = "Motorista",
     isOnline: Boolean = true,
+    isSyncing: Boolean = false,
+    lastSyncTime: String? = null,
     notificationCount: Int = 2,
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
@@ -400,28 +402,49 @@ fun RotaHeader(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Status Online
+            // Status Online & Nuvem (P3-006)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isOnline) RotaExcellent.copy(alpha = 0.12f) else RotaTextTertiary.copy(alpha = 0.12f))
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Box(
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(if (isOnline) RotaExcellent else RotaTextTertiary)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (isOnline) "ONLINE" else "OFFLINE",
-                    color = if (isOnline) RotaExcellent else RotaTextSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
-                )
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isOnline) RotaExcellent.copy(alpha = 0.12f) else RotaTextTertiary.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(if (isOnline) RotaExcellent else RotaTextTertiary)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isOnline) "ONLINE" else "OFFLINE",
+                        color = if (isOnline) RotaExcellent else RotaTextSecondary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(RotaCardBackground)
+                        .border(0.5.dp, RotaBorderSubtle, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 7.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = if (isSyncing) "🔄 Sincronizando..." else (if (lastSyncTime != null) "✓ $lastSyncTime" else "✓ Sincronizado"),
+                        color = if (isSyncing) RotaOrangeLight else RotaTextTertiary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
 

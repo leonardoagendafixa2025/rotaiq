@@ -1276,6 +1276,11 @@ async function saveSetting(key) {
 // ==========================================================================
 
 let currentCampaignsStatusFilter = 'ALL';
+let campaignPagination = {
+    currentPage: 1,
+    totalPages: 1,
+    limit: 10
+};
 let currentAudienceStats = {
     total_users: 0,
     eligible_devices: 0,
@@ -1318,29 +1323,41 @@ async function loadCampaignsDashboard() {
  */
 function filterCampaignsByStatus(status, btnElement) {
     currentCampaignsStatusFilter = status;
+    campaignPagination.currentPage = 1;
     const pills = document.querySelectorAll('.status-filter-pills .pill-btn');
     pills.forEach(p => p.classList.remove('active'));
     if (btnElement) btnElement.classList.add('active');
-    loadCampaignsTable(status);
+    loadCampaignsTable(status, 1);
 }
 
 /**
- * Carrega a tabela de campanhas com filtros reais
+ * Altera a página de exibição de campanhas
  */
-async function loadCampaignsTable(filterStatus = null) {
+function changeCampaignPage(delta) {
+    const newPage = campaignPagination.currentPage + delta;
+    if (newPage >= 1 && newPage <= campaignPagination.totalPages) {
+        loadCampaignsTable(currentCampaignsStatusFilter, newPage);
+    }
+}
+
+/**
+ * Carrega a tabela de campanhas com paginação e filtros reais
+ */
+async function loadCampaignsTable(filterStatus = null, page = 1) {
     const tbody = document.getElementById('campaigns-table-body');
     if (!tbody) return;
 
     const status = filterStatus || currentCampaignsStatusFilter;
+    const targetPage = page || campaignPagination.currentPage || 1;
     tbody.innerHTML = `
         <tr><td colspan="9" style="padding: 14px;"><div class="skeleton" style="height: 38px; width: 100%; border-radius: 8px;"></div></td></tr>
         <tr><td colspan="9" style="padding: 14px;"><div class="skeleton" style="height: 38px; width: 100%; border-radius: 8px;"></div></td></tr>
     `;
 
     try {
-        let url = `${API_BASE_URL}/admin/campaigns`;
+        let url = `${API_BASE_URL}/admin/campaigns?paged=true&page=${targetPage}&limit=${campaignPagination.limit}`;
         if (status && status !== 'ALL') {
-            url += `?status=${encodeURIComponent(status)}`;
+            url += `&status=${encodeURIComponent(status)}`;
         }
 
         const response = await fetch(url, { headers: getAuthHeaders() });
@@ -1348,6 +1365,21 @@ async function loadCampaignsTable(filterStatus = null) {
 
         const data = await response.json();
         const campaigns = Array.isArray(data) ? data : (data.campaigns || data.items || []);
+        const total = data.total !== undefined ? data.total : campaigns.length;
+        campaignPagination.currentPage = data.page || targetPage;
+        campaignPagination.totalPages = data.total_pages || Math.max(1, Math.ceil(total / campaignPagination.limit));
+
+        const curCountEl = document.getElementById('pagination-camp-current-count');
+        const totCountEl = document.getElementById('pagination-camp-total-count');
+        const pageLabelEl = document.getElementById('pagination-camp-page-label');
+        const prevBtn = document.getElementById('btn-camp-prev');
+        const nextBtn = document.getElementById('btn-camp-next');
+
+        if (curCountEl) curCountEl.innerText = campaigns.length;
+        if (totCountEl) totCountEl.innerText = total;
+        if (pageLabelEl) pageLabelEl.innerText = `Página ${campaignPagination.currentPage} de ${campaignPagination.totalPages}`;
+        if (prevBtn) prevBtn.disabled = campaignPagination.currentPage <= 1;
+        if (nextBtn) nextBtn.disabled = campaignPagination.currentPage >= campaignPagination.totalPages;
 
         if (campaigns.length === 0) {
             tbody.innerHTML = `

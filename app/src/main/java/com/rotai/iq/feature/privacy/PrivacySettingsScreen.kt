@@ -3,6 +3,8 @@ package com.rotai.iq.feature.privacy
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -32,6 +35,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -240,6 +244,99 @@ fun PrivacySettingsScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Seção 4: Encarregado de Dados (DPO) e Bases Legais (Art. 41)
+            Text(
+                text = "ENCARREGADO DE PROTEÇÃO DE DADOS (DPO)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF78909C),
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF121826)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "Em conformidade com o Art. 41 da LGPD (Lei 13.709/2018), disponibilizamos canal direto com nosso Encarregado de Proteção de Dados para esclarecimento de dúvidas ou requisições formais sobre o tratamento de suas informações.",
+                        fontSize = 12.sp,
+                        color = Color(0xFFB0BEC5),
+                        lineHeight = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF0F141F), RoundedCornerShape(8.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Canal Oficial do DPO",
+                                fontSize = 11.sp,
+                                color = Color(0xFF78909C),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "dpo@rotai.app",
+                                fontSize = 14.sp,
+                                color = Color(0xFF00E5FF),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("DPO Email", "dpo@rotai.app")
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "E-mail do DPO copiado!", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copiar e-mail do DPO",
+                                tint = Color(0xFF00E5FF),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            val intent = Intent(
+                                Intent.ACTION_SENDTO,
+                                Uri.parse("mailto:dpo@rotai.app?subject=LGPD%20Direitos%20do%20Titular%20ROTA%20IQ")
+                            )
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Nenhum aplicativo de e-mail encontrado.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00E5FF))
+                    ) {
+                        Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(
+                            " Falar com o Encarregado (DPO)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(30.dp))
         }
 
@@ -300,7 +397,7 @@ fun PrivacySettingsScreen(
             )
         }
 
-        // Modal de Confirmação de Exclusão
+        // Modal de Confirmação de Exclusão com autorização explícita
         if (uiState.showDeleteConfirmation) {
             AlertDialog(
                 onDismissRequest = { viewModel.dismissDeletePrompt() },
@@ -309,16 +406,47 @@ fun PrivacySettingsScreen(
                     Text("Excluir Todos os Dados?", color = Color(0xFFFF1744), fontWeight = FontWeight.Bold)
                 },
                 text = {
-                    Text(
-                        text = "Esta ação é irreversível. Todos os seus registros de veículo, consumo, manutenção, metas e histórico de corridas serão apagados permanentemente deste aparelho.",
-                        color = Color(0xFFFFCDD2),
-                        fontSize = 13.sp
-                    )
+                    Column {
+                        Text(
+                            text = "Esta ação é irreversível. Todos os seus registros de veículo, consumo, manutenção, metas e histórico de corridas serão apagados permanentemente deste aparelho.",
+                            color = Color(0xFFFFCDD2),
+                            fontSize = 13.sp
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Para confirmar, digite a palavra EXCLUIR abaixo:",
+                            color = Color(0xFFEF9A9A),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        androidx.compose.material3.OutlinedTextField(
+                            value = uiState.deleteConfirmationText,
+                            onValueChange = { viewModel.onDeleteConfirmationTextChanged(it) },
+                            singleLine = true,
+                            placeholder = { Text("Digite EXCLUIR", color = Color(0xFF78909C)) },
+                            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFFFF1744),
+                                unfocusedBorderColor = Color(0xFFB71C1C),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        uiState.deleteErrorMessage?.let { err ->
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(text = err, color = Color(0xFFFF5252), fontSize = 11.sp)
+                        }
+                    }
                 },
                 confirmButton = {
                     Button(
                         onClick = { viewModel.confirmDeleteAccountAndPurge() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                        enabled = uiState.deleteConfirmationText.trim().equals("EXCLUIR", ignoreCase = true),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFD32F2F),
+                            disabledContainerColor = Color(0xFF4A1C1C)
+                        )
                     ) {
                         Text("Sim, Excluir Definitivamente")
                     }

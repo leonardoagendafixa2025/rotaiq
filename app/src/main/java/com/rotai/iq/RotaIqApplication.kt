@@ -77,6 +77,7 @@ class RotaIqApplication : Application() {
         featureGateManager = FeatureGateManager()
         lgpdManager = LgpdManager()
         telemetryManager = TelemetryManager()
+        com.rotai.iq.core.telemetry.RotaCrashReporter.install(this, telemetryManager)
         featureFlagManager = FeatureFlagManager()
         secureStorage = AndroidSecureStorage(this)
         authApiClient = com.rotai.iq.core.network.AuthApiClient(com.rotai.iq.core.network.NetworkConfig.getBaseUrl(this))

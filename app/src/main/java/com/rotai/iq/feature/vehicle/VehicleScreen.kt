@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
@@ -101,6 +102,8 @@ fun VehicleScreen(
     onNavigateToAutomation: () -> Unit = {},
     onNavigateToPrivacy: () -> Unit = {},
     onNavigateToSubscription: () -> Unit = {},
+    onNavigateToChangePassword: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -155,14 +158,50 @@ fun VehicleScreen(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column {
+                val cachedProfile = authViewModel?.getCachedProfile()
+                val driverDisplayName = cachedProfile?.fullName?.ifBlank { null } ?: "Motorista ROTA IQ"
+                val driverEmail = cachedProfile?.email ?: ""
+                val isEmailVerified = cachedProfile?.emailVerified ?: false
+
                 Text(
-                    text = "Motorista ROTA IQ",
+                    text = driverDisplayName,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
-                    color = RotaTextWhite
+                    color = RotaTextWhite,
+                    modifier = Modifier.clickable { onNavigateToProfile() }
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                if (driverEmail.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = driverEmail,
+                            fontSize = 12.sp,
+                            color = RotaTextSecondary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        if (isEmailVerified) {
+                            Text(
+                                text = "✓ Verificado",
+                                fontSize = 11.sp,
+                                color = RotaExcellent,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else {
+                            Text(
+                                text = "⚠️ Confirmar e-mail",
+                                fontSize = 11.sp,
+                                color = RotaOrangePrimary,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    authViewModel?.resendVerification(driverEmail)
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 val isTrialActive = subInfo.isTrialActive
                 val isTrialExpired = subInfo.isTrialExpired
@@ -416,6 +455,12 @@ fun VehicleScreen(
                 subtitle = menuSubSubtitle,
                 onClick = onNavigateToSubscription
             )
+            ProfileMenuRow(
+                icon = Icons.Default.Person,
+                title = "Meu Perfil",
+                subtitle = "Dados cadastrais e status da conta",
+                onClick = onNavigateToProfile
+            )
             HorizontalDivider(color = RotaBorderSubtle, thickness = 0.5.dp)
             ProfileMenuRow(
                 icon = Icons.Default.Lock,
@@ -423,7 +468,7 @@ fun VehicleScreen(
                 subtitle = "Atualizar sua senha de acesso",
                 onClick = {
                     authViewModel?.resetChangePasswordState()
-                    showChangePasswordDialog = true
+                    onNavigateToChangePassword()
                 }
             )
             HorizontalDivider(color = RotaBorderSubtle, thickness = 0.5.dp)

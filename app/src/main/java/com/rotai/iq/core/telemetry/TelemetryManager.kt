@@ -24,6 +24,8 @@ class TelemetryManager(
         const val EVENT_PIX_GENERATED = "pix_order_generated"
         const val EVENT_HUD_TRIGGERED = "hud_overlay_triggered"
         const val EVENT_LGPD_EXPORT_REQUESTED = "lgpd_export_requested"
+        const val EVENT_APP_CRASH = "app_crash"
+        const val EVENT_APP_ERROR = "app_error"
     }
 
     /**
@@ -46,6 +48,34 @@ class TelemetryManager(
             }
             eventQueue.add(event)
         }
+    }
+
+    /**
+     * Registra erro não fatal de aplicação de forma resiliente.
+     */
+    fun recordError(tag: String, message: String, throwable: Throwable? = null) {
+        val props = mutableMapOf(
+            "tag" to tag,
+            "message" to message
+        )
+        if (throwable != null) {
+            props["exception_type"] = throwable.javaClass.simpleName
+            props["exception_message"] = throwable.message ?: ""
+        }
+        recordEvent(EVENT_APP_ERROR, props)
+    }
+
+    /**
+     * Registra crash ou exceção não tratada na telemetria local para auditoria.
+     */
+    fun recordCrash(throwable: Throwable, isFatal: Boolean = true) {
+        val props = mapOf(
+            "exception_type" to throwable.javaClass.name,
+            "exception_message" to (throwable.message ?: "No message"),
+            "is_fatal" to isFatal.toString(),
+            "thread" to Thread.currentThread().name
+        )
+        recordEvent(EVENT_APP_CRASH, props)
     }
 
     fun getPendingEvents(): List<TelemetryEvent> {

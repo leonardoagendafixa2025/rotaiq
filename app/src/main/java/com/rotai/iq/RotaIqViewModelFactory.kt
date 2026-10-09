@@ -103,6 +103,13 @@ class RotaIqViewModelFactory(
                     throw IllegalStateException("Application must be RotaIqApplication")
                 }
             }
+            modelClass.isAssignableFrom(com.rotai.iq.feature.onboarding.OnboardingViewModel::class.java) -> {
+                if (app != null) {
+                    com.rotai.iq.feature.onboarding.OnboardingViewModel(repository, app.authRepository) as T
+                } else {
+                    throw IllegalStateException("Application must be RotaIqApplication")
+                }
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

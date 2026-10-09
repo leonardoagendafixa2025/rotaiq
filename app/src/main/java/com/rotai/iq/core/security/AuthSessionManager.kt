@@ -28,7 +28,7 @@ class AuthSessionManager(
     }
 
     fun saveSession(auth: AuthResponse) {
-        val expiresAt = System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY_MS
+        val expiresAt = extractExpirationMillis(auth.accessToken)
         secureStorage.saveString(KEY_ACCESS_TOKEN, auth.accessToken)
         secureStorage.saveString(KEY_REFRESH_TOKEN, auth.refreshToken)
         secureStorage.saveString(KEY_USER_ID, auth.userId)
@@ -40,9 +40,34 @@ class AuthSessionManager(
     }
 
     fun updateAccessToken(newAccessToken: String) {
-        val expiresAt = System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY_MS
+        val expiresAt = extractExpirationMillis(newAccessToken)
         secureStorage.saveString(KEY_ACCESS_TOKEN, newAccessToken)
         secureStorage.saveString(KEY_EXPIRES_AT, expiresAt.toString())
+    }
+
+    /**
+     * Decodifica a claim 'exp' do payload JWT para determinar a validade real do token.
+     * Caso o token não seja decodificável, utiliza fallback de 24 horas.
+     */
+    private fun extractExpirationMillis(jwtToken: String): Long {
+        try {
+            val parts = jwtToken.split(".")
+            if (parts.size >= 2) {
+                val payloadBytes = android.util.Base64.decode(
+                    parts[1],
+                    android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING
+                )
+                val jsonStr = String(payloadBytes, Charsets.UTF_8)
+                val jsonObj = org.json.JSONObject(jsonStr)
+                if (jsonObj.has("exp")) {
+                    val expSeconds = jsonObj.getLong("exp")
+                    return expSeconds * 1000L
+                }
+            }
+        } catch (e: Exception) {
+            // Fallback defensivo
+        }
+        return System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY_MS
     }
 
     fun getAccessToken(): String? {
@@ -78,7 +103,7 @@ class AuthSessionManager(
     }
 
     fun isOnboardingCompleted(): Boolean {
-        return secureStorage.getString(KEY_ONBOARDING_DONE)?.toBoolean() ?: true
+        return secureStorage.getString(KEY_ONBOARDING_DONE)?.toBoolean() ?: false
     }
 
     fun setOnboardingCompleted(completed: Boolean) {

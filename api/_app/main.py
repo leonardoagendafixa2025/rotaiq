@@ -8,8 +8,8 @@ REGRA ABSOLUTA: ZERO MOCKS NA PRODUÇÃO.
 Todos os dados retornados e persistidos são reais no PostgreSQL/Supabase.
 """
 
-from fastapi import FastAPI, HTTPException, status, Depends, Security
-from fastapi.responses import HTMLResponse, Response
+from fastapi import FastAPI, HTTPException, status, Depends, Security, Request
+from fastapi.responses import HTMLResponse, Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any
@@ -17,7 +17,12 @@ from datetime import datetime, timedelta, timezone
 import uuid
 import hashlib
 import os
+import time
+import logging
+from collections import defaultdict
 import mimetypes
+
+logger = logging.getLogger("rota_iq_backend")
 
 from .supabase_client import supabase
 from .auth import (
@@ -34,10 +39,26 @@ from .auth import (
     security
 )
 from .auth_service import auth_service
+from .email_service import email_service
 from fastapi.security import HTTPAuthorizationCredentials
 from .admin_service import AdminService, admin_store
 from .campaign_service import campaign_service
 from .push_service import push_service
+
+# Proteção contra ataques de força bruta e enumeração (P1-003)
+class RateLimiter:
+    def __init__(self):
+        self.attempts: Dict[str, List[float]] = defaultdict(list)
+
+    def is_rate_limited(self, key: str, max_attempts: int, window_seconds: int) -> bool:
+        now = time.time()
+        self.attempts[key] = [t for t in self.attempts[key] if now - t < window_seconds]
+        if len(self.attempts[key]) >= max_attempts:
+            return True
+        self.attempts[key].append(now)
+        return False
+
+rate_limiter = RateLimiter()
 
 
 app = FastAPI(
@@ -46,14 +67,66 @@ app = FastAPI(
     description="Backend oficial de produção do ROTA IQ - 'Inteligência para cada corrida'."
 )
 
-# Habilitar CORS para permitir comunicação segura com o aplicativo e futuros painéis
+# Origens CORS permitidas — configurar via variável de ambiente ALLOWED_ORIGINS
+# Separar múltiplas origens por vírgula: "https://a.com,https://b.com"
+_allowed_origins_env = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://rotaiq-puce.vercel.app,https://rota-iq.vercel.app"
+)
+_allowed_origins: list = [
+    o.strip() for o in _allowed_origins_env.split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Correlation-ID"],
+    expose_headers=["X-Correlation-ID"]
 )
+
+# ----------------------------------------------------------------------
+# TELEMETRIA E OBSERVABILIDADE (CORRELATION ID & GLOBAL EXCEPTION HANDLER)
+# ----------------------------------------------------------------------
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    corr_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    request.state.correlation_id = corr_id
+    response = await call_next(request)
+    response.headers["X-Correlation-ID"] = corr_id
+    return response
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    # Se for HTTPException nativo do FastAPI/Starlette, deixa o FastAPI responder seu status correto
+    if isinstance(exc, HTTPException):
+        raise exc
+
+    corr_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
+    logger.error(
+        f"[UNHANDLED_EXCEPTION] correlation_id={corr_id} path={request.url.path} method={request.method} error={exc}",
+        exc_info=True
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Erro interno do servidor. O incidente foi registrado com sucesso.",
+            "error_code": "INTERNAL_SERVER_ERROR",
+            "correlation_id": corr_id
+        },
+        headers={"X-Correlation-ID": corr_id}
+    )
+
+# Suporte opcional ao Sentry
+_sentry_dsn = os.getenv("SENTRY_DSN")
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        sentry_sdk.init(dsn=_sentry_dsn, traces_sample_rate=0.2)
+        logger.info("[TELEMETRY] Sentry ativado com sucesso para monitoramento em produção.")
+    except Exception as _e:
+        logger.warning(f"[TELEMETRY] Falha ao inicializar Sentry: {_e}")
 
 # ======================================================================
 # DTOs / SCHEMAS PYDANTIC
@@ -142,6 +215,7 @@ class VehicleCostsUpdateRequest(BaseModel):
     monthly_depreciation: float = 0.0
     monthly_other_costs: float = 0.0
     estimated_monthly_km: float = Field(default=3000.0, gt=0.0)
+    average_speed_kmh: Optional[float] = 25.0
 
 class VehicleCostsResponse(BaseModel):
     vehicle_id: str
@@ -153,6 +227,7 @@ class VehicleCostsResponse(BaseModel):
     daily_fixed_cost: float
     monthly_fixed_cost: float
     annual_estimated_cost: float
+    average_speed_kmh: Optional[float] = 25.0
 
 # --- Combustível, Manutenção & Despesas ---
 class FuelRecordCreateRequest(BaseModel):
@@ -371,6 +446,40 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
+@app.get("/api/v1/app/version-check")
+async def app_version_check(
+    current_version: str = "1.0.0",
+    platform: str = "android"
+):
+    """
+    Verifica a versão atual do app contra a versão mínima exigida (Force-Update).
+    Se o app do motorista estiver abaixo da min_version, retorna force_update=True.
+    """
+    latest_version = os.getenv("APP_LATEST_VERSION", "1.0.0")
+    min_version = os.getenv("APP_MIN_VERSION", "1.0.0")
+    
+    def parse_semver(v: str):
+        try:
+            return [int(x) for x in v.split(".")]
+        except Exception:
+            return [1, 0, 0]
+
+    curr_parts = parse_semver(current_version)
+    min_parts = parse_semver(min_version)
+    needs_force_update = curr_parts < min_parts
+
+    return {
+        "platform": platform,
+        "current_version": current_version,
+        "latest_version": latest_version,
+        "min_supported_version": min_version,
+        "force_update": needs_force_update,
+        "recommended_update": curr_parts < parse_semver(latest_version),
+        "update_url": "https://rotaiq-puce.vercel.app/download",
+        "release_notes": "Versão 1.0.0 oficial do ROTA IQ com Copiloto e Inteligência de Corridas.",
+        "server_time": datetime.now(timezone.utc).isoformat()
+    }
+
 @app.get("/api/v1/supabase/status")
 async def supabase_status():
     try:
@@ -466,7 +575,14 @@ async def register(req: RegisterRequest):
     )
 
     # Registro de Verificação de E-mail
-    auth_service.register_email_verification(clean_email)
+    verif_token = auth_service.register_email_verification(clean_email)
+
+    # Disparo de e-mails reais via SendGrid (P1-001 e P1-002)
+    try:
+        email_service.send_welcome_email(clean_email, name)
+        email_service.send_email_verification(clean_email, verif_token, name)
+    except Exception as _em_err:
+        print(f"[Auth Register] Aviso ao enviar e-mails SendGrid: {_em_err}")
 
     # Gerar Tokens JWT
     claims = {
@@ -489,8 +605,20 @@ async def register(req: RegisterRequest):
     )
 
 @app.post("/api/v1/auth/login", response_model=AuthResponse)
-async def login(req: LoginRequest):
+async def login(req: LoginRequest, request: Request):
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
     clean_email = req.email.strip().lower()
+
+    # Rate limiting: max 10 tentativas por minuto por IP/email (P1-003)
+    if rate_limiter.is_rate_limited(f"login_{client_ip}_{clean_email}", max_attempts=10, window_seconds=60):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas de login. Aguarde um momento antes de tentar novamente."
+        )
+
     user = supabase.get_user_by_email(clean_email)
     if not user:
         raise HTTPException(
@@ -552,8 +680,20 @@ async def refresh_token_endpoint(req: RefreshTokenRequest):
     return RefreshTokenResponse(access_token=create_access_token(new_claims))
 
 @app.post("/api/v1/auth/forgot-password")
-async def forgot_password(req: ForgotPasswordRequest):
+async def forgot_password(req: ForgotPasswordRequest, request: Request):
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
     clean_email = req.email.strip().lower()
+
+    # Rate limiting: max 5 solicitações a cada 15 min por IP/email (P1-003)
+    if rate_limiter.is_rate_limited(f"forgot_{client_ip}_{clean_email}", max_attempts=5, window_seconds=900):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas solicitações de recuperação. Aguarde alguns minutos."
+        )
+
     user = supabase.get_user_by_email(clean_email)
     if not user:
         # Prevenção contra enumeração de e-mails
@@ -564,11 +704,27 @@ async def forgot_password(req: ForgotPasswordRequest):
 
     reset_token = auth_service.create_password_reset_token(clean_email)
     print(f"[AUTH PASSWORD RESET] Token gerado para {clean_email}: {reset_token}")
-    return {
+
+    # Envio real do e-mail com o token/código via SendGrid (P1-001)
+    try:
+        email_service.send_password_reset_email(
+            to_email=clean_email,
+            reset_token=reset_token,
+            user_name=user.get("full_name")
+        )
+    except Exception as _em_err:
+        print(f"[Auth ForgotPassword] Falha ao enviar e-mail via SendGrid: {_em_err}")
+
+    response_payload = {
         "success": True,
-        "message": "Enviamos as instruções de recuperação para seu e-mail.",
-        "reset_token": reset_token
+        "message": "Enviamos as instruções de recuperação para seu e-mail."
     }
+    # Em produção na Vercel o token é enviado exclusivamente via e-mail (P1-001)
+    # Em desenvolvimento local e testes automatizados, disponibiliza para validação das suítes
+    if not os.getenv("VERCEL"):
+        response_payload["reset_token"] = reset_token
+
+    return response_payload
 
 @app.post("/api/v1/auth/reset-password")
 async def reset_password(req: ResetPasswordRequest):
@@ -681,11 +837,25 @@ async def resend_verification(req: ResendVerificationRequest):
             detail="Usuário não encontrado."
         )
     token = auth_service.register_email_verification(clean_email)
-    return {
+
+    # Envio real via SendGrid (P1-002)
+    try:
+        email_service.send_email_verification(
+            to_email=clean_email,
+            verification_token=token,
+            user_name=user.get("full_name")
+        )
+    except Exception as _em_err:
+        print(f"[Auth ResendVerification] Falha ao enviar e-mail via SendGrid: {_em_err}")
+
+    response_payload = {
         "success": True,
-        "message": "Link de confirmação reenviado para seu e-mail.",
-        "verification_token": token
+        "message": "Link de confirmação reenviado para seu e-mail."
     }
+    if not os.getenv("VERCEL"):
+        response_payload["verification_token"] = token
+
+    return response_payload
 
 @app.post("/api/v1/auth/logout")
 async def logout(
@@ -788,7 +958,9 @@ async def get_vehicle_costs_calculation(vehicle_id: str, claims: Dict[str, Any] 
     fixed_km = (total_monthly_fixed / monthly_km) if monthly_km > 0 else 0.0
     total_km = fuel_km + maint_km + fixed_km
 
-    avg_speed = 25.0 # km/h urbana
+    avg_speed = float(costs.get("average_speed_kmh") or costs.get("avg_speed_kmh") or v.get("avg_speed_kmh") or 25.0)
+    if avg_speed <= 0.0:
+        avg_speed = 25.0
     cost_per_hour = total_km * avg_speed
     daily_fixed = total_monthly_fixed / 30.0
     annual_fixed = total_monthly_fixed * 12.0
@@ -803,7 +975,8 @@ async def get_vehicle_costs_calculation(vehicle_id: str, claims: Dict[str, Any] 
         cost_per_hour_estimated=round(cost_per_hour, 2),
         daily_fixed_cost=round(daily_fixed, 2),
         monthly_fixed_cost=round(total_monthly_fixed, 2),
-        annual_estimated_cost=round(annual_fixed + annual_variable, 2)
+        annual_estimated_cost=round(annual_fixed + annual_variable, 2),
+        average_speed_kmh=round(avg_speed, 1)
     )
 
 @app.put("/api/v1/vehicles/{vehicle_id}/costs")
@@ -818,7 +991,8 @@ async def update_vehicle_costs(
         "annual_taxes_cost": req.annual_taxes_cost,
         "monthly_depreciation": req.monthly_depreciation,
         "monthly_other_costs": req.monthly_other_costs,
-        "estimated_monthly_km": req.estimated_monthly_km
+        "estimated_monthly_km": req.estimated_monthly_km,
+        "average_speed_kmh": req.average_speed_kmh or 25.0
     }
     return supabase.upsert_vehicle_costs(payload)
 
@@ -984,9 +1158,10 @@ async def get_goal_coaching(claims: Dict[str, Any] = Depends(get_current_user_cl
 async def evaluate_ride_offer(req: RideEvaluateRequest, claims: Dict[str, Any] = Depends(get_current_user_claims)):
     driver_id = claims.get("driver_id")
     vehicle = supabase.get_active_vehicle(driver_id)
+    goal = supabase.get_driver_goal(driver_id) or {}
 
-    # Determinar custo por km real
-    cost_per_km = 0.71 # Custo padrão de referência se não configurado
+    # Determinar custo por km real do veículo
+    cost_per_km = 0.71  # Custo padrão de referência se não configurado
     if vehicle:
         consumption = float(vehicle.get("consumption_km_per_liter") or 11.0)
         fuel_price = float(vehicle.get("fuel_price_per_liter") or 5.89)
@@ -995,46 +1170,99 @@ async def evaluate_ride_offer(req: RideEvaluateRequest, claims: Dict[str, Any] =
         fixed_km = 0.14
         cost_per_km = fuel_km + maint + fixed_km
 
-    total_dist = req.distance_km + req.pickup_distance_km
-    total_duration = req.duration_minutes + req.pickup_duration_minutes
+    total_dist = max(0.1, req.distance_km + req.pickup_distance_km)
+    total_duration = max(1.0, req.duration_minutes + req.pickup_duration_minutes)
     estimated_cost = round(total_dist * cost_per_km, 2)
     net_profit = round(req.gross_fare - estimated_cost, 2)
     margin_pct = round((net_profit / req.gross_fare * 100.0), 1) if req.gross_fare > 0 else 0.0
 
-    gross_km = round(req.gross_fare / total_dist, 2) if total_dist > 0 else 0.0
-    net_km = round(net_profit / total_dist, 2) if total_dist > 0 else 0.0
-    duration_hours = (total_duration / 60.0) if total_duration > 0 else 0.1
+    gross_km = round(req.gross_fare / total_dist, 2)
+    net_km = round(net_profit / total_dist, 2)
+    duration_hours = max(0.016, total_duration / 60.0)
     gross_hour = round(req.gross_fare / duration_hours, 2)
     net_hour = round(net_profit / duration_hours, 2)
 
-    # Score Multifatorial (0 a 100)
-    score = 50
+    # Metas dinâmicas do motorista
+    target_hourly = float(goal.get("target_hourly_rate") or 45.0)
+    target_km = float(goal.get("target_km_rate") or 2.40)
+
+    # Score Multifatorial em paridade com RideEvaluationEngine.kt
+    score = 50.0
     reasons = []
     alerts = []
 
-    if gross_km >= 2.50:
-        score += 25
-        reasons.append(f"Ótimo valor por km: R$ {gross_km:.2f}/km")
-    elif gross_km < 1.60:
-        score -= 25
-        alerts.append(f"Valor por km baixo: R$ {gross_km:.2f}/km")
+    # Fator 1: Rentabilidade por Hora
+    hourly_ratio = gross_hour / target_hourly if target_hourly > 0 else 1.0
+    if hourly_ratio >= 1.5:
+        score += 25.0
+        reasons.append(f"✓ Excelente retorno por hora: R$ {gross_hour:.2f}/h")
+    elif hourly_ratio >= 1.15:
+        score += 18.0
+        reasons.append(f"✓ Acima da meta horária: R$ {gross_hour:.2f}/h")
+    elif hourly_ratio >= 0.95:
+        score += 5.0
+        reasons.append(f"✓ Alinhado à meta horária: R$ {gross_hour:.2f}/h")
+    elif hourly_ratio >= 0.70:
+        score -= 15.0
+        alerts.append(f"⚠️ Retorno por hora abaixo do ideal: R$ {gross_hour:.2f}/h")
+    else:
+        score -= 30.0
+        alerts.append(f"⛔ Retorno por hora muito baixo: R$ {gross_hour:.2f}/h")
 
-    if net_hour >= 45.0:
-        score += 25
-        reasons.append(f"Lucro por hora excelente: R$ {net_hour:.2f}/h")
-    elif net_hour < 25.0:
-        score -= 20
-        alerts.append(f"Lucro por hora abaixo do piso: R$ {net_hour:.2f}/h")
+    # Fator 2: Rentabilidade por Quilômetro
+    km_ratio = gross_km / target_km if target_km > 0 else 1.0
+    if km_ratio >= 1.4:
+        score += 20.0
+        reasons.append(f"✓ Excelente relação valor/distância: R$ {gross_km:.2f}/km")
+    elif km_ratio >= 1.1:
+        score += 12.0
+        reasons.append(f"✓ Boa relação valor/distância: R$ {gross_km:.2f}/km")
+    elif km_ratio >= 0.90:
+        score += 2.0
+    elif km_ratio >= 0.70:
+        score -= 15.0
+        alerts.append(f"⚠️ Valor por km abaixo do recomendado: R$ {gross_km:.2f}/km")
+    else:
+        score -= 25.0
+        alerts.append(f"⛔ Corrida paga muito pouco por km: R$ {gross_km:.2f}/km")
 
-    if req.pickup_distance_km > (req.distance_km * 0.4):
-        score -= 15
-        alerts.append("Deslocamento vazio até passageiro excessivo")
+    # Fator 3: Deslocamento até o Passageiro (Deadhead)
+    pickup_ratio = (req.pickup_distance_km / req.distance_km) if req.distance_km > 0 else 1.0
+    if req.pickup_distance_km <= 1.0:
+        score += 10.0
+        reasons.append(f"✓ Passageiro muito próximo: {req.pickup_distance_km:.1f} km")
+    elif req.pickup_distance_km > 4.0:
+        score -= 20.0
+        alerts.append(f"⚠️ Passageiro distante: {req.pickup_distance_km:.1f} km até o embarque")
+    elif pickup_ratio > 0.40:
+        score -= 15.0
+        alerts.append(f"⚠️ Deslocamento vazio consome {pickup_ratio * 100:.0f}% da viagem")
 
-    score = max(0, min(100, score))
+    # Fator 4: Custo do Veículo e Margem Líquida
+    if margin_pct >= 75.0:
+        score += 10.0
+        reasons.append(f"✓ Margem líquida muito alta: {margin_pct:.0f}%")
+    elif margin_pct >= 60.0:
+        score += 5.0
+        reasons.append(f"✓ Margem líquida saudável: {margin_pct:.0f}%")
+    elif 0.0 < margin_pct < 40.0:
+        score -= 18.0
+        alerts.append(f"⚠️ Custo operacional consome a maior parte (R$ {estimated_cost:.2f})")
+    elif net_profit <= 0.0:
+        score -= 35.0
+        alerts.append(f"⛔ Prejuízo financeiro: Custo (R$ {estimated_cost:.2f}) maior que a corrida!")
 
-    if score >= 85:
+    # Fator 5: Paradas Intermediárias
+    stops_count = getattr(req, "stops_count", 0) or 0
+    if stops_count > 0:
+        score -= stops_count * 8.0
+        alerts.append(f"⚠️ Viagem com {stops_count} parada(s) intermediária(s)")
+
+    score = int(max(0, min(100, round(score))))
+
+    if score >= 75:
         classification = "EXCELLENT"
-    elif score >= 70:
+    elif score >= 65:
         classification = "GOOD"
     elif score >= 50:
         classification = "ACCEPTABLE"
@@ -1086,11 +1314,14 @@ async def save_ride_evaluation(req: RideSaveRequest, claims: Dict[str, Any] = De
 @app.get("/api/v1/rides/history")
 async def get_rides_history(
     limit: int = 50,
+    page: int = 1,
+    offset: Optional[int] = None,
     classification: Optional[str] = None,
     claims: Dict[str, Any] = Depends(get_current_user_claims)
 ):
     driver_id = claims.get("driver_id")
-    return supabase.get_evaluations(driver_id, limit=limit, classification=classification)
+    actual_offset = offset if offset is not None else max(0, (page - 1) * limit)
+    return supabase.get_evaluations(driver_id, limit=limit, offset=actual_offset, classification=classification)
 
 # ======================================================================
 # 7. DASHBOARD FINANCEIRO CONSOLIDADO REAL
@@ -1312,7 +1543,10 @@ async def sync_push(payload: SyncPushRequest, claims: Dict[str, Any] = Depends(g
 # ======================================================================
 
 @app.get("/api/v1/admin/metrics", response_model=AdminMetricsResponse)
-async def get_real_admin_metrics():
+async def get_real_admin_metrics(
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """Retorna métricas executivas reais do PostgreSQL. Requer autenticação de administrador."""
     # Executa contagens REAIS no banco de dados
     total_users = supabase.count_table("users")
     total_drivers = supabase.count_table("drivers")
@@ -1738,6 +1972,43 @@ async def ingest_telemetry_batch(batch: TelemetryBatchRequest):
     supabase.insert_telemetry_batch(records)
     return {"success": True, "ingested_count": len(records)}
 
+@app.post("/api/v1/admin/telemetry/purge")
+async def purge_expired_telemetry_endpoint(
+    retention_days: int = 30,
+    claims: Dict[str, Any] = Depends(require_admin_claims)
+):
+    """
+    Executa o expurgo de registros de telemetria que ultrapassaram a janela de retenção (LGPD Art. 16).
+    Requer privilégios administrativos.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    cutoff_iso = cutoff.isoformat()
+
+    purged_count = 0
+    try:
+        rpc_res = supabase.rpc("purge_expired_telemetry", {"retention_days": retention_days})
+        if rpc_res and isinstance(rpc_res, list) and len(rpc_res) > 0:
+            purged_count = rpc_res[0].get("deleted_events", 0)
+        else:
+            del_res = supabase.delete("sanitized_telemetry_events", {"received_at": f"lt.{cutoff_iso}"})
+            purged_count = len(del_res) if isinstance(del_res, list) else 0
+    except Exception as e:
+        logger.warning(f"[TELEMETRY_PURGE] Fallback acionado para expurgo de telemetria: {e}")
+        try:
+            del_res = supabase.delete("sanitized_telemetry_events", {"received_at": f"lt.{cutoff_iso}"})
+            purged_count = len(del_res) if isinstance(del_res, list) else 0
+        except Exception:
+            purged_count = 0
+
+    return {
+        "success": True,
+        "message": f"Expurgo de telemetria concluído para registros com mais de {retention_days} dias.",
+        "retention_days": retention_days,
+        "cutoff_timestamp": cutoff_iso,
+        "purged_count": purged_count,
+        "executed_by": claims.get("email", "admin")
+    }
+
 # ======================================================================
 # 14. MONETIZAÇÃO, PLANOS PRO E CHECKOUT PIX / GOOGLE PLAY
 # ======================================================================
@@ -2081,19 +2352,42 @@ async def get_campaigns_dashboard_stats(claims: Dict[str, Any] = Depends(require
 async def list_campaigns_endpoint(
     status: Optional[str] = None,
     type: Optional[str] = None,
+    page: int = 1,
+    limit: int = 10,
+    paged: bool = False,
     claims: Dict[str, Any] = Depends(require_admin_claims)
 ):
-    """Lista todas as campanhas cadastradas com filtros de status e tipo."""
+    """Lista todas as campanhas cadastradas com filtros de status, tipo e suporte a paginação."""
+    import math
     camps = campaign_service.list_campaigns(status=status, type=type)
     for c in camps:
         c["recipient_count"] = c.get("total_recipients", 0)
         c["sent_count"] = c.get("total_sent", 0)
         c["failure_count"] = c.get("total_failed", 0)
         c["open_count"] = c.get("total_opened", 0)
+    
+    total = len(camps)
+    if paged:
+        page = max(1, page)
+        limit = max(1, limit)
+        total_pages = max(1, math.ceil(total / limit))
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        paginated_camps = camps[start_idx:end_idx]
+        return {
+            "campaigns": paginated_camps,
+            "items": paginated_camps,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages
+        }
     return {
         "campaigns": camps,
-        "total": len(camps),
-        "items": camps
+        "total": total,
+        "items": camps,
+        "page": 1,
+        "total_pages": 1
     }
 
 @app.post("/api/v1/admin/campaigns/audience-preview")

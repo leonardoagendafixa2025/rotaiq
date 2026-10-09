@@ -531,6 +531,16 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Barra de Paginação de Campanhas -->
+                    <div class="pagination-bar" id="campaigns-pagination-bar" style="margin-top: 14px;">
+                        <div>Mostrando <span id="pagination-camp-current-count">0</span> de <span id="pagination-camp-total-count">0</span> campanhas</div>
+                        <div class="pagination-controls">
+                            <button class="btn-page" id="btn-camp-prev" onclick="changeCampaignPage(-1)" disabled>Anterior</button>
+                            <span id="pagination-camp-page-label">Página 1</span>
+                            <button class="btn-page" id="btn-camp-next" onclick="changeCampaignPage(1)" disabled>Próxima</button>
+                        </div>
+                    </div>
                 </section>
             </main>
         </div>
