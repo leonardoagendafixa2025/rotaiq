@@ -5,6 +5,7 @@ import com.rotai.iq.core.data.repository.AuthRepository
 import com.rotai.iq.core.data.repository.SessionStatus
 import com.rotai.iq.core.network.AuthResponse
 import com.rotai.iq.core.network.UserSessionProfile
+import com.rotai.iq.core.network.ForgotPasswordResult
 import com.rotai.iq.feature.auth.AuthNavEvent
 import com.rotai.iq.feature.auth.AuthViewModel
 import kotlinx.coroutines.Dispatchers
@@ -77,12 +78,20 @@ class FakeAuthRepository : AuthRepository {
         return currentStatus
     }
 
-    override suspend fun forgotPassword(email: String): Result<String> {
-        return Result.success("Instruções de recuperação enviadas.")
+    override suspend fun forgotPassword(email: String): Result<ForgotPasswordResult> {
+        return Result.success(ForgotPasswordResult("Instruções de recuperação enviadas.", "fake_token_reset_999"))
     }
 
     override suspend fun resetPassword(token: String, newPassword: String): Result<String> {
         return Result.success("Senha alterada com sucesso!")
+    }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<String> {
+        return if (currentPassword == "SenhaAtual123") {
+            Result.success("Senha alterada com sucesso!")
+        } else {
+            Result.failure(Exception("Senha atual informada está incorreta."))
+        }
     }
 
     override suspend fun verifyEmail(tokenOrEmail: String): Result<String> {
@@ -245,5 +254,58 @@ class AuthViewModelTest {
         assertThat(navEvent).isEqualTo(AuthNavEvent.NavigateToHome)
         assertThat(viewModel.registerState.value.successMessage).contains("link de confirmação")
         job.cancel()
+    }
+
+    @Test
+    fun forgotPassword_withValidEmail_populatesTokenAndMessage() = runTest {
+        viewModel.onForgotEmailChanged("motorista@rotai.com.br")
+        viewModel.requestPasswordReset()
+        advanceUntilIdle()
+
+        val state = viewModel.forgotState.value
+        assertThat(state.isCodeSent).isTrue()
+        assertThat(state.token).isEqualTo("fake_token_reset_999")
+        assertThat(state.infoMessage).isEqualTo("Instruções de recuperação enviadas.")
+    }
+
+    @Test
+    fun changePassword_validationAndSuccess() = runTest {
+        // 1. Senha atual vazia
+        viewModel.onChangeCurrentPasswordChanged("")
+        viewModel.onChangeNewPasswordChanged("NovaSenhaForte123")
+        viewModel.onChangeConfirmPasswordChanged("NovaSenhaForte123")
+        viewModel.executeChangePassword()
+        assertThat(viewModel.changePasswordState.value.errorMessage).isEqualTo("Informe sua senha atual.")
+
+        // 2. Nova senha muito curta
+        viewModel.onChangeCurrentPasswordChanged("SenhaAtual123")
+        viewModel.onChangeNewPasswordChanged("curta")
+        viewModel.onChangeConfirmPasswordChanged("curta")
+        viewModel.executeChangePassword()
+        assertThat(viewModel.changePasswordState.value.errorMessage).isEqualTo("A nova senha deve possuir no mínimo 8 caracteres.")
+
+        // 3. Nova senha igual à atual
+        viewModel.onChangeCurrentPasswordChanged("SenhaAtual123")
+        viewModel.onChangeNewPasswordChanged("SenhaAtual123")
+        viewModel.onChangeConfirmPasswordChanged("SenhaAtual123")
+        viewModel.executeChangePassword()
+        assertThat(viewModel.changePasswordState.value.errorMessage).isEqualTo("A nova senha deve ser diferente da senha atual.")
+
+        // 4. Confirmação diferente
+        viewModel.onChangeCurrentPasswordChanged("SenhaAtual123")
+        viewModel.onChangeNewPasswordChanged("NovaSenhaForte123")
+        viewModel.onChangeConfirmPasswordChanged("OutraSenhaForte456")
+        viewModel.executeChangePassword()
+        assertThat(viewModel.changePasswordState.value.errorMessage).isEqualTo("A confirmação de senha não confere.")
+
+        // 5. Sucesso
+        viewModel.onChangeConfirmPasswordChanged("NovaSenhaForte123")
+        var callbackSuccessCalled = false
+        viewModel.executeChangePassword { callbackSuccessCalled = true }
+        advanceUntilIdle()
+
+        val state = viewModel.changePasswordState.value
+        assertThat(state.successMessage).isEqualTo("Senha alterada com sucesso!")
+        assertThat(callbackSuccessCalled).isTrue()
     }
 }

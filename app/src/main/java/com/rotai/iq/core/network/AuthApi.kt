@@ -37,6 +37,11 @@ data class UserSessionProfile(
     val emailVerified: Boolean = false
 )
 
+data class ForgotPasswordResult(
+    val message: String,
+    val resetToken: String? = null
+)
+
 class AuthApiClient(
     private var baseUrl: String = NetworkConfig.getBaseUrl()
 ) {
@@ -135,7 +140,7 @@ class AuthApiClient(
         }
     }
 
-    suspend fun forgotPassword(email: String): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun forgotPassword(email: String): Result<ForgotPasswordResult> = withContext(Dispatchers.IO) {
         try {
             val payload = JSONObject().apply {
                 put("email", email.trim().lowercase())
@@ -143,7 +148,10 @@ class AuthApiClient(
             val (code, responseBody) = sendPostRequest("/auth/forgot-password", payload.toString(), null)
             if (code in 200..299) {
                 val json = JSONObject(responseBody)
-                Result.success(json.optString("message", "Instruções enviadas com sucesso."))
+                val msg = json.optString("message", "Instruções enviadas com sucesso.")
+                val rawToken = json.optString("reset_token", "").trim()
+                val token = if (rawToken.isNotEmpty()) rawToken else null
+                Result.success(ForgotPasswordResult(message = msg, resetToken = token))
             } else {
                 Result.failure(Exception(parseErrorMessage(responseBody, "Erro ao solicitar recuperação.")))
             }
@@ -164,6 +172,24 @@ class AuthApiClient(
                 Result.success(json.optString("message", "Senha alterada com sucesso!"))
             } else {
                 Result.failure(Exception(parseErrorMessage(responseBody, "Token inválido ou expirado.")))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(formatNetworkException(e)))
+        }
+    }
+
+    suspend fun changePassword(token: String, currentPassword: String, newPassword: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val payload = JSONObject().apply {
+                put("current_password", currentPassword)
+                put("new_password", newPassword)
+            }
+            val (code, responseBody) = sendPostRequest("/auth/change-password", payload.toString(), token)
+            if (code in 200..299) {
+                val json = JSONObject(responseBody)
+                Result.success(json.optString("message", "Senha alterada com sucesso!"))
+            } else {
+                Result.failure(Exception(parseErrorMessage(responseBody, "Erro ao alterar senha.")))
             }
         } catch (e: Exception) {
             Result.failure(Exception(formatNetworkException(e)))

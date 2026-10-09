@@ -26,16 +26,22 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
@@ -53,7 +59,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rotai.iq.core.ui.designsystem.RotaButton
@@ -77,11 +86,13 @@ import com.rotai.iq.core.ui.theme.RotaTextPrimary
 import com.rotai.iq.core.ui.theme.RotaTextSecondary
 import com.rotai.iq.core.ui.theme.RotaTextTertiary
 import com.rotai.iq.core.ui.theme.RotaTextWhite
+import com.rotai.iq.feature.auth.AuthViewModel
 import java.util.Locale
 
 @Composable
 fun VehicleScreen(
     viewModel: VehicleViewModel,
+    authViewModel: AuthViewModel? = null,
     modifier: Modifier = Modifier,
     onNavigateToGoals: () -> Unit = {},
     onNavigateToRideFilter: () -> Unit = {},
@@ -99,6 +110,7 @@ fun VehicleScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var showLogoutConfirmDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
 
     var soundAlertsEnabled by remember { mutableStateOf(true) }
     var goalAlertsEnabled by remember { mutableStateOf(true) }
@@ -406,6 +418,16 @@ fun VehicleScreen(
             )
             HorizontalDivider(color = RotaBorderSubtle, thickness = 0.5.dp)
             ProfileMenuRow(
+                icon = Icons.Default.Lock,
+                title = "Alterar Senha",
+                subtitle = "Atualizar sua senha de acesso",
+                onClick = {
+                    authViewModel?.resetChangePasswordState()
+                    showChangePasswordDialog = true
+                }
+            )
+            HorizontalDivider(color = RotaBorderSubtle, thickness = 0.5.dp)
+            ProfileMenuRow(
                 icon = Icons.AutoMirrored.Filled.ExitToApp,
                 title = "Sair da Conta",
                 subtitle = "Encerrar sessão com segurança",
@@ -414,6 +436,171 @@ fun VehicleScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    // Modal de Alteração de Senha do Usuário Logado
+    if (showChangePasswordDialog && authViewModel != null) {
+        val cpState by authViewModel.changePasswordState.collectAsState()
+
+        RotaDialog(
+            title = "Alterar Senha",
+            onDismissRequest = {
+                authViewModel.resetChangePasswordState()
+                showChangePasswordDialog = false
+            },
+            confirmButtonText = if (cpState.isLoading) "Salvando..." else "Salvar Nova Senha",
+            onConfirm = {
+                authViewModel.executeChangePassword {
+                    // Estado de sucesso é exibido diretamente no diálogo
+                }
+            }
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (cpState.errorMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0x22FF334B), shape = RoundedCornerShape(10.dp))
+                            .padding(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = RotaAvoid, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = cpState.errorMessage ?: "", color = RotaAvoid, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+
+                if (cpState.successMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0x2200E676), shape = RoundedCornerShape(10.dp))
+                            .padding(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = RotaExcellent, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = cpState.successMessage ?: "", color = RotaExcellent, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+
+                Text(
+                    text = "SENHA ATUAL",
+                    color = RotaTextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
+                OutlinedTextField(
+                    value = cpState.currentPassword,
+                    onValueChange = { authViewModel.onChangeCurrentPasswordChanged(it) },
+                    placeholder = { Text("Digite sua senha atual", color = Color(0xFF666666), fontSize = 13.sp) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = RotaTextSecondary, modifier = Modifier.size(18.dp)) },
+                    trailingIcon = {
+                        IconButton(onClick = { authViewModel.toggleCurrentPasswordVisibility() }) {
+                            Icon(
+                                imageVector = if (cpState.isCurrentPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = RotaTextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    },
+                    visualTransformation = if (cpState.isCurrentPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RotaOrangePrimary,
+                        unfocusedBorderColor = RotaBorderSubtle,
+                        focusedTextColor = RotaTextWhite,
+                        unfocusedTextColor = RotaTextWhite,
+                        focusedContainerColor = RotaCardElevated,
+                        unfocusedContainerColor = RotaCardElevated
+                    )
+                )
+
+                Text(
+                    text = "NOVA SENHA (MÍNIMO 8 CARACTERES)",
+                    color = RotaTextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
+                OutlinedTextField(
+                    value = cpState.newPassword,
+                    onValueChange = { authViewModel.onChangeNewPasswordChanged(it) },
+                    placeholder = { Text("Nova senha segura", color = Color(0xFF666666), fontSize = 13.sp) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = RotaTextSecondary, modifier = Modifier.size(18.dp)) },
+                    trailingIcon = {
+                        IconButton(onClick = { authViewModel.toggleNewPasswordVisibility() }) {
+                            Icon(
+                                imageVector = if (cpState.isNewPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = RotaTextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    },
+                    visualTransformation = if (cpState.isNewPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RotaOrangePrimary,
+                        unfocusedBorderColor = RotaBorderSubtle,
+                        focusedTextColor = RotaTextWhite,
+                        unfocusedTextColor = RotaTextWhite,
+                        focusedContainerColor = RotaCardElevated,
+                        unfocusedContainerColor = RotaCardElevated
+                    )
+                )
+
+                Text(
+                    text = "CONFIRMAR NOVA SENHA",
+                    color = RotaTextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
+                OutlinedTextField(
+                    value = cpState.confirmPassword,
+                    onValueChange = { authViewModel.onChangeConfirmPasswordChanged(it) },
+                    placeholder = { Text("Repita a nova senha", color = Color(0xFF666666), fontSize = 13.sp) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = RotaTextSecondary, modifier = Modifier.size(18.dp)) },
+                    trailingIcon = {
+                        IconButton(onClick = { authViewModel.toggleConfirmPasswordVisibility() }) {
+                            Icon(
+                                imageVector = if (cpState.isConfirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = RotaTextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    },
+                    visualTransformation = if (cpState.isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RotaOrangePrimary,
+                        unfocusedBorderColor = RotaBorderSubtle,
+                        focusedTextColor = RotaTextWhite,
+                        unfocusedTextColor = RotaTextWhite,
+                        focusedContainerColor = RotaCardElevated,
+                        unfocusedContainerColor = RotaCardElevated
+                    )
+                )
+            }
+        }
     }
 
     // Modal de Confirmação de Logout Real

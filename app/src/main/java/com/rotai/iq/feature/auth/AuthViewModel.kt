@@ -43,6 +43,18 @@ data class ForgotPasswordUiState(
     val errorMessage: String? = null
 )
 
+data class ChangePasswordUiState(
+    val currentPassword: String = "",
+    val newPassword: String = "",
+    val confirmPassword: String = "",
+    val isCurrentPasswordVisible: Boolean = false,
+    val isNewPasswordVisible: Boolean = false,
+    val isConfirmPasswordVisible: Boolean = false,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+    val successMessage: String? = null
+)
+
 sealed class AuthNavEvent {
     object NavigateToHome : AuthNavEvent()
     object NavigateToLogin : AuthNavEvent()
@@ -62,6 +74,9 @@ class AuthViewModel(
 
     private val _forgotState = MutableStateFlow(ForgotPasswordUiState())
     val forgotState: StateFlow<ForgotPasswordUiState> = _forgotState.asStateFlow()
+
+    private val _changePasswordState = MutableStateFlow(ChangePasswordUiState())
+    val changePasswordState: StateFlow<ChangePasswordUiState> = _changePasswordState.asStateFlow()
 
     private val _navEvents = MutableSharedFlow<AuthNavEvent>()
     val navEvents: SharedFlow<AuthNavEvent> = _navEvents.asSharedFlow()
@@ -229,12 +244,13 @@ class AuthViewModel(
             _forgotState.update { it.copy(isLoading = true, errorMessage = null) }
             val result = authRepository.forgotPassword(email)
             if (result.isSuccess) {
-                val msg = result.getOrThrow()
+                val data = result.getOrThrow()
                 _forgotState.update {
                     it.copy(
                         isLoading = false,
                         isCodeSent = true,
-                        infoMessage = msg,
+                        infoMessage = data.message,
+                        token = if (!data.resetToken.isNullOrBlank()) data.resetToken else it.token,
                         errorMessage = null
                     )
                 }
@@ -274,6 +290,83 @@ class AuthViewModel(
             } else {
                 val error = result.exceptionOrNull()?.message ?: "Falha ao atualizar a senha."
                 _forgotState.update { it.copy(isLoading = false, errorMessage = error) }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------
+    // ALTERAÇÃO DE SENHA (USUÁRIO LOGADO)
+    // -------------------------------------------------------------
+    fun onChangeCurrentPasswordChanged(password: String) {
+        _changePasswordState.update { it.copy(currentPassword = password, errorMessage = null, successMessage = null) }
+    }
+
+    fun onChangeNewPasswordChanged(password: String) {
+        _changePasswordState.update { it.copy(newPassword = password, errorMessage = null, successMessage = null) }
+    }
+
+    fun onChangeConfirmPasswordChanged(password: String) {
+        _changePasswordState.update { it.copy(confirmPassword = password, errorMessage = null, successMessage = null) }
+    }
+
+    fun toggleCurrentPasswordVisibility() {
+        _changePasswordState.update { it.copy(isCurrentPasswordVisible = !it.isCurrentPasswordVisible) }
+    }
+
+    fun toggleNewPasswordVisibility() {
+        _changePasswordState.update { it.copy(isNewPasswordVisible = !it.isNewPasswordVisible) }
+    }
+
+    fun toggleConfirmPasswordVisibility() {
+        _changePasswordState.update { it.copy(isConfirmPasswordVisible = !it.isConfirmPasswordVisible) }
+    }
+
+    fun resetChangePasswordState() {
+        _changePasswordState.value = ChangePasswordUiState()
+    }
+
+    fun executeChangePassword(onSuccess: (() -> Unit)? = null) {
+        val current = _changePasswordState.value
+        val curPw = current.currentPassword
+        val newPw = current.newPassword
+        val confPw = current.confirmPassword
+
+        if (curPw.isBlank()) {
+            _changePasswordState.update { it.copy(errorMessage = "Informe sua senha atual.") }
+            return
+        }
+        if (newPw.length < 8) {
+            _changePasswordState.update { it.copy(errorMessage = "A nova senha deve possuir no mínimo 8 caracteres.") }
+            return
+        }
+        if (newPw == curPw) {
+            _changePasswordState.update { it.copy(errorMessage = "A nova senha deve ser diferente da senha atual.") }
+            return
+        }
+        if (newPw != confPw) {
+            _changePasswordState.update { it.copy(errorMessage = "A confirmação de senha não confere.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _changePasswordState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
+            val result = authRepository.changePassword(curPw, newPw)
+            if (result.isSuccess) {
+                val msg = result.getOrThrow()
+                _changePasswordState.update {
+                    it.copy(
+                        isLoading = false,
+                        currentPassword = "",
+                        newPassword = "",
+                        confirmPassword = "",
+                        successMessage = msg,
+                        errorMessage = null
+                    )
+                }
+                onSuccess?.invoke()
+            } else {
+                val error = result.exceptionOrNull()?.message ?: "Falha ao alterar senha."
+                _changePasswordState.update { it.copy(isLoading = false, errorMessage = error) }
             }
         }
     }

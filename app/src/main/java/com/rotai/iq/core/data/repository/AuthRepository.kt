@@ -2,6 +2,7 @@ package com.rotai.iq.core.data.repository
 
 import com.rotai.iq.core.network.AuthApiClient
 import com.rotai.iq.core.network.AuthResponse
+import com.rotai.iq.core.network.ForgotPasswordResult
 import com.rotai.iq.core.network.UserSessionProfile
 import com.rotai.iq.core.security.AuthSessionManager
 
@@ -16,8 +17,9 @@ interface AuthRepository {
     suspend fun register(name: String, email: String, password: String, termsAccepted: Boolean): Result<AuthResponse>
     suspend fun refreshSession(): Result<String>
     suspend fun checkSessionStatus(): SessionStatus
-    suspend fun forgotPassword(email: String): Result<String>
+    suspend fun forgotPassword(email: String): Result<ForgotPasswordResult>
     suspend fun resetPassword(token: String, newPassword: String): Result<String>
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<String>
     suspend fun verifyEmail(tokenOrEmail: String): Result<String>
     suspend fun logout(): Result<Unit>
     fun getCachedProfile(): UserSessionProfile?
@@ -99,12 +101,20 @@ class AuthRepositoryImpl(
         return SessionStatus.AUTHENTICATED
     }
 
-    override suspend fun forgotPassword(email: String): Result<String> {
+    override suspend fun forgotPassword(email: String): Result<ForgotPasswordResult> {
         return apiClient.forgotPassword(email)
     }
 
     override suspend fun resetPassword(token: String, newPassword: String): Result<String> {
         return apiClient.resetPassword(token, newPassword)
+    }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<String> {
+        val token = sessionManager.getAccessToken()
+        if (token.isNullOrBlank()) {
+            return Result.failure(Exception("Sessão não autenticada. Faça login novamente."))
+        }
+        return apiClient.changePassword(token, currentPassword, newPassword)
     }
 
     override suspend fun verifyEmail(tokenOrEmail: String): Result<String> {

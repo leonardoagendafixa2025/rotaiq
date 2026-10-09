@@ -111,13 +111,53 @@ def test_auth_full_lifecycle():
         "password": new_password
     })
     assert res_login_new.status_code == 200
+    token_before_change = res_login_new.json()["access_token"]
+    auth_headers = {"Authorization": f"Bearer {token_before_change}"}
+
+    # 12.1. Troca de Senha autenticada (Change Password)
+    # Erro: Senha atual incorreta
+    res_cp_wrong = client.post("/api/v1/auth/change-password", headers=auth_headers, json={
+        "current_password": "WrongPassword123!",
+        "new_password": "ThirdPassword2026!"
+    })
+    assert res_cp_wrong.status_code == 400
+
+    # Erro: Nova senha muito curta (< 8 chars)
+    res_cp_short = client.post("/api/v1/auth/change-password", headers=auth_headers, json={
+        "current_password": new_password,
+        "new_password": "short"
+    })
+    assert res_cp_short.status_code in (400, 422)
+
+    # Erro: Nova senha igual à senha atual
+    res_cp_same = client.post("/api/v1/auth/change-password", headers=auth_headers, json={
+        "current_password": new_password,
+        "new_password": new_password
+    })
+    assert res_cp_same.status_code == 400
+
+    # Sucesso na troca de senha
+    final_password = "FinalStrongPassword2026!"
+    res_cp_ok = client.post("/api/v1/auth/change-password", headers=auth_headers, json={
+        "current_password": new_password,
+        "new_password": final_password
+    })
+    assert res_cp_ok.status_code == 200
+    assert res_cp_ok.json()["success"] is True
+
+    # Login com a senha trocada -> Sucesso
+    res_login_final = client.post("/api/v1/auth/login", json={
+        "email": test_email,
+        "password": final_password
+    })
+    assert res_login_final.status_code == 200
 
     # 13. Logout Real -> revoga o token
-    latest_token = res_login_new.json()["access_token"]
+    latest_token = res_login_final.json()["access_token"]
     res_logout = client.post(
         "/api/v1/auth/logout",
         headers={"Authorization": f"Bearer {latest_token}"},
-        json={"refresh_token": res_login_new.json()["refresh_token"]}
+        json={"refresh_token": res_login_final.json()["refresh_token"]}
     )
     assert res_logout.status_code == 200
 

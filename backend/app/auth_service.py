@@ -104,44 +104,82 @@ class AuthService:
     # 2. Recuperação de Senha
     # -------------------------------------------------------------
     def create_password_reset_token(self, email: str, expiry_hours: int = 1) -> str:
-        token = secrets.token_urlsafe(32)
+        clean_email = email.strip().lower()
         now = datetime.now(timezone.utc)
         expires_at = (now + timedelta(hours=expiry_hours)).isoformat()
-        with self._get_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO password_resets (token, email, expires_at, used, created_at) VALUES (?, ?, ?, 0, ?)",
-                (token, email.strip().lower(), expires_at, now.isoformat())
-            )
-            conn.commit()
+
+        token = None
+        try:
+            from .auth import jwt, JWT_SECRET, JWT_ALGORITHM
+            if jwt:
+                payload = {
+                    "sub": clean_email,
+                    "type": "password_reset",
+                    "exp": datetime.now(timezone.utc) + timedelta(hours=expiry_hours)
+                }
+                token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        except Exception:
+            token = None
+
+        if not token:
+            token = secrets.token_urlsafe(32)
+
+        try:
+            with self._get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO password_resets (token, email, expires_at, used, created_at) VALUES (?, ?, ?, 0, ?)",
+                    (token, clean_email, expires_at, now.isoformat())
+                )
+                conn.commit()
+        except Exception:
+            pass
+
         return token
 
     def validate_password_reset_token(self, token: str) -> Optional[str]:
         """Retorna o email vinculado se o token for válido e não expirado/usado."""
-        with self._get_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT email, expires_at, used FROM password_resets WHERE token = ?", (token,))
-            row = cur.fetchone()
-            if not row:
-                return None
-            if row["used"] == 1:
-                return None
-            
-            try:
-                exp_dt = datetime.fromisoformat(row["expires_at"])
-                if datetime.now(timezone.utc) > exp_dt:
-                    return None
-            except Exception:
-                return None
-            
-            return row["email"]
+        token_str = token.strip()
+        # 1. Tenta consulta ao SQLite (se persistido localmente)
+        try:
+            with self._get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT email, expires_at, used FROM password_resets WHERE token = ?", (token_str,))
+                row = cur.fetchone()
+                if row:
+                    if row["used"] == 1:
+                        return None
+                    try:
+                        exp_dt = datetime.fromisoformat(row["expires_at"])
+                        if datetime.now(timezone.utc) > exp_dt:
+                            return None
+                    except Exception:
+                        return None
+                    return row["email"]
+        except Exception:
+            pass
+
+        # 2. Se não estiver no SQLite (ex: instâncias Serverless Vercel distintas), valida via JWT
+        try:
+            from .auth import jwt, JWT_SECRET, JWT_ALGORITHM
+            if jwt:
+                payload = jwt.decode(token_str, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                if payload.get("type") == "password_reset":
+                    return payload.get("sub")
+        except Exception:
+            pass
+
+        return None
 
     def mark_password_reset_used(self, token: str) -> bool:
-        with self._get_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("UPDATE password_resets SET used = 1 WHERE token = ?", (token,))
-            conn.commit()
-            return cur.rowcount > 0
+        try:
+            with self._get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("UPDATE password_resets SET used = 1 WHERE token = ?", (token.strip(),))
+                conn.commit()
+                return cur.rowcount > 0
+        except Exception:
+            return False
 
     # -------------------------------------------------------------
     # 3. Verificação de E-mail

@@ -199,6 +199,7 @@ fun RotaIqApp(
                 val authVm: AuthViewModel = viewModel(factory = viewModelFactory)
                 VehicleScreen(
                     viewModel = vm,
+                    authViewModel = authVm,
                     onNavigateToGoals = {
                         navController.navigate(Screen.Goals.route)
                     },

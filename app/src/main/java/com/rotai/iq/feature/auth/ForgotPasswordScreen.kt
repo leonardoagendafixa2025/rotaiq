@@ -256,6 +256,16 @@ fun ForgotPasswordScreen(
                             )
                         )
 
+                        if (state.token.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "✓ Código verificado e preenchido automaticamente.",
+                                color = RotaExcellent,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(text = "NOVA SENHA (MÍNIMO 8 CARACTERES)", color = RotaTextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)

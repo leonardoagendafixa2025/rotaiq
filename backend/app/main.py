@@ -111,6 +111,10 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str = Field(min_length=8)
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+
 class VerifyEmailRequest(BaseModel):
     token: Optional[str] = None
     email: Optional[str] = None
@@ -599,6 +603,56 @@ async def reset_password(req: ResetPasswordRequest):
     return {
         "success": True,
         "message": "Senha atualizada com sucesso! Você já pode efetuar login."
+    }
+
+@app.post("/api/v1/auth/change-password")
+async def change_password(
+    req: ChangePasswordRequest,
+    claims: Dict[str, Any] = Depends(get_current_user_claims)
+):
+    user_id = claims.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário não autenticado."
+        )
+
+    user = supabase.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado."
+        )
+
+    stored_hash = user.get("password_hash") or ""
+    if not verify_password(req.current_password, stored_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha atual informada está incorreta."
+        )
+
+    if len(req.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A nova senha deve possuir no mínimo 8 caracteres."
+        )
+
+    if req.current_password == req.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A nova senha deve ser diferente da senha atual."
+        )
+
+    new_hash = hash_password(req.new_password)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    supabase.update_user(user["id"], {
+        "password_hash": new_hash,
+        "updated_at": now_iso
+    })
+
+    return {
+        "success": True,
+        "message": "Senha alterada com sucesso!"
     }
 
 @app.post("/api/v1/auth/verify-email")
